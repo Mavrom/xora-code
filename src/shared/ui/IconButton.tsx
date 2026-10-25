@@ -11,6 +11,8 @@ interface IconButtonProps {
   disabled?: boolean;
   /** `ghost` for toolbars, `solid` for a primary action (e.g. send). */
   variant?: "ghost" | "solid";
+  /** `md` (28px) by default; `sm` (24px) for dense row actions. */
+  size?: "sm" | "md";
 }
 
 export function IconButton({
@@ -20,6 +22,7 @@ export function IconButton({
   active,
   disabled,
   variant = "ghost",
+  size = "md",
 }: IconButtonProps) {
   return (
     <button
@@ -30,7 +33,8 @@ export function IconButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex size-7 shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+        "inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+        size === "md" ? "size-7" : "size-6",
         "disabled:cursor-not-allowed",
         variant === "ghost" &&
           (active
@@ -40,7 +44,7 @@ export function IconButton({
           "bg-accent text-accent-fg hover:bg-fg disabled:bg-hover disabled:text-fg-subtle",
       )}
     >
-      <Icon size={16} strokeWidth={1.75} aria-hidden />
+      <Icon size={size === "md" ? 16 : 14} strokeWidth={1.75} aria-hidden />
     </button>
   );
 }
