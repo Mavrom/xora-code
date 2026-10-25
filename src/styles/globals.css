@@ -34,9 +34,9 @@
   --text-xs--line-height: 18px;
   --text-ui: 13px; /* body, inputs, list rows */
   --text-ui--line-height: 20px;
-  --text-title: 20px; /* hero headline */
-  --text-title--line-height: 28px;
-  --text-title--letter-spacing: -0.015em;
+  --text-title: 22px; /* hero headline */
+  --text-title--line-height: 30px;
+  --text-title--letter-spacing: -0.018em;
 
   --radius-xs: 4px; /* key caps */
   --radius-sm: 6px;
