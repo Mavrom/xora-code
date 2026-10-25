@@ -21,7 +21,7 @@ export interface Command extends Rankable {
   id: string;
   title: string;
   group: string;
-  /** Display only, e.g. "Ctrl+Shift+E"; the binding itself lives with the feature. */
+  /** Display only, portable `Kbd` form (e.g. "ctrl+shift+e"); the binding lives with the feature. */
   shortcut?: string;
   icon?: LucideIcon;
   run: () => void;
@@ -47,7 +47,7 @@ export const COMMANDS: Command[] = [
     id: "editor.save",
     title: "Aktif dosyayı kaydet",
     group: "Dosya",
-    shortcut: "Ctrl+S",
+    shortcut: "mod+s",
     icon: Save,
     when: hasActiveTab,
     run: () => emitCommand(SAVE_ACTIVE_FILE),
@@ -56,7 +56,7 @@ export const COMMANDS: Command[] = [
     id: "editor.closeTab",
     title: "Aktif sekmeyi kapat",
     group: "Dosya",
-    shortcut: "Ctrl+W",
+    shortcut: "mod+w",
     icon: X,
     when: hasActiveTab,
     run: closeActiveTab,
@@ -72,7 +72,7 @@ export const COMMANDS: Command[] = [
     id: "view.explorer",
     title: "Explorer'a geç",
     group: "Görünüm",
-    shortcut: "Ctrl+Shift+E",
+    shortcut: "ctrl+shift+e",
     icon: Files,
     run: () => useUiStore.getState().setSidebarView("explorer"),
   },
@@ -80,7 +80,7 @@ export const COMMANDS: Command[] = [
     id: "view.inbox",
     title: "Inbox'a geç",
     group: "Görünüm",
-    shortcut: "Ctrl+Shift+N",
+    shortcut: "ctrl+shift+n",
     icon: Inbox,
     run: showInbox,
   },

@@ -10,6 +10,8 @@ import {
 import { flushSync } from "react-dom";
 import { Search } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
+import { Kbd } from "@/shared/ui/Kbd";
+import { setPaletteOpen } from "./paletteGuard";
 import { COMMANDS, type Command } from "./registry";
 import { flatten, moveIndex, rankCommands, type Ranked } from "./results";
 
@@ -30,13 +32,19 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
 
   const groups = useMemo(() => rankCommands(COMMANDS, query), [query]);
   const results = useMemo(() => flatten(groups), [groups]);
+  // Row index = position in the flattened list that keyboard navigation walks.
+  const indexOf = useMemo(() => new Map(results.map((r, i) => [r.item.id, i])), [results]);
   const optionId = (index: number) => `${baseId}-option-${index}`;
 
   // Focus the input on open and give focus back to whatever had it on close.
   useLayoutEffect(() => {
+    setPaletteOpen(true);
     const previous = document.activeElement instanceof HTMLElement ? document.activeElement : null;
     input.current?.focus();
-    return () => previous?.focus({ preventScroll: true });
+    return () => {
+      setPaletteOpen(false);
+      previous?.focus({ preventScroll: true });
+    };
   }, []);
 
   useEffect(() => {
@@ -66,8 +74,6 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
     }
   };
 
-  let index = -1;
-
   return (
     <div
       className="fixed inset-0 z-50 flex justify-center bg-black/60 px-4 pt-[16vh] transition-opacity duration-150 ease-out-quint starting:opacity-0"
@@ -80,6 +86,11 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
         aria-modal="true"
         aria-label="Komut paleti"
         onKeyDown={onKeyDown}
+        // Clicks on padding, headers or the footer must not pull focus out of the input,
+        // or Esc and the arrows would stop working.
+        onMouseDown={(e) => {
+          if (e.target !== input.current) e.preventDefault();
+        }}
         className="flex h-fit max-h-[min(480px,70vh)] w-full max-w-[560px] flex-col overflow-hidden rounded-lg border border-border-strong bg-surface shadow-2xl shadow-black/70 transition-[opacity,scale,translate] duration-150 ease-out-quint starting:translate-y-1 starting:scale-[.98] starting:opacity-0"
       >
         <div className="flex h-12 shrink-0 items-center gap-3 border-b border-border px-4">
@@ -101,7 +112,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
             placeholder="Bir komut ara…"
             className="h-full min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none placeholder:text-fg-subtle focus-visible:outline-none"
           />
-          <KeyCap>Esc</KeyCap>
+          <Kbd keys="esc" />
         </div>
 
         <div
@@ -133,8 +144,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
                   {group.group}
                 </div>
                 {group.items.map((result) => {
-                  index += 1;
-                  const i = index;
+                  const i = indexOf.get(result.item.id) ?? -1;
                   return (
                     <CommandRow
                       key={result.item.id}
@@ -153,16 +163,16 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
 
         <div className="flex h-9 shrink-0 items-center gap-4 border-t border-border px-4 text-[11px] text-fg-subtle">
           <span className="flex items-center gap-1.5">
-            <KeyCap>↑</KeyCap>
-            <KeyCap>↓</KeyCap>
+            <Kbd keys="up" />
+            <Kbd keys="down" />
             gez
           </span>
           <span className="flex items-center gap-1.5">
-            <KeyCap>Enter</KeyCap>
+            <Kbd keys="enter" />
             çalıştır
           </span>
           <span className="flex items-center gap-1.5">
-            <KeyCap>Esc</KeyCap>
+            <Kbd keys="esc" />
             kapat
           </span>
         </div>
@@ -209,13 +219,7 @@ function CommandRow({ id, result, active, onHover, onRun }: CommandRowProps) {
       <span className="min-w-0 flex-1 truncate">
         <Highlight text={item.title} positions={positions} />
       </span>
-      {item.shortcut && (
-        <span className="flex shrink-0 items-center gap-0.5" aria-label={item.shortcut}>
-          {item.shortcut.split("+").map((key) => (
-            <KeyCap key={key}>{key}</KeyCap>
-          ))}
-        </span>
-      )}
+      {item.shortcut && <Kbd keys={item.shortcut} className="shrink-0" />}
     </div>
   );
 }
@@ -238,17 +242,5 @@ function Highlight({ text, positions }: { text: string; positions: number[] }) {
     ) : (
       p.text
     ),
-  );
-}
-
-// TODO(polish): swap for the shared `Kbd` from `@/shared/ui` once it lands.
-function KeyCap({ children }: { children: string }) {
-  return (
-    <kbd
-      aria-hidden
-      className="inline-flex h-[18px] min-w-[18px] items-center justify-center rounded-[4px] border border-border-strong bg-elevated px-1 font-sans text-[10.5px] leading-none font-medium text-fg-muted"
-    >
-      {children}
-    </kbd>
   );
 }
