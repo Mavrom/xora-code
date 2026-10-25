@@ -1,3 +1,5 @@
+import { Layout } from "./Layout";
+
 export default function App() {
-  return <div className="h-full flex items-center justify-center">Xora Code</div>;
+  return <Layout />;
 }
