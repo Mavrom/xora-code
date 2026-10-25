@@ -13,7 +13,8 @@
   --color-border-strong: #2a2a2a;
   --color-fg: #ededed;
   --color-fg-muted: #a1a1a1;
-  --color-fg-subtle: #6b6b6b;
+  /* Icons, decoration and meta text only (4.6:1 on bg); secondary copy uses fg-muted. */
+  --color-fg-subtle: #767676;
   --color-accent: #ffffff; /* monochrome accent: white on onyx */
   --color-accent-fg: #000000;
   --color-warning: #e5b567; /* dirty indicator */
@@ -22,6 +23,20 @@
   --font-sans: "Inter Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;
 
+  /* Type scale: a dense desktop UI built around 13px body copy. */
+  --text-3xs: 10px; /* key caps, badges */
+  --text-3xs--line-height: 14px;
+  --text-2xs: 11px; /* meta, section labels, status bar */
+  --text-2xs--line-height: 16px;
+  --text-xs: 12px; /* secondary copy, chips, buttons */
+  --text-xs--line-height: 18px;
+  --text-ui: 13px; /* body, inputs, list rows */
+  --text-ui--line-height: 20px;
+  --text-title: 20px; /* hero headline */
+  --text-title--line-height: 28px;
+  --text-title--letter-spacing: -0.015em;
+
+  --radius-xs: 4px; /* key caps */
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
@@ -29,13 +44,23 @@
   /* Motion: calm, short, CSS-only. */
   --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
   --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+  --transition-duration-fast: 120ms; /* hover, colour */
+  --transition-duration-base: 160ms; /* chips, menus, focus */
+  --transition-duration-slow: 240ms; /* panels, collapse */
 
   /* Soft white halo for focused inputs (no colour, just light). */
   --shadow-halo:
     0 0 0 3px color-mix(in srgb, var(--color-fg) 4%, transparent),
     0 0 24px -8px color-mix(in srgb, var(--color-fg) 14%, transparent);
 
+  /* Sunken icon well: dark lip at the top, a hairline of light at the bottom. */
+  --shadow-well:
+    inset 0 1px 2px var(--color-bg),
+    inset 0 -1px 0 color-mix(in srgb, var(--color-fg) 5%, transparent);
+
   --animate-skeleton: skeleton 1.6s var(--ease-in-out-soft) infinite;
+  --animate-shimmer: shimmer 2s linear infinite;
+  --animate-caret: caret 1s steps(1) infinite;
 
   @keyframes skeleton {
     from {
@@ -43,6 +68,21 @@
     }
     to {
       background-position: -100% 0;
+    }
+  }
+
+  @keyframes shimmer {
+    from {
+      background-position: 150% 0;
+    }
+    to {
+      background-position: -50% 0;
+    }
+  }
+
+  @keyframes caret {
+    50% {
+      opacity: 0;
     }
   }
 }
@@ -62,7 +102,7 @@
     background: var(--color-bg);
     color: var(--color-fg);
     font-family: var(--font-sans);
-    font-size: 13px;
+    font-size: var(--text-ui);
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
@@ -123,6 +163,58 @@
   }
 }
 
+/* Live label ("Düşünüyor…", "Testler çalışıyor…"): a soft band of light sweeps the text.
+   Tune the band width with `--shimmer-spread`. Reduced motion: plain muted text. */
+@utility shimmer {
+  background: linear-gradient(
+      90deg,
+      var(--color-fg-subtle) calc(50% - var(--shimmer-spread, 14%)),
+      var(--color-fg) 50%,
+      var(--color-fg-subtle) calc(50% + var(--shimmer-spread, 14%))
+    )
+    0 0 / 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-shimmer);
+
+  @media (prefers-reduced-motion: reduce) {
+    background: none;
+    color: var(--color-fg-muted);
+    animation: none;
+  }
+}
+
+/* Faint radial light behind a hero block; AMOLED black everywhere else. */
+@utility hero-glow {
+  background: radial-gradient(
+    closest-side,
+    color-mix(in srgb, var(--color-fg) 3.5%, transparent),
+    transparent
+  );
+}
+
+/* Streaming caret appended after the last token. */
+@utility caret {
+  &::after {
+    content: "";
+    display: inline-block;
+    width: 0.5ch;
+    height: 1em;
+    margin-left: 1px;
+    vertical-align: -0.15em;
+    background: var(--color-fg);
+    animation: var(--animate-caret);
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    &::after {
+      animation: none;
+    }
+  }
+}
+
+/* Global guard: motion collapses to an instant change for people who ask for less. */
 @media (prefers-reduced-motion: reduce) {
   *,
   ::before,

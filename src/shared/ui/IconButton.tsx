@@ -33,7 +33,7 @@ export function IconButton({
       disabled={disabled}
       onClick={onClick}
       className={cn(
-        "inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-150",
+        "inline-flex shrink-0 items-center justify-center rounded-md transition-colors duration-fast",
         size === "md" ? "size-7" : "size-6",
         "disabled:cursor-not-allowed",
         variant === "ghost" &&
