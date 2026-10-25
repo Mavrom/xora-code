@@ -131,6 +131,15 @@ function TreeRoot({ root }: { root: string }) {
     [open, setOpen],
   );
 
+  // A re-list can remove the focused row, which drops DOM focus to <body>. Hand it to the
+  // resolved tab stop, but only when focus was really lost (never steal it from elsewhere).
+  useEffect(() => {
+    if (focusedPath === null || nodes.some((n) => n.entry.path === focusedPath)) return;
+    const current = document.activeElement;
+    if (current && current !== document.body) return;
+    if (tabStop) rows.current.get(tabStop)?.focus();
+  }, [nodes, focusedPath, tabStop]);
+
   const focusRow = (path: string) => {
     setFocusedPath(path);
     rows.current.get(path)?.focus();
