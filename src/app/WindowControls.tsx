@@ -39,7 +39,7 @@ function CaptionButton({ icon: Icon, label, onClick, danger }: CaptionButtonProp
           : "hover:bg-hover hover:text-fg active:bg-elevated",
       )}
     >
-      <Icon size={danger ? 16 : 14} strokeWidth={1.25} aria-hidden />
+      <Icon size={14} strokeWidth={1.25} aria-hidden />
     </button>
   );
 }
