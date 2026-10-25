@@ -4,6 +4,7 @@ import { IconButton } from "@/shared/ui/IconButton";
 
 const LINE_HEIGHT = 20;
 const MAX_LINES = 8;
+const PADDING_TOP = 12; // matches `pt-3`
 
 /** Message input. Agents arrive in Phase 2, so it renders finished but disabled. */
 export function Composer() {
@@ -16,7 +17,7 @@ export function Composer() {
     const el = textareaRef.current;
     if (!el) return;
     el.style.height = "auto";
-    el.style.height = `${Math.min(el.scrollHeight, LINE_HEIGHT * MAX_LINES)}px`;
+    el.style.height = `${Math.min(el.scrollHeight, LINE_HEIGHT * MAX_LINES + PADDING_TOP)}px`;
   }, [value]);
 
   return (
@@ -27,7 +28,7 @@ export function Composer() {
       <textarea
         id="composer-input"
         ref={textareaRef}
-        rows={1}
+        rows={2}
         value={value}
         onChange={(e) => setValue(e.target.value)}
         disabled={disabled}
@@ -35,7 +36,7 @@ export function Composer() {
         style={{ lineHeight: `${LINE_HEIGHT}px` }}
         className="block w-full resize-none bg-transparent px-3.5 pt-3 text-[13px] text-fg outline-none placeholder:text-fg-subtle disabled:cursor-not-allowed"
       />
-      <div className="flex items-center justify-between px-2 pt-1 pb-2">
+      <div className="flex items-center justify-between px-2.5 pt-1 pb-2.5">
         <button
           type="button"
           disabled
