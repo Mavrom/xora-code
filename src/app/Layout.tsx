@@ -1,12 +1,11 @@
 import { useCallback, useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { SquareCode } from "lucide-react";
 import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from "react-resizable-panels";
 import { basename } from "@/shared/lib/path";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { FileTree } from "@/features/files/FileTree";
 import { ChatPanel } from "@/features/chat/ChatPanel";
-import { EmptyState } from "@/shared/ui/EmptyState";
+import { EditorArea } from "@/features/editor/EditorArea";
 import { TopBar } from "./TopBar";
 
 /** 1px divider; the library widens the actual hit target around it. */
@@ -71,12 +70,7 @@ export function Layout() {
           onResize={(size) => setEditorOpen(size.asPercentage > 0)}
           className="bg-surface"
         >
-          {/* Task 6 mounts <EditorPanel /> here. */}
-          <EmptyState
-            icon={SquareCode}
-            title="Açık dosya yok"
-            description="Gezginden bir dosya seçtiğinde burada açılır."
-          />
+          <EditorArea />
         </Panel>
       </Group>
     </div>
