@@ -1,7 +1,16 @@
-# Tauri + React + Typescript
+# Xora Code
 
-This template should help get you started developing with Tauri, React and Typescript in Vite.
+An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemini subscription.
 
-## Recommended IDE Setup
+> Early development (Phase 1: skeleton). Documentation is coming soon.
 
-- [VS Code](https://code.visualstudio.com/) + [Tauri](https://marketplace.visualstudio.com/items?itemName=tauri-apps.tauri-vscode) + [rust-analyzer](https://marketplace.visualstudio.com/items?itemName=rust-lang.rust-analyzer)
+## Development
+
+```bash
+npm install
+npm run tauri dev
+```
+
+## License
+
+MIT

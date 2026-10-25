@@ -1,11 +1,11 @@
 [package]
 name = "xora-code"
 version = "0.1.0"
-description = "A Tauri App"
-authors = ["you"]
+description = "Open-source, agent-first code editor"
+authors = ["Xora Code contributors"]
+license = "MIT"
 edition = "2024"
-
-# See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
+rust-version = "1.85"
 
 [lib]
 # The `_lib` suffix may seem redundant but it is necessary
@@ -23,7 +23,6 @@ tauri-plugin-opener = "2"
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 tauri-plugin-dialog = "2"
-
 
 # Read the optimization guideline for more details: https://tauri.app/concept/size/#cargo-configuration
 [profile.release]
