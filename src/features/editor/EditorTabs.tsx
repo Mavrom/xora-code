@@ -3,7 +3,9 @@ import { X } from "lucide-react";
 import { FileIcon } from "@/features/files/FileIcon";
 import { basename } from "@/shared/lib/path";
 import { cn } from "@/shared/ui/cn";
+import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { closeActiveTab, requestCloseTab } from "./closeTab";
+import { isCloseTabShortcut, isShown } from "./editorKeys";
 import { isDirty, useEditorStore, type Tab } from "./store";
 
 /** Parent folder name, shown only when two open tabs share a file name. */
@@ -55,12 +57,14 @@ export function EditorTabs() {
   }, [activePath, tabs.length]);
 
   // Ctrl+W closes the active tab from anywhere; capture phase so Monaco cannot swallow it.
+  // A held key closes one tab, not a run of them, and a collapsed editor panel (the strip
+  // has no width) is left alone so nothing invisible gets closed.
   useEffect(() => {
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
-      if (e.defaultPrevented || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
-      if (e.key.toLowerCase() !== "w") return;
+      if (e.defaultPrevented || isPaletteOpen() || !isCloseTabShortcut(e)) return;
+      if (!isShown(scroller.current)) return;
       e.preventDefault();
-      closeActiveTab();
+      if (!e.repeat) closeActiveTab();
     };
     window.addEventListener("keydown", onKeyDown, true);
     return () => window.removeEventListener("keydown", onKeyDown, true);

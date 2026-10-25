@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { FileCode } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import { EDITOR_EMPTY_ID } from "./editorKeys";
 import { EditorStatusBar } from "./EditorStatusBar";
 import { EditorTabs } from "./EditorTabs";
 import { useEditorStore } from "./store";
@@ -13,12 +14,21 @@ export function EditorArea() {
   const hasTabs = useEditorStore((s) => s.tabs.length > 0);
 
   if (!hasTabs) {
+    // Focusable (not tabbable) so closing the last tab can park focus here.
     return (
-      <EmptyState
-        icon={FileCode}
-        title="Açık dosya yok"
-        description="Explorer'dan bir dosya seç."
-      />
+      <div
+        id={EDITOR_EMPTY_ID}
+        tabIndex={-1}
+        role="region"
+        aria-label="Editör"
+        className="h-full outline-none"
+      >
+        <EmptyState
+          icon={FileCode}
+          title="Açık dosya yok"
+          description="Explorer'dan bir dosya seç."
+        />
+      </div>
     );
   }
 
