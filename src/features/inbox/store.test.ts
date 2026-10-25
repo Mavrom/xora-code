@@ -87,7 +87,7 @@ describe("inbox store: load", () => {
   });
 
   it("ignores mutations before the first load", async () => {
-    s().add("too early");
+    expect(s().add("too early")).toBe(false);
     await settle();
     expect(s().notes).toEqual([]);
     expect(notesSave).not.toHaveBeenCalled();
@@ -97,7 +97,7 @@ describe("inbox store: load", () => {
 describe("inbox store: mutations", () => {
   it("add trims text and stamps a fresh open note", async () => {
     await ready();
-    s().add("  buy milk \n");
+    expect(s().add("  buy milk \n")).toBe(true);
     expect(s().notes).toHaveLength(1);
     const [n] = s().notes;
     expect(n).toMatchObject({
@@ -118,8 +118,8 @@ describe("inbox store: mutations", () => {
 
   it("add ignores empty and whitespace-only text", async () => {
     await ready();
-    s().add("");
-    s().add("   \n\t");
+    expect(s().add("")).toBe(false);
+    expect(s().add("   \n\t")).toBe(false);
     await settle();
     expect(s().notes).toEqual([]);
     expect(notesSave).not.toHaveBeenCalled();

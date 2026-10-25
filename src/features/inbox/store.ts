@@ -11,7 +11,8 @@ interface InboxState {
   /** Load failure (status `error`) or the last save failure (status `ready`). */
   error: string | null;
   load: () => Promise<void>;
-  add: (text: string) => void;
+  /** Adds a note; `false` when nothing was added (empty text, or not loaded yet). */
+  add: (text: string) => boolean;
   update: (id: string, text: string) => void;
   togglePin: (id: string) => void;
   toggleDone: (id: string) => void;
@@ -108,18 +109,19 @@ export async function flushNow(): Promise<void> {
 
 export const useInboxStore = create<InboxState>((set, get) => {
   /** Applies `change` to the list when ready; saves only if something changed. */
-  const mutate = (change: (notes: Note[]) => Note[]) => {
-    if (get().status !== "ready") return;
+  const mutate = (change: (notes: Note[]) => Note[]): boolean => {
+    if (get().status !== "ready") return false;
     const prev = get().notes;
     const next = change(prev);
-    if (next === prev) return;
+    if (next === prev) return false;
     set({ notes: next });
     scheduleSave();
+    return true;
   };
 
   /** Patches one note and bumps its `updatedAt`; unknown ids leave the list as is. */
   const patch = (id: string, fn: (n: Note) => Partial<Note> | null) =>
-    mutate((notes) => {
+    void mutate((notes) => {
       const index = notes.findIndex((n) => n.id === id);
       const changes = index === -1 ? null : fn(notes[index]);
       if (!changes) return notes;
@@ -148,7 +150,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
 
     add: (text) => {
       const trimmed = text.trim();
-      if (!trimmed) return;
+      if (!trimmed) return false;
       const now = Date.now();
       const note: Note = {
         id: crypto.randomUUID(),
@@ -158,7 +160,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
         createdAt: now,
         updatedAt: now,
       };
-      mutate((notes) => [note, ...notes]);
+      return mutate((notes) => [note, ...notes]);
     },
 
     update: (id, text) => {
