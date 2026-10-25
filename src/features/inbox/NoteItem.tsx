@@ -111,7 +111,9 @@ export function NoteItem({ note, now }: NoteItemProps) {
         </p>
       )}
 
-      <div className="mt-1 flex h-4 items-center gap-1.5 text-[11px] text-fg-subtle">
+      {/* Meta line; the action strip sits at its end in normal flow, so it can
+          never cover the time or "devamı" and wraps below them in a narrow panel. */}
+      <div className="mt-1 flex min-h-4 flex-wrap items-center gap-x-1.5 gap-y-1 text-[11px] text-fg-subtle">
         {note.pinned && !note.done && (
           <Pin
             size={11}
@@ -140,41 +142,40 @@ export function NoteItem({ note, now }: NoteItemProps) {
             </button>
           </>
         )}
-      </div>
-
-      {!editing && (
-        <div
-          className={cn(
-            // Sits on the meta line (centred on it), so it never covers the note text.
-            "absolute right-1.5 bottom-1 flex items-center gap-0.5 rounded-md bg-hover pl-1",
-            "translate-x-1 opacity-0 transition-[opacity,translate] duration-150 ease-out-quint",
-            "group-hover:translate-x-0 group-hover:opacity-100",
-            // Keyboard focus on the row or on an action keeps them visible.
-            "group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-has-[:focus-visible]:translate-x-0 group-has-[:focus-visible]:opacity-100",
-          )}
-        >
-          {!note.done && (
+        {!editing && (
+          <div
+            className={cn(
+              // -my-1: the 24px buttons fit the 16px line without growing the row.
+              "-my-1 -mr-1 ml-auto flex items-center gap-0.5",
+              "translate-x-1 opacity-0 transition-[opacity,translate] duration-150 ease-out-quint",
+              "group-hover:translate-x-0 group-hover:opacity-100",
+              // Keyboard focus on the row or on an action keeps them visible.
+              "group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-has-[:focus-visible]:translate-x-0 group-has-[:focus-visible]:opacity-100",
+            )}
+          >
+            {!note.done && (
+              <IconButton
+                size="sm"
+                icon={note.pinned ? PinOff : Pin}
+                label={note.pinned ? "Sabitlemeyi kaldır (P)" : "Sabitle (P)"}
+                onClick={() => togglePin(note.id)}
+              />
+            )}
             <IconButton
               size="sm"
-              icon={note.pinned ? PinOff : Pin}
-              label={note.pinned ? "Sabitlemeyi kaldır (P)" : "Sabitle (P)"}
-              onClick={() => togglePin(note.id)}
+              icon={note.done ? RotateCcw : Check}
+              label={note.done ? "Geri al (E)" : "Tamamla (E)"}
+              onClick={() => toggleDone(note.id)}
             />
-          )}
-          <IconButton
-            size="sm"
-            icon={note.done ? RotateCcw : Check}
-            label={note.done ? "Geri al (E)" : "Tamamla (E)"}
-            onClick={() => toggleDone(note.id)}
-          />
-          <IconButton
-            size="sm"
-            icon={Trash2}
-            label="Sil (Del)"
-            onClick={() => keepFocus(() => remove(note.id))}
-          />
-        </div>
-      )}
+            <IconButton
+              size="sm"
+              icon={Trash2}
+              label="Sil (Del)"
+              onClick={() => keepFocus(() => remove(note.id))}
+            />
+          </div>
+        )}
+      </div>
     </div>
   );
 }
