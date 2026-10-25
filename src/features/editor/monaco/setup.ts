@@ -19,5 +19,20 @@ self.MonacoEnvironment = {
   },
 };
 
+// Files open without their project (no tsconfig, no node_modules), so semantic errors would be
+// noise everywhere; keep syntax checks only.
+for (const defaults of [
+  monaco.typescript.typescriptDefaults,
+  monaco.typescript.javascriptDefaults,
+]) {
+  defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
+  defaults.setCompilerOptions({
+    ...defaults.getCompilerOptions(),
+    jsx: monaco.typescript.JsxEmit.ReactJSX,
+    target: monaco.typescript.ScriptTarget.ESNext,
+    allowNonTsExtensions: true,
+  });
+}
+
 defineXoraTheme(monaco);
 loader.config({ monaco });
