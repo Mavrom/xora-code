@@ -34,5 +34,15 @@ for (const defaults of [
   });
 }
 
+// Xora has one command palette. Drop Monaco's own (F1, and Ctrl+Shift+P where bound); the
+// app's capture-phase Ctrl+K / Ctrl+Shift+P listener never lets those reach the editor anyway.
+// Monaco's Ctrl+K chords (Ctrl+K Ctrl+C comment, Ctrl+K Ctrl+X trim, ...) are intentionally
+// given up so Ctrl+K always opens Xora's palette.
+monaco.editor.addKeybindingRules(
+  [monaco.KeyCode.F1, monaco.KeyMod.CtrlCmd | monaco.KeyMod.Shift | monaco.KeyCode.KeyP].map(
+    (keybinding) => ({ keybinding, command: "-editor.action.quickCommand" }),
+  ),
+);
+
 defineXoraTheme(monaco);
 loader.config({ monaco });
