@@ -42,7 +42,8 @@ export function Button({
       className={cn(
         "inline-flex shrink-0 items-center justify-center gap-1.5 rounded-md font-medium whitespace-nowrap select-none",
         "transition-[background-color,border-color,color,box-shadow] duration-fast ease-out-quint",
-        "focus-visible:shadow-halo focus-visible:outline-border-strong disabled:cursor-not-allowed",
+        // Outline sits just outside the edge so it reads on every variant, white primary included.
+        "focus-visible:shadow-halo focus-visible:outline-1 focus-visible:outline-offset-1 focus-visible:outline-fg-muted disabled:cursor-not-allowed",
         size === "md" ? "h-7 px-3 text-xs" : "h-6 px-2 text-2xs",
         VARIANTS[variant],
         className,

@@ -30,16 +30,25 @@ function isActionObject(action: EmptyStateProps["action"]): action is EmptyState
   );
 }
 
+interface IconWellProps {
+  icon: LucideIcon;
+  /** `hero` is a touch larger and brighter, for the one focal well of a view (chat welcome). */
+  size?: "default" | "hero";
+  className?: string;
+}
+
 /** The sunken square that holds an empty state's icon; shared with the chat welcome. */
-export function IconWell({ icon: Icon, className }: { icon: LucideIcon; className?: string }) {
+export function IconWell({ icon: Icon, size = "default", className }: IconWellProps) {
+  const hero = size === "hero";
   return (
     <div
       className={cn(
-        "flex size-10 items-center justify-center rounded-lg border border-border bg-linear-to-b from-bg to-surface text-fg-subtle shadow-well",
+        "flex items-center justify-center rounded-lg border border-border bg-linear-to-b from-bg to-surface shadow-well",
+        hero ? "size-11 text-fg-muted" : "size-10 text-fg-subtle",
         className,
       )}
     >
-      <Icon size={18} strokeWidth={1.5} aria-hidden />
+      <Icon size={hero ? 20 : 18} strokeWidth={1.5} aria-hidden />
     </div>
   );
 }

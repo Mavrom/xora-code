@@ -13,8 +13,10 @@
   --color-border-strong: #2a2a2a;
   --color-fg: #ededed;
   --color-fg-muted: #a1a1a1;
-  /* Icons, decoration and meta text only (4.6:1 on bg); secondary copy uses fg-muted. */
-  --color-fg-subtle: #767676;
+  /* Icons, placeholders and meta text; secondary copy uses fg-muted.
+     Rule: must stay >= 4.5:1 on bg, surface and elevated (now 5.2 / 4.9 / 4.7);
+     guarded by src/shared/lib/contrast.test.ts. Do not darken. */
+  --color-fg-subtle: #7e7e7e;
   --color-accent: #ffffff; /* monochrome accent: white on onyx */
   --color-accent-fg: #000000;
   --color-warning: #e5b567; /* dirty indicator */
@@ -32,9 +34,9 @@
   --text-xs--line-height: 18px;
   --text-ui: 13px; /* body, inputs, list rows */
   --text-ui--line-height: 20px;
-  --text-title: 20px; /* hero headline */
-  --text-title--line-height: 28px;
-  --text-title--letter-spacing: -0.015em;
+  --text-title: 22px; /* hero headline */
+  --text-title--line-height: 30px;
+  --text-title--letter-spacing: -0.018em;
 
   --radius-xs: 4px; /* key caps */
   --radius-sm: 6px;

@@ -10,7 +10,7 @@ export function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       <div className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto">
-        <div aria-hidden className="shrink basis-35" />
+        <div aria-hidden className="shrink basis-33" />
         <div className="flex flex-1 items-center justify-center px-6 pb-12">
           <ChatWelcome />
         </div>
