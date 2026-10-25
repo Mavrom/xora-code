@@ -6,6 +6,7 @@ import { Editor, type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { FileCode } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import { onCommand, SAVE_ACTIVE_FILE } from "@/features/commands/events";
 import { XORA_THEME } from "./monaco/theme";
 import { saveActiveTab } from "./saveActiveTab";
 import { useEditorStore } from "./store";
@@ -44,9 +45,12 @@ export function EditorPanel() {
   const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<Cursor | null>(null);
   const errorTimer = useRef<number | undefined>(undefined);
+  const mounted = useRef(false);
 
   const save = useCallback(async () => {
     const result = await saveActiveTab();
+    // The panel may unmount while the write is in flight (e.g. last tab closed).
+    if (!mounted.current) return;
     window.clearTimeout(errorTimer.current);
     if (result.ok) {
       setError(null);
@@ -56,7 +60,16 @@ export function EditorPanel() {
     errorTimer.current = window.setTimeout(() => setError(null), ERROR_MS);
   }, []);
 
-  useEffect(() => () => window.clearTimeout(errorTimer.current), []);
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+      window.clearTimeout(errorTimer.current);
+    };
+  }, []);
+
+  // "Aktif dosyayı kaydet" from the command palette; shares the inline error handling.
+  useEffect(() => onCommand(SAVE_ACTIVE_FILE, () => void save()), [save]);
 
   // Ctrl+S also works while focus is outside Monaco (tab strip, status bar).
   useEffect(() => {

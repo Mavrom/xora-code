@@ -1,27 +1,10 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
 import { X } from "lucide-react";
-import { confirm } from "@tauri-apps/plugin-dialog";
 import { FileIcon } from "@/features/files/FileIcon";
 import { basename } from "@/shared/lib/path";
 import { cn } from "@/shared/ui/cn";
+import { closeActiveTab, requestCloseTab } from "./closeTab";
 import { isDirty, useEditorStore, type Tab } from "./store";
-
-/**
- * Closes a tab, asking first when it has unsaved changes. Uses the dialog plugin directly:
- * the plugin replaces `window.confirm` with an async version that always returns a Promise.
- */
-async function requestClose(tab: Tab) {
-  if (isDirty(tab)) {
-    const discard = await confirm(`${tab.name} kaydedilmedi. Yine de kapatılsın mı?`, {
-      title: "Kaydedilmemiş değişiklikler",
-      kind: "warning",
-      okLabel: "Kapat",
-      cancelLabel: "İptal",
-    });
-    if (!discard) return;
-  }
-  useEditorStore.getState().closeTab(tab.path);
-}
 
 /** Parent folder name, shown only when two open tabs share a file name. */
 const parentName = (path: string) => basename(path.replace(/[\\/][^\\/]*$/, ""));
@@ -71,9 +54,32 @@ export function EditorTabs() {
     else if (end > el.scrollLeft + el.clientWidth) el.scrollLeft = end - el.clientWidth;
   }, [activePath, tabs.length]);
 
+  // Ctrl+W closes the active tab from anywhere; capture phase so Monaco cannot swallow it.
+  useEffect(() => {
+    const onKeyDown = (e: globalThis.KeyboardEvent) => {
+      if (e.defaultPrevented || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey) return;
+      if (e.key.toLowerCase() !== "w") return;
+      e.preventDefault();
+      closeActiveTab();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    return () => window.removeEventListener("keydown", onKeyDown, true);
+  }, []);
+
   // Left/Right/Home/End move between tabs; the focused tab becomes active.
+  // Delete closes the focused tab and hands focus to the tab that takes its place.
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     const index = tabs.findIndex((t) => t.path === activePath);
+    if (e.key === "Delete" && index !== -1) {
+      e.preventDefault();
+      const strip = e.currentTarget;
+      void requestCloseTab(tabs[index]).then(() =>
+        requestAnimationFrame(() =>
+          strip.querySelector<HTMLElement>("[role=tab][aria-selected=true]")?.focus(),
+        ),
+      );
+      return;
+    }
     const target =
       e.key === "ArrowRight"
         ? (index + 1) % tabs.length
@@ -92,7 +98,7 @@ export function EditorTabs() {
 
   const mask =
     edges.left || edges.right
-      ? `linear-gradient(90deg, ${edges.left ? "transparent" : "#000"}, #000 ${FADE}px, #000 calc(100% - ${FADE}px), ${edges.right ? "transparent" : "#000"})`
+      ? `linear-gradient(90deg, ${edges.left ? "transparent" : "black"}, black ${FADE}px, black calc(100% - ${FADE}px), ${edges.right ? "transparent" : "black"})`
       : undefined;
 
   return (
@@ -142,7 +148,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
     <div
       onMouseDown={onMouseDown}
       onAuxClick={(e) => {
-        if (e.button === 1) void requestClose(tab);
+        if (e.button === 1) void requestCloseTab(tab);
       }}
       className={cn(
         "group relative flex h-full max-w-56 shrink-0 items-center border-r border-b transition-colors duration-150",
@@ -158,6 +164,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         aria-selected={active}
         tabIndex={active ? 0 : -1}
         title={tab.path}
+        aria-keyshortcuts="Delete Control+W"
         onClick={onSelect}
         className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3 text-[12px] outline-none focus-visible:bg-hover"
       >
@@ -170,8 +177,8 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         type="button"
         tabIndex={-1}
         aria-label={`${tab.name} kapat`}
-        title="Kapat"
-        onClick={() => void requestClose(tab)}
+        title="Kapat (Ctrl+W)"
+        onClick={() => void requestCloseTab(tab)}
         className={cn(
           "group/close mr-1.5 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-150 hover:bg-elevated hover:text-fg",
           !dirty && !active && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
