@@ -1,4 +1,6 @@
-@import "tailwindcss";
+/* Scan only src/: in dev, Tailwind full-reloads the app when any scanned non-module file
+   changes, so saving README.md or docs from the editor would wipe the app state. */
+@import "tailwindcss" source("..");
 @import "@fontsource-variable/inter";
 @import "@fontsource-variable/jetbrains-mono";
 
