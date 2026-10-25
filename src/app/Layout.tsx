@@ -6,8 +6,11 @@ import { basename } from "@/shared/lib/path";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { FileTree } from "@/features/files/FileTree";
 import { ChatPanel } from "@/features/chat/ChatPanel";
+import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { TopBar } from "./TopBar";
+import { ActivityBar } from "./ActivityBar";
+import { useUiStore } from "./uiStore";
 
 /** 1px divider; the library widens the actual hit target around it. */
 function ResizeHandle() {
@@ -19,6 +22,7 @@ function ResizeHandle() {
 export function Layout() {
   const root = useWorkspaceStore((s) => s.root);
   const setRoot = useWorkspaceStore((s) => s.setRoot);
+  const sidebarView = useUiStore((s) => s.sidebarView);
   const editorPanel = usePanelRef();
   const [editorOpen, setEditorOpen] = useState(true);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-layout" });
@@ -40,13 +44,15 @@ export function Layout() {
   };
 
   return (
-    <div className="flex h-full flex-col bg-bg">
+    // Grid: the top bar spans both columns; the activity bar sits left of the panels.
+    <div className="grid h-full grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] bg-bg [&>header]:col-span-2">
       <TopBar
         folderName={root ? basename(root) : null}
         editorOpen={editorOpen}
         onOpenFolder={openFolder}
         onToggleEditor={toggleEditor}
       />
+      <ActivityBar />
       <Group
         id="xora-layout"
         orientation="horizontal"
@@ -55,7 +61,13 @@ export function Layout() {
         className="min-h-0 flex-1"
       >
         <Panel id="files" defaultSize="18%" minSize="12%" className="bg-surface">
-          <FileTree onOpenFolder={openFolder} />
+          {/* Both stay mounted so switching views keeps tree expansion and drafts. */}
+          <div className="h-full" hidden={sidebarView !== "explorer"}>
+            <FileTree onOpenFolder={openFolder} />
+          </div>
+          <div className="h-full" hidden={sidebarView !== "inbox"}>
+            <InboxPanel />
+          </div>
         </Panel>
         <ResizeHandle />
         <Panel id="chat" defaultSize="42%" minSize="25%" className="bg-bg">
