@@ -30,7 +30,8 @@ export function InboxPanel() {
   const status = useInboxStore((s) => s.status);
   const error = useInboxStore((s) => s.error);
   const add = useInboxStore((s) => s.add);
-  const lastRemoved = useInboxStore((s) => s.lastRemoved);
+  const removed = useInboxStore((s) => s.removed);
+  const lastRemoved = removed[removed.length - 1] as Note | undefined;
   useFlushOnClose();
 
   const { open, done } = useMemo(() => {
@@ -38,14 +39,15 @@ export function InboxPanel() {
     return { open: sorted.filter((n) => !n.done), done: sorted.filter((n) => n.done) };
   }, [notes]);
 
-  // Ctrl+Z anywhere in the panel undoes the last delete; text fields keep their own undo.
+  // Ctrl+Z anywhere in the panel undoes the latest delete (again for the one
+  // before it, and so on); text fields keep their own undo.
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.repeat) return;
     if (e.key.toLowerCase() !== "z" || !lastRemoved) return;
     const target = e.target as HTMLElement;
     if (target.closest("textarea, input, [contenteditable='true']")) return;
     e.preventDefault();
-    undoRemove(lastRemoved, e.currentTarget);
+    undoRemove(e.currentTarget);
   };
 
   return (
@@ -93,22 +95,27 @@ export function InboxPanel() {
           <LoadingRows />
         )}
       </div>
-      {lastRemoved && <UndoBar key={lastRemoved.id} note={lastRemoved} />}
+      {/* Keyed by the newest removal so each delete restarts the timer. */}
+      {lastRemoved && <UndoBar key={lastRemoved.id} count={removed.length} />}
     </div>
   );
 }
 
-/** Restores `note` and puts keyboard focus on it again (or on the panel). */
-function undoRemove(note: Note, panel: HTMLElement | null) {
-  useInboxStore.getState().restore(note);
+/** Restores the latest removed note and puts keyboard focus on it (or on the panel). */
+function undoRemove(panel: HTMLElement | null) {
+  const note = useInboxStore.getState().undoRemove();
+  if (!note) return;
   requestAnimationFrame(() => {
     const row = panel?.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);
     (row && !row.closest("[inert]") ? row : panel)?.focus();
   });
 }
 
-/** "Note deleted · Undo" for a few seconds; stays while hovered or focused. */
-function UndoBar({ note }: { note: Note }) {
+/**
+ * "Note deleted · Undo" for a few seconds; stays while hovered or focused.
+ * `count` removals are waiting; each undo restores the newest one.
+ */
+function UndoBar({ count }: { count: number }) {
   const dismiss = useInboxStore((s) => s.dismissRemoved);
   const [paused, setPaused] = useState(false);
   const [leaving, setLeaving] = useState(false);
@@ -138,12 +145,12 @@ function UndoBar({ note }: { note: Note }) {
         leaving && "translate-y-1 opacity-0",
       )}
     >
-      <span>Not silindi</span>
+      <span>{count > 1 ? `${count} not silindi` : "Not silindi"}</span>
       <button
         type="button"
         aria-keyshortcuts="Control+Z"
         title="Geri al (Ctrl+Z)"
-        onClick={(e) => undoRemove(note, e.currentTarget.closest("[data-inbox-panel]"))}
+        onClick={(e) => undoRemove(e.currentTarget.closest("[data-inbox-panel]"))}
         className="h-6 rounded-sm px-2 font-medium text-fg transition-colors duration-150 hover:bg-hover"
       >
         Geri al

@@ -3,6 +3,9 @@ import { ipc, type Note } from "@/shared/lib/ipc";
 
 export const SAVE_DELAY_MS = 300;
 
+/** How many deletes in a row can be undone one by one. */
+export const UNDO_LIMIT = 5;
+
 type Status = "idle" | "loading" | "ready" | "error";
 
 interface InboxState {
@@ -17,10 +20,13 @@ interface InboxState {
   togglePin: (id: string) => void;
   toggleDone: (id: string) => void;
   remove: (id: string) => void;
-  /** Puts a removed note back exactly as it was (undo). */
+  /** Puts a removed note back exactly as it was and drops it from the undo stack. */
   restore: (note: Note) => void;
-  /** The most recently removed note, offered for undo until dismissed. */
-  lastRemoved: Note | null;
+  /** Restores the most recently removed note; returns it, or `null` if none. */
+  undoRemove: () => Note | null;
+  /** Recently removed notes for undo, oldest first, at most {@link UNDO_LIMIT}. */
+  removed: Note[];
+  /** Forgets every undo target (the undo bar timed out). */
   dismissRemoved: () => void;
 }
 
@@ -177,15 +183,26 @@ export const useInboxStore = create<InboxState>((set, get) => {
       const removed = get().notes.find((n) => n.id === id);
       if (!removed) return;
       mutate((notes) => notes.filter((n) => n.id !== id));
-      set({ lastRemoved: removed });
+      set({ removed: [...get().removed, removed].slice(-UNDO_LIMIT) });
     },
 
     restore: (note) => {
       mutate((notes) => (notes.some((n) => n.id === note.id) ? notes : [...notes, note]));
-      if (get().lastRemoved?.id === note.id) set({ lastRemoved: null });
+      const { removed } = get();
+      if (removed.some((n) => n.id === note.id)) {
+        set({ removed: removed.filter((n) => n.id !== note.id) });
+      }
     },
 
-    lastRemoved: null,
-    dismissRemoved: () => set({ lastRemoved: null }),
+    undoRemove: () => {
+      const { removed, restore } = get();
+      const note = removed[removed.length - 1] as Note | undefined;
+      if (!note || get().status !== "ready") return null;
+      restore(note);
+      return note;
+    },
+
+    removed: [],
+    dismissRemoved: () => set({ removed: [] }),
   };
 });

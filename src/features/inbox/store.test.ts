@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ipc, type Note } from "@/shared/lib/ipc";
-import { RETRY_DELAYS_MS, SAVE_DELAY_MS, flushNow, useInboxStore } from "./store";
+import { RETRY_DELAYS_MS, SAVE_DELAY_MS, UNDO_LIMIT, flushNow, useInboxStore } from "./store";
 
 vi.mock("@/shared/lib/ipc", () => ({
   ipc: { notesList: vi.fn(), notesSave: vi.fn() },
@@ -34,7 +34,7 @@ beforeEach(() => {
   vi.setSystemTime(1_000);
   notesList.mockReset();
   notesSave.mockReset().mockResolvedValue(undefined);
-  useInboxStore.setState({ notes: [], status: "idle", error: null, lastRemoved: null });
+  useInboxStore.setState({ notes: [], status: "idle", error: null, removed: [] });
 });
 
 afterEach(async () => {
@@ -166,7 +166,7 @@ describe("inbox store: mutations", () => {
     const a = note({ id: "a", pinned: true });
     await ready([a, note({ id: "b" })]);
     s().remove("a");
-    expect(s().lastRemoved).toEqual(a);
+    expect(s().removed).toEqual([a]);
   });
 
   it("restore brings the note back with its original data and saves it", async () => {
@@ -178,7 +178,7 @@ describe("inbox store: mutations", () => {
     s().restore(a);
     expect(s().notes).toContainEqual(a);
     expect(s().notes).toHaveLength(2);
-    expect(s().lastRemoved).toBeNull();
+    expect(s().removed).toEqual([]);
     await settle();
     expect(notesSave).toHaveBeenCalledTimes(2);
     expect(notesSave.mock.calls[1][0]).toContainEqual(a);
@@ -197,7 +197,43 @@ describe("inbox store: mutations", () => {
     await ready([note({ id: "a" })]);
     s().remove("a");
     s().dismissRemoved();
-    expect(s().lastRemoved).toBeNull();
+    expect(s().removed).toEqual([]);
+    expect(s().undoRemove()).toBeNull();
+  });
+
+  it("consecutive deletes can each be undone, newest first", async () => {
+    const [a, b, c] = ["a", "b", "c"].map((id) => note({ id }));
+    await ready([a, b, c]);
+    s().remove("a");
+    s().remove("b");
+    s().remove("c");
+    expect(s().notes).toEqual([]);
+    expect(s().undoRemove()).toEqual(c);
+    expect(s().undoRemove()).toEqual(b);
+    expect(s().notes).toEqual([c, b]);
+    expect(s().removed).toEqual([a]);
+    expect(s().undoRemove()).toEqual(a);
+    expect(s().undoRemove()).toBeNull();
+    expect(s().notes).toHaveLength(3);
+    await settle();
+    expect(notesSave).toHaveBeenLastCalledWith([c, b, a]);
+  });
+
+  it("keeps only the last few removals for undo", async () => {
+    const all = Array.from({ length: UNDO_LIMIT + 2 }, (_, i) => note({ id: `n${i}` }));
+    await ready(all);
+    for (const n of all) s().remove(n.id);
+    expect(s().removed).toEqual(all.slice(-UNDO_LIMIT));
+  });
+
+  it("restoring a note from the middle of the stack leaves the others undoable", async () => {
+    const [a, b] = ["a", "b"].map((id) => note({ id }));
+    await ready([a, b]);
+    s().remove("a");
+    s().remove("b");
+    s().restore(a);
+    expect(s().removed).toEqual([b]);
+    expect(s().undoRemove()).toEqual(b);
   });
 
   it("unknown ids are a no-op and do not save", async () => {
