@@ -46,7 +46,7 @@ export function InboxPanel() {
           ) : undefined
         }
       />
-      <div className="shrink-0 px-2 pb-2">
+      <div className="shrink-0 px-1.5 pb-3">
         <NoteComposer disabled={status !== "ready"} onSubmit={add} />
         {status === "ready" && error && (
           <p role="status" className="mt-2 px-1 text-[11px] leading-snug text-danger select-text">

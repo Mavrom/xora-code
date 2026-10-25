@@ -138,7 +138,9 @@ export function NoteItem({ note, now }: NoteItemProps) {
             // Soft fade so the actions float over long text instead of cutting it.
             "before:pointer-events-none before:absolute before:inset-y-0 before:-left-5 before:w-5 before:bg-linear-to-l before:from-hover before:to-transparent",
             "translate-x-1 opacity-0 transition-[opacity,translate] duration-150 ease-out-quint",
-            "group-hover:translate-x-0 group-hover:opacity-100 group-has-[:focus-visible]:translate-x-0 group-has-[:focus-visible]:opacity-100",
+            "group-hover:translate-x-0 group-hover:opacity-100",
+            // Keyboard focus on the row or on an action keeps them visible.
+            "group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-has-[:focus-visible]:translate-x-0 group-has-[:focus-visible]:opacity-100",
           )}
         >
           {!note.done && (
