@@ -1,8 +1,16 @@
-import { useCallback, useState } from "react";
-import { open } from "@tauri-apps/plugin-dialog";
-import { Group, Panel, Separator, useDefaultLayout, usePanelRef } from "react-resizable-panels";
+import { useEffect, useState } from "react";
+import {
+  Group,
+  Panel,
+  Separator,
+  useDefaultLayout,
+  usePanelRef,
+  type PanelImperativeHandle,
+} from "react-resizable-panels";
 import { basename } from "@/shared/lib/path";
 import { useWorkspaceStore } from "@/features/workspace/store";
+import { openFolder } from "@/features/workspace/openFolder";
+import { onCommand, TOGGLE_EDITOR } from "@/features/commands/events";
 import { FileTree } from "@/features/files/FileTree";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
@@ -18,29 +26,23 @@ function ResizeHandle() {
   );
 }
 
+function togglePanel(panel: PanelImperativeHandle | null) {
+  if (!panel) return;
+  if (panel.isCollapsed()) panel.expand();
+  else panel.collapse();
+}
+
 export function Layout() {
   const root = useWorkspaceStore((s) => s.root);
-  const setRoot = useWorkspaceStore((s) => s.setRoot);
   const sidebarView = useUiStore((s) => s.sidebarView);
   const editorPanel = usePanelRef();
   const [editorOpen, setEditorOpen] = useState(true);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-layout" });
 
-  const openFolder = useCallback(async () => {
-    try {
-      const selected = await open({ directory: true, multiple: false });
-      if (typeof selected === "string") setRoot(selected);
-    } catch (error) {
-      console.error("Failed to open folder dialog", error);
-    }
-  }, [setRoot]);
+  const toggleEditor = () => togglePanel(editorPanel.current);
 
-  const toggleEditor = () => {
-    const panel = editorPanel.current;
-    if (!panel) return;
-    if (panel.isCollapsed()) panel.expand();
-    else panel.collapse();
-  };
+  // The command palette asks for the toggle; the panel ref only exists here.
+  useEffect(() => onCommand(TOGGLE_EDITOR, () => togglePanel(editorPanel.current)), [editorPanel]);
 
   return (
     // Grid: the top bar spans both columns; the activity bar sits left of the panels.
