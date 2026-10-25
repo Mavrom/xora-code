@@ -356,7 +356,7 @@ const TreeNode = memo(function TreeNode({
         <span className="truncate">{entry.name}</span>
       </div>
       {!isDir && error && (
-        <StatusRow id={errorId} inset={indentOf(depth) + NAME_OFFSET} tone="danger">
+        <StatusRow id={errorId} inset={indentOf(depth) + NAME_OFFSET} tone="danger" role="alert">
           {error}
         </StatusRow>
       )}
@@ -395,20 +395,27 @@ const TreeNode = memo(function TreeNode({
   );
 });
 
+/**
+ * Non-item text inside the tree (empty folder, errors). Defaults to `role="none"` so a
+ * `tree` / `group` owns only treeitems (APG); a fresh file read error uses `alert`.
+ */
 function StatusRow({
   id,
   inset,
   tone = "muted",
+  role = "none",
   children,
 }: {
   id?: string;
   inset: number;
   tone?: "muted" | "danger";
+  role?: "none" | "alert";
   children: ReactNode;
 }) {
   return (
     <div
       id={id}
+      role={role}
       style={{ paddingLeft: inset }}
       className={cn(
         "pr-2 text-xs",
