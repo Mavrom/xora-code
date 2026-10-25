@@ -9,6 +9,7 @@ import { NoteItem } from "./NoteItem";
 import { noteRows } from "./noteRows";
 import { sortNotes } from "./sortNotes";
 import { useInboxStore } from "./store";
+import { useFlushOnClose } from "./useFlushOnClose";
 
 /** How long the "note deleted" undo bar stays up. */
 const UNDO_MS = 6_000;
@@ -30,6 +31,7 @@ export function InboxPanel() {
   const error = useInboxStore((s) => s.error);
   const add = useInboxStore((s) => s.add);
   const lastRemoved = useInboxStore((s) => s.lastRemoved);
+  useFlushOnClose();
 
   const { open, done } = useMemo(() => {
     const sorted = sortNotes(notes);
