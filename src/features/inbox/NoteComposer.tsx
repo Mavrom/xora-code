@@ -1,17 +1,27 @@
 import { useState, type KeyboardEvent } from "react";
-import { Kbd } from "./Kbd";
+import { Kbd } from "@/shared/ui/Kbd";
+import { readDraft, writeDraft } from "./draft";
 
 /** Lets the activity bar focus the composer for quick capture. */
 export const INBOX_COMPOSER_ID = "inbox-composer";
 
 interface NoteComposerProps {
   disabled: boolean;
-  onSubmit: (text: string) => void;
+  /** Returns whether the note was added; the text is kept otherwise. */
+  onSubmit: (text: string) => boolean;
 }
 
-/** Quick-capture input: Enter adds, Shift+Enter breaks the line, Esc steps away. */
+/**
+ * Quick-capture input: Enter adds, Shift+Enter breaks the line, Esc steps away.
+ * Unsent text is kept in localStorage so it survives a restart.
+ */
 export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
-  const [value, setValue] = useState("");
+  const [value, setValueState] = useState(() => readDraft());
+
+  const setValue = (next: string) => {
+    setValueState(next);
+    writeDraft(next);
+  };
 
   const onKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
     if (e.key === "Escape") {
@@ -22,8 +32,8 @@ export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
     if (e.key !== "Enter" || e.shiftKey || e.nativeEvent.isComposing) return;
     e.preventDefault();
     if (!value.trim()) return;
-    onSubmit(value);
-    setValue("");
+    // Clear (and forget the draft) only once the note is really in the list.
+    if (onSubmit(value)) setValue("");
   };
 
   return (
@@ -45,10 +55,9 @@ export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
       <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-200 ease-out-quint group-focus-within/composer:grid-rows-[1fr] group-focus-within/composer:opacity-100">
         <div className="overflow-hidden" aria-hidden>
           <div className="flex items-center gap-1 px-2.5 pb-2 text-[10.5px] text-fg-subtle">
-            <Kbd>Enter</Kbd> ekle
+            <Kbd keys="enter" /> ekle
             <span className="px-0.5">·</span>
-            <Kbd>Shift</Kbd>
-            <Kbd>Enter</Kbd> yeni satır
+            <Kbd keys="shift+enter" /> yeni satır
           </div>
         </div>
       </div>

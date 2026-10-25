@@ -34,6 +34,7 @@ export function ActivityBar() {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented) return;
       if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey || e.repeat) return;
       const match = (Object.keys(SHORTCUTS) as SidebarView[]).find(
         (v) => SHORTCUTS[v].code === e.code,
@@ -43,9 +44,11 @@ export function ActivityBar() {
       useUiStore.getState().setSidebarView(match);
       if (match === "inbox") focusComposerSoon();
     };
-    // Capture phase so the shortcut also works while the editor has focus.
-    window.addEventListener("keydown", onKeyDown, true);
-    return () => window.removeEventListener("keydown", onKeyDown, true);
+    // Capture phase so the shortcut also works while the editor has focus. On
+    // `document` (not `window`) so the command palette's window-capture handler
+    // runs first and can swallow it while open.
+    document.addEventListener("keydown", onKeyDown, true);
+    return () => document.removeEventListener("keydown", onKeyDown, true);
   }, []);
 
   return (

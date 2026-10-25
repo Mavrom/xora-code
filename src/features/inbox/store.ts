@@ -3,6 +3,9 @@ import { ipc, type Note } from "@/shared/lib/ipc";
 
 export const SAVE_DELAY_MS = 300;
 
+/** How many deletes in a row can be undone one by one. */
+export const UNDO_LIMIT = 5;
+
 type Status = "idle" | "loading" | "ready" | "error";
 
 interface InboxState {
@@ -10,16 +13,22 @@ interface InboxState {
   status: Status;
   /** Load failure (status `error`) or the last save failure (status `ready`). */
   error: string | null;
+  /** When the next automatic save retry fires (epoch ms), or `null` if none is pending. */
+  nextRetryAt: number | null;
   load: () => Promise<void>;
-  add: (text: string) => void;
+  /** Adds a note; `false` when nothing was added (empty text, or not loaded yet). */
+  add: (text: string) => boolean;
   update: (id: string, text: string) => void;
   togglePin: (id: string) => void;
   toggleDone: (id: string) => void;
   remove: (id: string) => void;
-  /** Puts a removed note back exactly as it was (undo). */
+  /** Puts a removed note back exactly as it was and drops it from the undo stack. */
   restore: (note: Note) => void;
-  /** The most recently removed note, offered for undo until dismissed. */
-  lastRemoved: Note | null;
+  /** Restores the most recently removed note; returns it, or `null` if none. */
+  undoRemove: () => Note | null;
+  /** Recently removed notes for undo, oldest first, at most {@link UNDO_LIMIT}. */
+  removed: Note[];
+  /** Forgets every undo target (the undo bar timed out). */
   dismissRemoved: () => void;
 }
 
@@ -51,6 +60,7 @@ function scheduleRetry() {
   const delay = RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)];
   retryAttempt += 1;
   retryTimer = setTimeout(() => void flush(), delay);
+  useInboxStore.setState({ nextRetryAt: Date.now() + delay });
 }
 
 /** Saves until nothing is dirty; stops (and schedules a retry) on the first failure. */
@@ -69,7 +79,7 @@ async function saveLoop() {
     clearTimeout(retryTimer);
     retryTimer = undefined;
     retryAttempt = 0;
-    useInboxStore.setState({ error: null });
+    useInboxStore.setState({ error: null, nextRetryAt: null });
   }
 }
 
@@ -108,18 +118,19 @@ export async function flushNow(): Promise<void> {
 
 export const useInboxStore = create<InboxState>((set, get) => {
   /** Applies `change` to the list when ready; saves only if something changed. */
-  const mutate = (change: (notes: Note[]) => Note[]) => {
-    if (get().status !== "ready") return;
+  const mutate = (change: (notes: Note[]) => Note[]): boolean => {
+    if (get().status !== "ready") return false;
     const prev = get().notes;
     const next = change(prev);
-    if (next === prev) return;
+    if (next === prev) return false;
     set({ notes: next });
     scheduleSave();
+    return true;
   };
 
   /** Patches one note and bumps its `updatedAt`; unknown ids leave the list as is. */
   const patch = (id: string, fn: (n: Note) => Partial<Note> | null) =>
-    mutate((notes) => {
+    void mutate((notes) => {
       const index = notes.findIndex((n) => n.id === id);
       const changes = index === -1 ? null : fn(notes[index]);
       if (!changes) return notes;
@@ -132,6 +143,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
     notes: [],
     status: "idle",
     error: null,
+    nextRetryAt: null,
 
     load: async () => {
       // Loading twice (or after edits) could clobber unsaved changes.
@@ -148,7 +160,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
 
     add: (text) => {
       const trimmed = text.trim();
-      if (!trimmed) return;
+      if (!trimmed) return false;
       const now = Date.now();
       const note: Note = {
         id: crypto.randomUUID(),
@@ -158,7 +170,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
         createdAt: now,
         updatedAt: now,
       };
-      mutate((notes) => [note, ...notes]);
+      return mutate((notes) => [note, ...notes]);
     },
 
     update: (id, text) => {
@@ -175,15 +187,26 @@ export const useInboxStore = create<InboxState>((set, get) => {
       const removed = get().notes.find((n) => n.id === id);
       if (!removed) return;
       mutate((notes) => notes.filter((n) => n.id !== id));
-      set({ lastRemoved: removed });
+      set({ removed: [...get().removed, removed].slice(-UNDO_LIMIT) });
     },
 
     restore: (note) => {
       mutate((notes) => (notes.some((n) => n.id === note.id) ? notes : [...notes, note]));
-      if (get().lastRemoved?.id === note.id) set({ lastRemoved: null });
+      const { removed } = get();
+      if (removed.some((n) => n.id === note.id)) {
+        set({ removed: removed.filter((n) => n.id !== note.id) });
+      }
     },
 
-    lastRemoved: null,
-    dismissRemoved: () => set({ lastRemoved: null }),
+    undoRemove: () => {
+      const { removed, restore } = get();
+      const note = removed[removed.length - 1] as Note | undefined;
+      if (!note || get().status !== "ready") return null;
+      restore(note);
+      return note;
+    },
+
+    removed: [],
+    dismissRemoved: () => set({ removed: [] }),
   };
 });
