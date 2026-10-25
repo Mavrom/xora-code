@@ -34,7 +34,13 @@ beforeEach(() => {
   vi.setSystemTime(1_000);
   notesList.mockReset();
   notesSave.mockReset().mockResolvedValue(undefined);
-  useInboxStore.setState({ notes: [], status: "idle", error: null, removed: [] });
+  useInboxStore.setState({
+    notes: [],
+    status: "idle",
+    error: null,
+    nextRetryAt: null,
+    removed: [],
+  });
 });
 
 afterEach(async () => {
@@ -297,11 +303,13 @@ describe("inbox store: debounced save", () => {
       expect(notesSave).toHaveBeenCalledTimes(i + 2);
     }
     expect(s().error).toBe("disk full");
+    expect(s().nextRetryAt).toBe(Date.now() + 30_000);
 
     notesSave.mockResolvedValue(undefined);
     await vi.advanceTimersByTimeAsync(30_000);
     expect(notesSave).toHaveBeenCalledTimes(expected.length + 2);
     expect(s().error).toBeNull();
+    expect(s().nextRetryAt).toBeNull();
 
     // Success cancels the retry loop.
     await vi.advanceTimersByTimeAsync(120_000);
@@ -314,6 +322,7 @@ describe("inbox store: debounced save", () => {
     s().add("precious");
     await settle();
     expect(s().error).toBe("disk full");
+    expect(s().nextRetryAt).toBe(Date.now() + RETRY_DELAYS_MS[0]);
     expect(s().status).toBe("ready");
     expect(s().notes.map((n) => n.text)).toEqual(["precious"]);
 

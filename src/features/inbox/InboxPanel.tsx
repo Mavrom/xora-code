@@ -7,6 +7,7 @@ import type { Note } from "@/shared/lib/ipc";
 import { NoteComposer } from "./NoteComposer";
 import { NoteItem } from "./NoteItem";
 import { noteRows } from "./noteRows";
+import { saveErrorMessage, secondsUntil } from "./retryCountdown";
 import { sortNotes } from "./sortNotes";
 import { useInboxStore } from "./store";
 import { useFlushOnClose } from "./useFlushOnClose";
@@ -72,11 +73,7 @@ export function InboxPanel() {
       />
       <div className="shrink-0 px-1.5 pb-3">
         <NoteComposer disabled={status !== "ready"} onSubmit={add} />
-        {status === "ready" && error && (
-          <p role="status" className="mt-2 px-1 text-[11px] leading-snug text-danger select-text">
-            Kaydedilemedi: {error}. Otomatik olarak yeniden denenecek.
-          </p>
-        )}
+        {status === "ready" && error && <SaveError error={error} />}
       </div>
       <div className="min-h-0 flex-1 overflow-y-auto">
         {status === "ready" ? (
@@ -97,6 +94,56 @@ export function InboxPanel() {
       </div>
       {/* Keyed by the newest removal so each delete restarts the timer. */}
       {lastRemoved && <UndoBar key={lastRemoved.id} count={removed.length} />}
+    </div>
+  );
+}
+
+/**
+ * Current time for a countdown to `target`: ticks at most once per second,
+ * only while the window is visible, and stops once the target is reached.
+ */
+function useCountdownNow(target: number | null) {
+  const [now, setNow] = useState(Date.now);
+  useEffect(() => {
+    if (target === null) return;
+    let id: ReturnType<typeof setInterval> | undefined;
+    const stop = () => {
+      clearInterval(id);
+      id = undefined;
+    };
+    const tick = () => {
+      const t = Date.now();
+      setNow(t);
+      if (secondsUntil(target, t) === 0) stop();
+    };
+    const sync = () => {
+      stop();
+      if (document.hidden) return;
+      tick();
+      if (secondsUntil(target, Date.now()) > 0) id = setInterval(tick, 1_000);
+    };
+    sync();
+    document.addEventListener("visibilitychange", sync);
+    return () => {
+      stop();
+      document.removeEventListener("visibilitychange", sync);
+    };
+  }, [target]);
+  return now;
+}
+
+/** "Kaydedilemedi · 15 sn içinde tekrar denenecek", counting down calmly. */
+function SaveError({ error }: { error: string }) {
+  const nextRetryAt = useInboxStore((s) => s.nextRetryAt);
+  const now = useCountdownNow(nextRetryAt);
+
+  return (
+    <div role="status" className="mt-2 px-1 text-[11px] leading-snug text-danger" title={error}>
+      {/* Announced once; the ticking text is hidden from screen readers. */}
+      <span className="sr-only">Kaydedilemedi: {error}. Otomatik olarak yeniden denenecek.</span>
+      <span aria-hidden className="tabular-nums">
+        {saveErrorMessage(nextRetryAt, now)}
+      </span>
     </div>
   );
 }

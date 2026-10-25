@@ -13,6 +13,8 @@ interface InboxState {
   status: Status;
   /** Load failure (status `error`) or the last save failure (status `ready`). */
   error: string | null;
+  /** When the next automatic save retry fires (epoch ms), or `null` if none is pending. */
+  nextRetryAt: number | null;
   load: () => Promise<void>;
   /** Adds a note; `false` when nothing was added (empty text, or not loaded yet). */
   add: (text: string) => boolean;
@@ -58,6 +60,7 @@ function scheduleRetry() {
   const delay = RETRY_DELAYS_MS[Math.min(retryAttempt, RETRY_DELAYS_MS.length - 1)];
   retryAttempt += 1;
   retryTimer = setTimeout(() => void flush(), delay);
+  useInboxStore.setState({ nextRetryAt: Date.now() + delay });
 }
 
 /** Saves until nothing is dirty; stops (and schedules a retry) on the first failure. */
@@ -76,7 +79,7 @@ async function saveLoop() {
     clearTimeout(retryTimer);
     retryTimer = undefined;
     retryAttempt = 0;
-    useInboxStore.setState({ error: null });
+    useInboxStore.setState({ error: null, nextRetryAt: null });
   }
 }
 
@@ -140,6 +143,7 @@ export const useInboxStore = create<InboxState>((set, get) => {
     notes: [],
     status: "idle",
     error: null,
+    nextRetryAt: null,
 
     load: async () => {
       // Loading twice (or after edits) could clobber unsaved changes.
