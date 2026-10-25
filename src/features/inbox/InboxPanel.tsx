@@ -9,6 +9,11 @@ import { NoteItem } from "./NoteItem";
 import { noteRows } from "./noteRows";
 import { sortNotes } from "./sortNotes";
 import { useInboxStore } from "./store";
+import { useFlushOnClose } from "./useFlushOnClose";
+
+/** How long the "note deleted" undo bar stays up. */
+const UNDO_MS = 6_000;
+const UNDO_FADE_MS = 200;
 
 /** Re-renders once a minute so relative times stay honest. */
 function useNow(intervalMs = 60_000) {
@@ -25,14 +30,31 @@ export function InboxPanel() {
   const status = useInboxStore((s) => s.status);
   const error = useInboxStore((s) => s.error);
   const add = useInboxStore((s) => s.add);
+  const lastRemoved = useInboxStore((s) => s.lastRemoved);
+  useFlushOnClose();
 
   const { open, done } = useMemo(() => {
     const sorted = sortNotes(notes);
     return { open: sorted.filter((n) => !n.done), done: sorted.filter((n) => n.done) };
   }, [notes]);
 
+  // Ctrl+Z anywhere in the panel undoes the last delete; text fields keep their own undo.
+  const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
+    if (!(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey || e.repeat) return;
+    if (e.key.toLowerCase() !== "z" || !lastRemoved) return;
+    const target = e.target as HTMLElement;
+    if (target.closest("textarea, input, [contenteditable='true']")) return;
+    e.preventDefault();
+    undoRemove(lastRemoved, e.currentTarget);
+  };
+
   return (
-    <div className="flex h-full flex-col">
+    <div
+      data-inbox-panel
+      tabIndex={-1}
+      onKeyDown={onKeyDown}
+      className="flex h-full flex-col outline-none"
+    >
       <PanelHeader
         title="Inbox"
         actions={
@@ -50,7 +72,7 @@ export function InboxPanel() {
         <NoteComposer disabled={status !== "ready"} onSubmit={add} />
         {status === "ready" && error && (
           <p role="status" className="mt-2 px-1 text-[11px] leading-snug text-danger select-text">
-            Kaydedilemedi: {error}. Bir sonraki değişiklikte yeniden denenecek.
+            Kaydedilemedi: {error}. Otomatik olarak yeniden denenecek.
           </p>
         )}
       </div>
@@ -71,6 +93,61 @@ export function InboxPanel() {
           <LoadingRows />
         )}
       </div>
+      {lastRemoved && <UndoBar key={lastRemoved.id} note={lastRemoved} />}
+    </div>
+  );
+}
+
+/** Restores `note` and puts keyboard focus on it again (or on the panel). */
+function undoRemove(note: Note, panel: HTMLElement | null) {
+  useInboxStore.getState().restore(note);
+  requestAnimationFrame(() => {
+    const row = panel?.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);
+    (row && !row.closest("[inert]") ? row : panel)?.focus();
+  });
+}
+
+/** "Note deleted · Undo" for a few seconds; stays while hovered or focused. */
+function UndoBar({ note }: { note: Note }) {
+  const dismiss = useInboxStore((s) => s.dismissRemoved);
+  const [paused, setPaused] = useState(false);
+  const [leaving, setLeaving] = useState(false);
+
+  useEffect(() => {
+    if (paused) return;
+    const id = setTimeout(() => setLeaving(true), UNDO_MS);
+    return () => clearTimeout(id);
+  }, [paused]);
+
+  useEffect(() => {
+    if (!leaving) return;
+    const id = setTimeout(dismiss, UNDO_FADE_MS);
+    return () => clearTimeout(id);
+  }, [leaving, dismiss]);
+
+  return (
+    <div
+      role="status"
+      onMouseEnter={() => setPaused(true)}
+      onMouseLeave={() => setPaused(false)}
+      onFocus={() => setPaused(true)}
+      onBlur={() => setPaused(false)}
+      className={cn(
+        "mx-1.5 mb-2 flex h-8 shrink-0 items-center justify-between gap-2 rounded-md border border-border bg-elevated pr-1 pl-2.5 text-[12px] text-fg-muted",
+        "transition-[opacity,translate] duration-200 ease-out-quint starting:translate-y-1 starting:opacity-0",
+        leaving && "translate-y-1 opacity-0",
+      )}
+    >
+      <span>Not silindi</span>
+      <button
+        type="button"
+        aria-keyshortcuts="Control+Z"
+        title="Geri al (Ctrl+Z)"
+        onClick={(e) => undoRemove(note, e.currentTarget.closest("[data-inbox-panel]"))}
+        className="h-6 rounded-sm px-2 font-medium text-fg transition-colors duration-150 hover:bg-hover"
+      >
+        Geri al
+      </button>
     </div>
   );
 }
@@ -105,8 +182,9 @@ function NoteLists({ open, done }: { open: Note[]; done: Note[] }) {
       )}
 
       {done.length > 0 && (
-        <section className="mt-3">
+        <section aria-labelledby="inbox-done-heading" className="mt-3">
           <button
+            id="inbox-done-heading"
             type="button"
             aria-expanded={showDone}
             aria-controls="inbox-done"

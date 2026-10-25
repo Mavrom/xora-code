@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { ipc, type Note } from "@/shared/lib/ipc";
-import { SAVE_DELAY_MS, useInboxStore } from "./store";
+import { RETRY_DELAYS_MS, SAVE_DELAY_MS, flushNow, useInboxStore } from "./store";
 
 vi.mock("@/shared/lib/ipc", () => ({
   ipc: { notesList: vi.fn(), notesSave: vi.fn() },
@@ -34,7 +34,7 @@ beforeEach(() => {
   vi.setSystemTime(1_000);
   notesList.mockReset();
   notesSave.mockReset().mockResolvedValue(undefined);
-  useInboxStore.setState({ notes: [], status: "idle", error: null });
+  useInboxStore.setState({ notes: [], status: "idle", error: null, lastRemoved: null });
 });
 
 afterEach(async () => {
@@ -162,6 +162,44 @@ describe("inbox store: mutations", () => {
     expect(notesSave).toHaveBeenCalledWith([note({ id: "b" })]);
   });
 
+  it("remove remembers the deleted note for undo", async () => {
+    const a = note({ id: "a", pinned: true });
+    await ready([a, note({ id: "b" })]);
+    s().remove("a");
+    expect(s().lastRemoved).toEqual(a);
+  });
+
+  it("restore brings the note back with its original data and saves it", async () => {
+    const a = note({ id: "a", text: "keep me", pinned: true, createdAt: 7, updatedAt: 9 });
+    await ready([a, note({ id: "b" })]);
+    s().remove("a");
+    await settle();
+    vi.setSystemTime(50_000);
+    s().restore(a);
+    expect(s().notes).toContainEqual(a);
+    expect(s().notes).toHaveLength(2);
+    expect(s().lastRemoved).toBeNull();
+    await settle();
+    expect(notesSave).toHaveBeenCalledTimes(2);
+    expect(notesSave.mock.calls[1][0]).toContainEqual(a);
+  });
+
+  it("restore is a no-op when the note is still there", async () => {
+    const a = note({ id: "a" });
+    await ready([a]);
+    s().restore(a);
+    await settle();
+    expect(s().notes).toEqual([a]);
+    expect(notesSave).not.toHaveBeenCalled();
+  });
+
+  it("dismissRemoved forgets the undo target", async () => {
+    await ready([note({ id: "a" })]);
+    s().remove("a");
+    s().dismissRemoved();
+    expect(s().lastRemoved).toBeNull();
+  });
+
   it("unknown ids are a no-op and do not save", async () => {
     await ready([note({ id: "a" })]);
     s().togglePin("zzz");
@@ -207,6 +245,33 @@ describe("inbox store: debounced save", () => {
     expect(notesSave.mock.calls[1][0]).toHaveLength(2);
   });
 
+  it("a failed save is retried automatically with backoff until it succeeds", async () => {
+    await ready();
+    notesSave.mockRejectedValue("disk full");
+    s().add("precious");
+    await settle();
+    expect(notesSave).toHaveBeenCalledTimes(1);
+
+    const expected = [2_000, 5_000, 15_000, 30_000, 30_000];
+    expect(RETRY_DELAYS_MS).toEqual(expected.slice(0, 4));
+    for (const [i, delay] of expected.entries()) {
+      await vi.advanceTimersByTimeAsync(delay - 1);
+      expect(notesSave).toHaveBeenCalledTimes(i + 1);
+      await vi.advanceTimersByTimeAsync(1);
+      expect(notesSave).toHaveBeenCalledTimes(i + 2);
+    }
+    expect(s().error).toBe("disk full");
+
+    notesSave.mockResolvedValue(undefined);
+    await vi.advanceTimersByTimeAsync(30_000);
+    expect(notesSave).toHaveBeenCalledTimes(expected.length + 2);
+    expect(s().error).toBeNull();
+
+    // Success cancels the retry loop.
+    await vi.advanceTimersByTimeAsync(120_000);
+    expect(notesSave).toHaveBeenCalledTimes(expected.length + 2);
+  });
+
   it("a failed save keeps the notes, reports the error and retries on the next change", async () => {
     await ready();
     notesSave.mockRejectedValueOnce("disk full");
@@ -221,5 +286,61 @@ describe("inbox store: debounced save", () => {
     expect(notesSave).toHaveBeenCalledTimes(2);
     expect(notesSave.mock.calls[1][0]).toHaveLength(2);
     expect(s().error).toBeNull();
+  });
+});
+
+describe("inbox store: flushNow", () => {
+  it("saves a pending debounced change immediately", async () => {
+    await ready();
+    s().add("closing soon");
+    expect(notesSave).not.toHaveBeenCalled();
+    await flushNow();
+    expect(notesSave).toHaveBeenCalledTimes(1);
+    expect(notesSave.mock.calls[0][0].map((n) => n.text)).toEqual(["closing soon"]);
+
+    // The cancelled debounce does not save a second time.
+    await settle();
+    expect(notesSave).toHaveBeenCalledTimes(1);
+  });
+
+  it("waits for an in-flight save and then saves changes made meanwhile", async () => {
+    await ready();
+    let finish!: () => void;
+    notesSave.mockReturnValueOnce(new Promise<void>((resolve) => (finish = resolve)));
+    s().add("first");
+    await settle();
+    s().add("second");
+
+    let done = false;
+    const flushed = flushNow().then(() => (done = true));
+    await vi.advanceTimersByTimeAsync(0);
+    expect(done).toBe(false);
+
+    finish();
+    await flushed;
+    expect(notesSave).toHaveBeenCalledTimes(2);
+    expect(notesSave.mock.calls[1][0]).toHaveLength(2);
+  });
+
+  it("resolves right away when nothing is dirty", async () => {
+    await ready([note({ id: "a" })]);
+    await flushNow();
+    expect(notesSave).not.toHaveBeenCalled();
+  });
+
+  it("is a no-op when the store is not ready (never overwrite an unloaded file)", async () => {
+    notesList.mockRejectedValueOnce("bad json");
+    await s().load();
+    s().add("x");
+    await flushNow();
+    expect(notesSave).not.toHaveBeenCalled();
+  });
+
+  it("never rejects, even when the save fails", async () => {
+    await ready();
+    notesSave.mockRejectedValueOnce("disk full");
+    s().add("x");
+    await expect(flushNow()).resolves.toBeUndefined();
+    expect(s().error).toBe("disk full");
   });
 });
