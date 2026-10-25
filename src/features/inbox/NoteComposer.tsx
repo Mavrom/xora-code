@@ -1,5 +1,5 @@
 import { useState, type KeyboardEvent } from "react";
-import { Kbd } from "./Kbd";
+import { Kbd } from "@/shared/ui/Kbd";
 
 /** Lets the activity bar focus the composer for quick capture. */
 export const INBOX_COMPOSER_ID = "inbox-composer";
@@ -45,10 +45,9 @@ export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
       <div className="grid grid-rows-[0fr] opacity-0 transition-[grid-template-rows,opacity] duration-200 ease-out-quint group-focus-within/composer:grid-rows-[1fr] group-focus-within/composer:opacity-100">
         <div className="overflow-hidden" aria-hidden>
           <div className="flex items-center gap-1 px-2.5 pb-2 text-[10.5px] text-fg-subtle">
-            <Kbd>Enter</Kbd> ekle
+            <Kbd keys="enter" /> ekle
             <span className="px-0.5">·</span>
-            <Kbd>Shift</Kbd>
-            <Kbd>Enter</Kbd> yeni satır
+            <Kbd keys="shift+enter" /> yeni satır
           </div>
         </div>
       </div>
