@@ -23,6 +23,26 @@
   --radius-sm: 6px;
   --radius-md: 8px;
   --radius-lg: 12px;
+
+  /* Motion: calm, short, CSS-only. */
+  --ease-out-quint: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out-soft: cubic-bezier(0.65, 0, 0.35, 1);
+
+  /* Soft white halo for focused inputs (no colour, just light). */
+  --shadow-halo:
+    0 0 0 3px color-mix(in srgb, var(--color-fg) 4%, transparent),
+    0 0 24px -8px color-mix(in srgb, var(--color-fg) 14%, transparent);
+
+  --animate-skeleton: skeleton 1.6s var(--ease-in-out-soft) infinite;
+
+  @keyframes skeleton {
+    from {
+      background-position: 100% 0;
+    }
+    to {
+      background-position: -100% 0;
+    }
+  }
 }
 
 @layer base {
@@ -85,5 +105,28 @@
 
   ::-webkit-scrollbar-thumb:hover {
     background-color: var(--color-fg-subtle);
+  }
+}
+
+@layer components {
+  /* Placeholder bar with a slow sweep of light; pair with `animate-skeleton`. */
+  .skeleton {
+    background: linear-gradient(
+        90deg,
+        var(--color-elevated) 25%,
+        var(--color-hover) 50%,
+        var(--color-elevated) 75%
+      )
+      0 0 / 200% 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  ::before,
+  ::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
   }
 }
