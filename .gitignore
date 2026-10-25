@@ -26,3 +26,6 @@ dist-ssr
 
 # Claude Code agent worktrees
 .claude/
+
+# Local agent scratch space
+.superpowers/
