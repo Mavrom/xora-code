@@ -1,5 +1,6 @@
-import { useEffect, useId, useState, type KeyboardEvent } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent } from "react";
 import { ArrowUp, ChevronDown } from "lucide-react";
+import { useAutoGrow } from "@/shared/lib/autoGrow";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
 import { canSendMessage, getComposerKeyAction } from "./composerKeys";
@@ -12,21 +13,26 @@ const NOTICE_MS = 2600;
 export function Composer() {
   const id = useId();
   const hintId = `${id}-hint`;
+  const fieldRef = useRef<HTMLTextAreaElement>(null);
   const [value, setValue] = useState("");
-  const [notice, setNotice] = useState(false);
+  // 0 = hidden; every refused send bumps it, which restarts the timer and remounts the
+  // notice so screen readers announce it again on a repeated Enter.
+  const [notice, setNotice] = useState(0);
   const canSend = canSendMessage(value, AGENT_READY);
   const hasText = value.trim().length > 0;
 
+  useAutoGrow(fieldRef, value);
+
   useEffect(() => {
     if (!notice) return;
-    const timer = window.setTimeout(() => setNotice(false), NOTICE_MS);
+    const timer = window.setTimeout(() => setNotice(0), NOTICE_MS);
     return () => window.clearTimeout(timer);
   }, [notice]);
 
   const submit = () => {
     if (!canSend) {
       // Say why nothing happened instead of silently swallowing the keystroke.
-      if (hasText) setNotice(true);
+      if (hasText) setNotice((count) => count + 1);
       return;
     }
     setValue("");
@@ -37,6 +43,7 @@ export function Composer() {
       key: event.key,
       shiftKey: event.shiftKey,
       isComposing: event.nativeEvent.isComposing,
+      keyCode: event.nativeEvent.keyCode,
     });
     if (action === "submit") {
       event.preventDefault();
@@ -51,6 +58,7 @@ export function Composer() {
           Mesaj
         </label>
         <textarea
+          ref={fieldRef}
           id={id}
           rows={1}
           value={value}
@@ -59,7 +67,7 @@ export function Composer() {
           aria-describedby={hintId}
           spellCheck={false}
           placeholder="Bir görev tarif et ya da soru sor…"
-          className="block max-h-[40vh] min-h-14 w-full resize-none bg-transparent px-4 pt-3.5 pb-1 text-ui text-fg [field-sizing:content] outline-none placeholder:text-fg-subtle focus-visible:outline-none"
+          className="block max-h-[40vh] min-h-11 w-full resize-none bg-transparent px-4 pt-3 pb-1 text-ui text-fg [field-sizing:content] outline-none placeholder:text-fg-subtle focus-visible:outline-none"
         />
         <div className="flex items-center justify-between gap-2 px-2.5 pt-1 pb-2.5">
           <button
@@ -92,27 +100,39 @@ export function Composer() {
           </button>
         </div>
       </div>
-      <p
-        id={hintId}
-        aria-live="polite"
-        className="mt-2.5 flex h-4.5 items-center justify-center gap-1.5 text-2xs text-fg-subtle"
-      >
-        {notice ? (
-          <span className="text-fg-muted">
-            Henüz bağlı agent yok; mesaj gönderme Faz 2&apos;de açılıyor.
+      {/* Hint and notice share one cell: the static hint is only a description of the field;
+          the notice lives in its own always-mounted status region so it gets announced. */}
+      <div className="mt-2.5 grid h-4.5 text-2xs">
+        <p
+          id={hintId}
+          className={cn(
+            "col-start-1 row-start-1 flex items-center justify-center gap-1.5 text-fg-subtle transition-opacity duration-base ease-out-quint",
+            notice > 0 && "opacity-0",
+          )}
+        >
+          <Kbd keys="enter" />
+          <span>gönder</span>
+          <span aria-hidden className="px-1">
+            ·
           </span>
-        ) : (
-          <>
-            <Kbd keys="enter" />
-            <span>gönder</span>
-            <span aria-hidden className="px-1 text-fg-subtle">
-              ·
+          <Kbd keys="shift+enter" />
+          <span>yeni satır</span>
+        </p>
+        <div
+          role="status"
+          aria-atomic="true"
+          className="col-start-1 row-start-1 flex items-center justify-center text-fg-muted"
+        >
+          {notice > 0 && (
+            <span
+              key={notice}
+              className="transition-opacity duration-base ease-out-quint starting:opacity-0"
+            >
+              Henüz bağlı agent yok; mesaj gönderme Faz 2&apos;de açılıyor.
             </span>
-            <Kbd keys="shift+enter" />
-            <span>yeni satır</span>
-          </>
-        )}
-      </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
