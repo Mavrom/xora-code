@@ -114,6 +114,21 @@ describe("keyAction", () => {
   it("ignores unrelated keys", () => {
     expect(act("/r/src", "Tab")).toBeNull();
   });
+
+  it("does nothing on an empty tree", () => {
+    for (const key of ["ArrowDown", "ArrowUp", "Home", "End", "Enter"]) {
+      expect(keyAction([], null, key, new Set())).toBeNull();
+      expect(keyAction([], "/r/src", key, new Set())).toBeNull();
+    }
+  });
+
+  it("ArrowRight stays put on an expanded folder that is still loading", () => {
+    const loading = new Map(listings);
+    loading.set("/r/docs", { entries: null, error: null, loading: true });
+    const open = new Set([...expanded, "/r/docs"]);
+    const loadingNodes = flattenVisible("/r", loading, open);
+    expect(keyAction(loadingNodes, "/r/docs", "ArrowRight", open)).toBeNull();
+  });
 });
 
 describe("findByPrefix", () => {

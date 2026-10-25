@@ -1,4 +1,5 @@
 import {
+  memo,
   useCallback,
   useEffect,
   useId,
@@ -67,33 +68,36 @@ export function FileTree({ onOpenFolder }: FileTreeProps) {
           icon={FolderSearch}
           title="Klasör açılmadı"
           description="Başlamak için üst bardan bir klasör aç."
-          action={
-            <button
-              type="button"
-              onClick={onOpenFolder}
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-3 text-[12px] font-medium text-fg transition-colors duration-150 hover:bg-hover"
-            >
-              <FolderOpen size={14} strokeWidth={1.75} aria-hidden />
-              Klasör aç
-            </button>
-          }
+          action={{ label: "Klasör aç", onClick: onOpenFolder, icon: FolderOpen }}
         />
       )}
     </div>
   );
 }
 
-/** Everything a row needs from the tree; passed down instead of a context. */
-interface TreeCtx {
-  listings: ReadonlyMap<string, DirListing>;
-  expanded: ReadonlySet<string>;
-  activePath: string | null;
-  tabStop: string | null;
-  readErrors: ReadonlyMap<string, string>;
+/** Callbacks shared by every row. Stable for the lifetime of the tree, so memoised rows never re-render because of them. */
+interface RowActions {
   activate: (entry: DirEntry) => void;
   onRowFocus: (path: string) => void;
   registerRow: (path: string, el: HTMLElement | null) => void;
 }
+
+/**
+ * What a listing needs to render its rows. `tabStop` and `activePath` are scoped to the
+ * subtree being rendered (null when they lie outside it), so a folder's props only change
+ * when something inside it does.
+ */
+interface TreeView {
+  listings: ReadonlyMap<string, DirListing>;
+  expanded: ReadonlySet<string>;
+  readErrors: ReadonlyMap<string, string>;
+  tabStop: string | null;
+  activePath: string | null;
+}
+
+/** `path` when it is `dir` itself or lies inside it, otherwise null. */
+const scopeTo = (path: string | null, dir: string) =>
+  path === dir || isInside(path, dir) ? path : null;
 
 function TreeRoot({ root }: { root: string }) {
   const { listings, expanded, setOpen } = useTreeState(root);
@@ -106,18 +110,35 @@ function TreeRoot({ root }: { root: string }) {
   const nodes = useMemo(() => flattenVisible(root, listings, expanded), [root, listings, expanded]);
   const tabStop = resolveTabStop(nodes, focusedPath, activePath);
 
-  const activate = useCallback(
-    (entry: DirEntry) => {
-      if (entry.isDir) setOpen(entry.path, !expanded.has(entry.path));
-      else open(entry.path);
-    },
-    [expanded, open, setOpen],
+  // Read through a ref so `activate` (and with it every row) stays stable across expands.
+  const expandedRef = useRef(expanded);
+  useEffect(() => {
+    expandedRef.current = expanded;
+  }, [expanded]);
+
+  const actions = useMemo<RowActions>(
+    () => ({
+      activate: (entry) => {
+        if (entry.isDir) setOpen(entry.path, !expandedRef.current.has(entry.path));
+        else open(entry.path);
+      },
+      onRowFocus: setFocusedPath,
+      registerRow: (path, el) => {
+        if (el) rows.current.set(path, el);
+        else rows.current.delete(path);
+      },
+    }),
+    [open, setOpen],
   );
 
-  const registerRow = useCallback((path: string, el: HTMLElement | null) => {
-    if (el) rows.current.set(path, el);
-    else rows.current.delete(path);
-  }, []);
+  // A re-list can remove the focused row, which drops DOM focus to <body>. Hand it to the
+  // resolved tab stop, but only when focus was really lost (never steal it from elsewhere).
+  useEffect(() => {
+    if (focusedPath === null || nodes.some((n) => n.entry.path === focusedPath)) return;
+    const current = document.activeElement;
+    if (current && current !== document.body) return;
+    if (tabStop) rows.current.get(tabStop)?.focus();
+  }, [nodes, focusedPath, tabStop]);
 
   const focusRow = (path: string) => {
     setFocusedPath(path);
@@ -152,16 +173,7 @@ function TreeRoot({ root }: { root: string }) {
     else open(action.path);
   };
 
-  const ctx: TreeCtx = {
-    listings,
-    expanded,
-    activePath,
-    tabStop,
-    readErrors,
-    activate,
-    onRowFocus: setFocusedPath,
-    registerRow,
-  };
+  const view: TreeView = { listings, expanded, readErrors, tabStop, activePath };
   const rootListing = listings.get(root);
 
   return (
@@ -181,92 +193,146 @@ function TreeRoot({ root }: { root: string }) {
         onKeyDown={onKeyDown}
         className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-3"
       >
-        <Children ctx={ctx} path={root} depth={0} dimmed={false} />
+        <Children view={view} actions={actions} path={root} depth={0} dimmed={false} />
       </div>
     </div>
   );
 }
 
-/** Rows (or the loading / empty placeholder) for the listing of `path`. Errors render elsewhere. */
+/**
+ * Rows (or the loading / empty placeholder) for the listing of `path`. Errors render
+ * elsewhere. Not memoised itself: it only turns `view` into primitive per-row props.
+ */
 function Children({
-  ctx,
+  view,
+  actions,
   path,
   depth,
   dimmed,
 }: {
-  ctx: TreeCtx;
+  view: TreeView;
+  actions: RowActions;
   path: string;
   depth: number;
   dimmed: boolean;
 }) {
-  const listing = ctx.listings.get(path);
+  const listing = view.listings.get(path);
   if (!listing || listing.error) return null;
   const { entries } = listing;
   if (!entries) return listing.loading ? <LoadingRows depth={depth} /> : null;
   if (entries.length === 0) {
     return <StatusRow inset={indentOf(depth)}>Boş klasör</StatusRow>;
   }
-  return entries.map((entry, i) => (
-    <TreeNode
-      key={entry.path}
-      ctx={ctx}
-      entry={entry}
-      depth={depth}
-      setSize={entries.length}
-      posInSet={i + 1}
-      dimmed={dimmed || NOISY.has(entry.name)}
-    />
-  ));
+  return entries.map((entry, i) => {
+    const open = entry.isDir && view.expanded.has(entry.path);
+    return (
+      <TreeNode
+        key={entry.path}
+        entry={entry}
+        depth={depth}
+        setSize={entries.length}
+        posInSet={i + 1}
+        dimmed={dimmed || NOISY.has(entry.name)}
+        actions={actions}
+        isTabStop={view.tabStop === entry.path}
+        isActive={view.activePath === entry.path}
+        readError={entry.isDir ? null : (view.readErrors.get(entry.path) ?? null)}
+        // Only open folders render descendants, so only they receive the shared maps.
+        listings={open ? view.listings : undefined}
+        expanded={open ? view.expanded : undefined}
+        readErrors={open ? view.readErrors : undefined}
+        tabStopInside={open ? scopeTo(view.tabStop, entry.path) : null}
+        activeInside={open ? scopeTo(view.activePath, entry.path) : null}
+      />
+    );
+  });
 }
 
 interface TreeNodeProps {
-  ctx: TreeCtx;
   entry: DirEntry;
   depth: number;
   setSize: number;
   posInSet: number;
   dimmed: boolean;
+  actions: RowActions;
+  isTabStop: boolean;
+  isActive: boolean;
+  /** Read failure of this file; always null for folders. */
+  readError: string | null;
+  /** Set only while this folder is expanded (their presence means "open"). */
+  listings?: ReadonlyMap<string, DirListing>;
+  expanded?: ReadonlySet<string>;
+  readErrors?: ReadonlyMap<string, string>;
+  /** Tab stop / active file when inside this open folder, otherwise null. */
+  tabStopInside: string | null;
+  activeInside: string | null;
 }
 
-function TreeNode({ ctx, entry, depth, setSize, posInSet, dimmed }: TreeNodeProps) {
+/**
+ * One treeitem. Memoised: every prop is a primitive or a reference that only changes
+ * when this row (or, for an open folder, its subtree) is affected, so moving focus
+ * re-renders just the rows that gain or lose the tab stop and their ancestors.
+ */
+const TreeNode = memo(function TreeNode({
+  entry,
+  depth,
+  setSize,
+  posInSet,
+  dimmed,
+  actions,
+  isTabStop,
+  isActive,
+  readError,
+  listings,
+  expanded: expandedSet,
+  readErrors,
+  tabStopInside,
+  activeInside,
+}: TreeNodeProps) {
   const errorId = useId();
   const { path, isDir } = entry;
-  const expanded = isDir && ctx.expanded.has(path);
-  const listing = isDir ? ctx.listings.get(path) : undefined;
-  const active = ctx.activePath === path;
-  const error = isDir ? (expanded ? (listing?.error ?? null) : null) : ctx.readErrors.get(path);
-  const { registerRow } = ctx;
+  const { registerRow, onRowFocus, activate } = actions;
+  const expanded = isDir && listings !== undefined;
+  const listing = listings?.get(path);
+  const error = isDir ? (listing?.error ?? null) : readError;
+
+  // Stable ref callback: registers once per mount instead of detaching on every render.
+  const rowRef = useCallback(
+    (el: HTMLDivElement | null) => {
+      if (!el) return;
+      registerRow(path, el);
+      return () => registerRow(path, null);
+    },
+    [registerRow, path],
+  );
 
   return (
     // APG tree pattern: the focusable treeitem owns its row and, when open, its child group.
     // Only the row itself shows the focus ring.
     <div
-      ref={(el) => {
-        registerRow(path, el);
-        return () => registerRow(path, null);
-      }}
+      ref={rowRef}
       role="treeitem"
-      tabIndex={ctx.tabStop === path ? 0 : -1}
+      tabIndex={isTabStop ? 0 : -1}
       aria-level={depth + 1}
       aria-setsize={setSize}
       aria-posinset={posInSet}
       aria-expanded={isDir ? expanded : undefined}
-      aria-selected={isDir ? undefined : active}
+      aria-selected={isDir ? undefined : isActive}
       aria-busy={expanded && listing?.loading && !listing.entries ? true : undefined}
       aria-describedby={error ? errorId : undefined}
       onFocus={(e) => {
-        if (e.target === e.currentTarget) ctx.onRowFocus(path);
+        if (e.target === e.currentTarget) onRowFocus(path);
       }}
       className="outline-none [&:focus-visible>[data-row]]:outline [&:focus-visible>[data-row]]:outline-1 [&:focus-visible>[data-row]]:-outline-offset-1 [&:focus-visible>[data-row]]:outline-fg-subtle"
     >
       <div
         data-row
         title={path}
-        onClick={() => ctx.activate(entry)}
+        onClick={() => activate(entry)}
         style={{ paddingLeft: indentOf(depth) }}
         className={cn(
           "relative flex h-6 items-center gap-1.5 rounded-sm pr-2 transition-colors duration-100",
-          active
+          isActive
             ? "bg-hover text-fg before:absolute before:inset-y-1 before:left-0 before:w-px before:rounded-full before:bg-accent"
             : cn(
                 "hover:bg-elevated",
@@ -290,11 +356,11 @@ function TreeNode({ ctx, entry, depth, setSize, posInSet, dimmed }: TreeNodeProp
         <span className="truncate">{entry.name}</span>
       </div>
       {!isDir && error && (
-        <StatusRow id={errorId} inset={indentOf(depth) + NAME_OFFSET} tone="danger">
+        <StatusRow id={errorId} inset={indentOf(depth) + NAME_OFFSET} tone="danger" role="alert">
           {error}
         </StatusRow>
       )}
-      {expanded && (
+      {listings && expandedSet && readErrors && (
         <div role="group" className="relative">
           {/* Indent guide under the chevron; brighter on the active file's ancestor chain. */}
           <span
@@ -302,7 +368,7 @@ function TreeNode({ ctx, entry, depth, setSize, posInSet, dimmed }: TreeNodeProp
             style={{ left: indentOf(depth) + SLOT / 2 }}
             className={cn(
               "pointer-events-none absolute inset-y-0 w-px",
-              isInside(ctx.activePath, path) ? "bg-border-strong" : "bg-border",
+              activeInside !== null && activeInside !== path ? "bg-border-strong" : "bg-border",
             )}
           />
           {error && (
@@ -310,27 +376,46 @@ function TreeNode({ ctx, entry, depth, setSize, posInSet, dimmed }: TreeNodeProp
               {error}
             </StatusRow>
           )}
-          <Children ctx={ctx} path={path} depth={depth + 1} dimmed={dimmed} />
+          <Children
+            view={{
+              listings,
+              expanded: expandedSet,
+              readErrors,
+              tabStop: tabStopInside,
+              activePath: activeInside,
+            }}
+            actions={actions}
+            path={path}
+            depth={depth + 1}
+            dimmed={dimmed}
+          />
         </div>
       )}
     </div>
   );
-}
+});
 
+/**
+ * Non-item text inside the tree (empty folder, errors). Defaults to `role="none"` so a
+ * `tree` / `group` owns only treeitems (APG); a fresh file read error uses `alert`.
+ */
 function StatusRow({
   id,
   inset,
   tone = "muted",
+  role = "none",
   children,
 }: {
   id?: string;
   inset: number;
   tone?: "muted" | "danger";
+  role?: "none" | "alert";
   children: ReactNode;
 }) {
   return (
     <div
       id={id}
+      role={role}
       style={{ paddingLeft: inset }}
       className={cn(
         "pr-2 text-xs",
