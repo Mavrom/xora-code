@@ -1,6 +1,3 @@
-// Temporary: removed once the fs commands consume this module.
-#![cfg_attr(not(test), expect(dead_code))]
-
 pub mod commands;
 
 use serde::Serialize;

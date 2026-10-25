@@ -1,6 +1,3 @@
-// Temporary: removed once the fs commands consume these types.
-#![expect(dead_code)]
-
 use serde::{Serialize, Serializer};
 
 /// Error type returned by every Tauri command. Serialized as its message so
