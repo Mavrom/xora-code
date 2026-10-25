@@ -67,16 +67,7 @@ export function FileTree({ onOpenFolder }: FileTreeProps) {
           icon={FolderSearch}
           title="Klasör açılmadı"
           description="Başlamak için üst bardan bir klasör aç."
-          action={
-            <button
-              type="button"
-              onClick={onOpenFolder}
-              className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-3 text-[12px] font-medium text-fg transition-colors duration-150 hover:bg-hover"
-            >
-              <FolderOpen size={14} strokeWidth={1.75} aria-hidden />
-              Klasör aç
-            </button>
-          }
+          action={{ label: "Klasör aç", onClick: onOpenFolder, icon: FolderOpen }}
         />
       )}
     </div>
