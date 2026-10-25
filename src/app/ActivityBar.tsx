@@ -85,7 +85,7 @@ function ActivityItem({ icon: Icon, label, active, badge = 0, onClick }: Activit
       type="button"
       aria-label={badge > 0 ? `${label}, ${badge} açık not` : label}
       title={label}
-      aria-pressed={active}
+      aria-current={active ? "page" : undefined}
       onClick={onClick}
       className={cn(
         "relative grid size-9 place-items-center rounded-md transition-colors duration-150",
@@ -101,10 +101,11 @@ function ActivityItem({ icon: Icon, label, active, badge = 0, onClick }: Activit
         )}
       />
       <Icon size={18} strokeWidth={1.5} aria-hidden />
+      {/* Badge hugs the top-right corner, clear of the icon glyph. */}
       {badge > 0 && (
         <span
           aria-hidden
-          className="absolute top-1 right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-fg px-[3px] text-[9px] leading-none font-semibold text-bg tabular-nums ring-2 ring-bg starting:scale-50 starting:opacity-0 transition-[scale,opacity] duration-200 ease-out-quint"
+          className="absolute -top-0.5 -right-0.5 flex h-3.5 min-w-3.5 items-center justify-center rounded-full bg-fg px-[3px] text-[9px] leading-none font-semibold text-bg tabular-nums ring-2 ring-bg starting:scale-50 starting:opacity-0 transition-[scale,opacity] duration-200 ease-out-quint"
         >
           {badgeText}
         </span>

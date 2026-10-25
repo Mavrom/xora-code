@@ -52,17 +52,21 @@ export function NoteItem({ note, now }: NoteItemProps) {
     action();
     requestAnimationFrame(() => {
       const same = scope.querySelector<HTMLElement>(`[data-note-id="${note.id}"]`);
-      (same && !same.closest("[inert]") ? same : fallback)?.focus();
+      // Last row gone: park focus on the panel so Ctrl+Z (undo) still reaches it.
+      const panel = scope.closest<HTMLElement>("[data-inbox-panel]");
+      (same && !same.closest("[inert]") ? same : (fallback ?? panel))?.focus();
     });
   };
 
   const onRowKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.target !== e.currentTarget || e.ctrlKey || e.metaKey || e.altKey) return;
+    // A held key must not fire again and again (e.g. delete a whole list).
+    if (e.repeat) return;
     const key = e.key.toLowerCase();
     if (key === "enter") setEditing(true);
     else if (key === "p" && !note.done) keepFocus(() => togglePin(note.id));
     else if (key === "e") keepFocus(() => toggleDone(note.id));
-    else if (key === "delete" || key === "backspace") keepFocus(() => remove(note.id));
+    else if (key === "delete") keepFocus(() => remove(note.id));
     else return;
     e.preventDefault();
   };
@@ -78,6 +82,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
       ref={rowRef}
       role="listitem"
       tabIndex={0}
+      aria-keyshortcuts="Enter P E Delete"
       data-note-row
       data-note-id={note.id}
       onKeyDown={onRowKeyDown}
@@ -108,7 +113,13 @@ export function NoteItem({ note, now }: NoteItemProps) {
 
       <div className="mt-1 flex h-4 items-center gap-1.5 text-[11px] text-fg-subtle">
         {note.pinned && !note.done && (
-          <Pin size={11} strokeWidth={2} className="shrink-0 text-fg-muted" aria-label="Sabit" />
+          <Pin
+            size={11}
+            strokeWidth={2}
+            role="img"
+            aria-label="Sabit"
+            className="shrink-0 text-fg-muted"
+          />
         )}
         <time
           dateTime={new Date(note.createdAt).toISOString()}
@@ -134,9 +145,8 @@ export function NoteItem({ note, now }: NoteItemProps) {
       {!editing && (
         <div
           className={cn(
-            "absolute top-1.5 right-1.5 flex items-center gap-0.5 rounded-md bg-hover pl-1",
-            // Soft fade so the actions float over long text instead of cutting it.
-            "before:pointer-events-none before:absolute before:inset-y-0 before:-left-5 before:w-5 before:bg-linear-to-l before:from-hover before:to-transparent",
+            // Sits on the meta line (centred on it), so it never covers the note text.
+            "absolute right-1.5 bottom-1 flex items-center gap-0.5 rounded-md bg-hover pl-1",
             "translate-x-1 opacity-0 transition-[opacity,translate] duration-150 ease-out-quint",
             "group-hover:translate-x-0 group-hover:opacity-100",
             // Keyboard focus on the row or on an action keeps them visible.
