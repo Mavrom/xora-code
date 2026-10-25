@@ -7,6 +7,8 @@ import * as monaco from "monaco-editor";
 import { FileCode } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { onCommand, SAVE_ACTIVE_FILE } from "@/features/commands/events";
+import { isPaletteOpen } from "@/features/commands/paletteGuard";
+import { isSaveShortcut } from "./editorKeys";
 import { XORA_THEME } from "./monaco/theme";
 import { saveActiveTab } from "./saveActiveTab";
 import { useEditorStore } from "./store";
@@ -74,7 +76,7 @@ export function EditorPanel() {
   // Ctrl+S also works while focus is outside Monaco (tab strip, status bar).
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || !(e.ctrlKey || e.metaKey) || e.key.toLowerCase() !== "s") return;
+      if (e.defaultPrevented || isPaletteOpen() || !isSaveShortcut(e)) return;
       e.preventDefault();
       void save();
     };
