@@ -1,0 +1,17 @@
+import type { ReactNode } from "react";
+
+interface PanelHeaderProps {
+  title: string;
+  actions?: ReactNode;
+}
+
+export function PanelHeader({ title, actions }: PanelHeaderProps) {
+  return (
+    <div className="flex h-9 shrink-0 items-center justify-between gap-2 pr-1.5 pl-4">
+      <h2 className="truncate text-[11px] font-medium tracking-wide text-fg-subtle uppercase">
+        {title}
+      </h2>
+      {actions && <div className="flex items-center gap-0.5">{actions}</div>}
+    </div>
+  );
+}
