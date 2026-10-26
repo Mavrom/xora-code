@@ -9,6 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
+import { subscriptionAuthMethods } from "@/features/agents/authMethods";
 import type { AcpAuthMethod, AgentInfo } from "@/features/agents/types";
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/ui/cn";
@@ -18,6 +19,8 @@ const NODE_URL = "https://nodejs.org/";
 
 interface AgentStatusCardProps {
   agent: AgentInfo;
+  /** Why the last sign-in attempt failed, shown until the next attempt. */
+  authError?: string | null;
   onInstall: () => void;
   onAuthenticate: (methodId: string) => void;
   onRestart: () => void;
@@ -29,6 +32,7 @@ interface AgentStatusCardProps {
  */
 export function AgentStatusCard({
   agent,
+  authError = null,
   onInstall,
   onAuthenticate,
   onRestart,
@@ -84,13 +88,21 @@ export function AgentStatusCard({
     case "starting":
       return <Card icon={PlugZap} live title={`${name} bağlanıyor…`} />;
 
-    case "authRequired":
+    case "authRequired": {
+      const methods = subscriptionAuthMethods(agent.id, status.authMethods);
       return (
         <Card
           icon={KeyRound}
           title={`${name} hesabına giriş yap`}
-          body={authHint(status.authMethods)}
-          actions={status.authMethods.map((method, index) => (
+          body={authHint(methods)}
+          footer={
+            authError ? (
+              <p role="alert" className="mt-2.5 text-xs leading-relaxed text-danger">
+                {authError}
+              </p>
+            ) : null
+          }
+          actions={methods.map((method, index) => (
             <Button
               key={method.id}
               variant={index === 0 ? "primary" : "secondary"}
@@ -102,6 +114,7 @@ export function AgentStatusCard({
           ))}
         />
       );
+    }
 
     case "crashed":
       return (

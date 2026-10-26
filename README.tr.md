@@ -8,7 +8,7 @@ Açık kaynak, agent-first bir kod editörü. Kendi Claude, ChatGPT veya Gemini 
 
 Xora Code, pencerenin merkezine bir AI agent sohbetini koyar. Sohbetlerin solda durur, dosya gezgini ve editör gerektiğinde açılır, kendi duvar kağıdın cam panellerin arkasından görünebilir. Agent'lar zaten kullandığın CLI'ların (Claude Code, Codex, Gemini CLI) resmi adapter'ları üzerinden, kendi aboneliğinle giriş yapılarak çalışır. Xora Code'un kendi AI faturası yoktur ve API key istemez.
 
-> **Durum:** Faz 1 ve 2 hazır: editör temeli, ACP üzerinden çalışan agent sohbeti, ayarlar ve hesaplar, entegre terminal. Windows'ta Claude Code ile uçtan uca doğrulandı; Codex ve Gemini aynı yolu kullanıyor ama bu hesaplarla tam bir deneme henüz yapılmadı. İlk hedef Windows; kod çapraz platform kalacak şekilde yazılıyor. Arayüz metinleri Türkçe.
+> **Durum:** Faz 1 ve 2 hazır: editör temeli, ACP üzerinden çalışan agent sohbeti, ayarlar ve hesaplar, entegre terminal. Windows'ta Claude Code ile uçtan uca doğrulandı. Gemini CLI bağlanıp girişe kadar geliyor, ama Google kişisel hesapla Gemini CLI girişini kapattı (artık Antigravity'ye yönlendiriyor), bu yüzden Gemini aboneliği bugün bu yolla kullanılamıyor. Codex aynı yolu kullanıyor; ChatGPT hesabıyla bir deneme daha gerekiyor. İlk hedef Windows; kod çapraz platform kalacak şekilde yazılıyor. Arayüz metinleri Türkçe.
 
 ## Özellikler
 

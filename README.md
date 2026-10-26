@@ -8,7 +8,7 @@ An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemin
 
 Xora Code puts an AI agent conversation at the center of the window. Your conversations sit on the left, the file explorer and the editor open when you need them, and your own wallpaper can glow through glass panels. Agents run through the official adapters for the CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
 
-> **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows; Codex and Gemini use the same path but still need a full run on a machine with those accounts. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
+> **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows. Gemini CLI connects and reaches sign-in, but Google has retired personal Google sign-in for Gemini CLI (it now points to Antigravity), so a Gemini subscription cannot be used this way today. Codex uses the same path and still needs a run with a ChatGPT account. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
 
 ## Features
 

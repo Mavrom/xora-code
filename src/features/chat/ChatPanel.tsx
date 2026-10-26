@@ -23,6 +23,14 @@ import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 
 const NOTICE_MS = 3200;
 
+/** A failed sign-in, worded for the card (the agent's own reason when it gave one). */
+function authFailureText(err: unknown): string {
+  const reason = errorMessage(err)
+    .replace(/^auth_required:/, "")
+    .trim();
+  return reason ? `Giriş başarısız: ${reason}` : "Giriş başarısız.";
+}
+
 // The transcript (markdown, sanitiser, code highlighting) is only needed once a chat has
 // messages; keeping it out of the entry chunk makes cold start lighter.
 const MessageList = lazy(() => import("./MessageList").then((m) => ({ default: m.MessageList })));
@@ -48,6 +56,7 @@ export function ChatPanel() {
   const selectedAgent = useAgentStore((s) => s.selectedAgent);
   const composerRef = useRef<ComposerHandle>(null);
   const [notice, setNotice] = useState<{ text: string; key: number } | null>(null);
+  const [authError, setAuthError] = useState<{ agentId: AgentId; text: string } | null>(null);
 
   const agentId = session?.agentId ?? selectedAgent;
   const agent = agents[agentId];
@@ -136,16 +145,18 @@ export function ChatPanel() {
         <div className="mb-3">
           <AgentStatusCard
             agent={agent}
+            authError={authError?.agentId === agentId ? authError.text : null}
             onInstall={() =>
               void store()
                 .install(agentId)
                 .catch((e: unknown) => say(errorMessage(e)))
             }
-            onAuthenticate={(methodId) =>
+            onAuthenticate={(methodId) => {
+              setAuthError(null);
               void store()
                 .authenticate(agentId, methodId)
-                .catch((e: unknown) => say(errorMessage(e)))
-            }
+                .catch((e: unknown) => setAuthError({ agentId, text: authFailureText(e) }));
+            }}
             onRestart={() =>
               void store()
                 .restart(agentId)
