@@ -53,7 +53,10 @@ export function Layout() {
   const activePath = useEditorStore((s) => s.activePath);
   const firstLayout = center.defaultLayout === undefined;
 
-  const toggleEditor = () => togglePanel(editorPanel.current);
+  // An empty editor is just a black slab: it only opens once a file is there to show.
+  const toggleEditor = () => {
+    if (useEditorStore.getState().tabs.length > 0) togglePanel(editorPanel.current);
+  };
 
   // Minimal frame: the chat owns the window until there is a file to look at.
   useEffect(() => {
@@ -84,7 +87,13 @@ export function Layout() {
   }, [activePath, editorPanel]);
 
   // The command palette asks for the toggle; the panel ref only exists here.
-  useEffect(() => onCommand(TOGGLE_EDITOR, () => togglePanel(editorPanel.current)), [editorPanel]);
+  useEffect(
+    () =>
+      onCommand(TOGGLE_EDITOR, () => {
+        if (useEditorStore.getState().tabs.length > 0) togglePanel(editorPanel.current);
+      }),
+    [editorPanel],
+  );
 
   return (
     <div className="relative h-full">
@@ -138,6 +147,11 @@ export function Layout() {
                     minSize="24%"
                     onResize={(size) => {
                       const open = size.asPercentage > 0;
+                      // Nothing to show: an editor dragged open without a file folds back.
+                      if (open && useEditorStore.getState().tabs.length === 0) {
+                        editorPanel.current?.collapse();
+                        return;
+                      }
                       // Dragged shut: same focus rescue as the toggle.
                       if (!open) moveFocusOutOfEditor();
                       setEditorOpen(open);

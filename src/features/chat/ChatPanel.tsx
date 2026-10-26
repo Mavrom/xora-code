@@ -301,7 +301,7 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="bg-bg flex h-full flex-col">
+    <div className="flex h-full flex-col">
       <Suspense fallback={<div className="min-h-0 flex-1" />}>
         <MessageList session={session} />
       </Suspense>

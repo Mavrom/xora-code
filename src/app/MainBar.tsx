@@ -28,7 +28,7 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
   return (
     <header
       data-tauri-drag-region="deep"
-      className={cn("relative flex h-10 shrink-0 items-center gap-2", docked && "bg-bg")}
+      className="relative flex h-10 shrink-0 items-center gap-2"
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
         {!sidebarOpen && (
