@@ -11,4 +11,8 @@ describe("mentionFor", () => {
     expect(mentionFor("C:\\proj\\my notes.md", "C:\\proj\\")).toBe('@"my notes.md"');
     expect(mentionFor("C:\\x.ts", null)).toBe("@C:/x.ts");
   });
+
+  it("marks folders with a trailing slash", () => {
+    expect(mentionFor("C:\\proj\\src", "C:\\proj", true)).toBe("@src/");
+  });
 });

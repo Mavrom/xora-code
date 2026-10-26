@@ -1,9 +1,20 @@
-import type { ReactNode } from "react";
-import { ChevronDown, Folder, GitBranch, Monitor, Paperclip } from "lucide-react";
+import { useState, type ReactNode } from "react";
+import {
+  ChevronDown,
+  FileCode,
+  FilePlus,
+  Folder,
+  FolderPlus,
+  GitBranch,
+  Monitor,
+  Paperclip,
+} from "lucide-react";
 import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
 import { AGENT_IDS } from "@/features/agents/reducer";
 import type { AgentId, AgentInfo } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
+import { ContextMenu } from "@/shared/ui/ContextMenu";
+import type { MenuEntry } from "@/shared/ui/menuModel";
 import { AgentGlyph } from "./AgentGlyph";
 import { ChipMenu, type ChipOption, type ChipSection } from "./ChipMenu";
 import { effortLabel, pickerSummary, statusNote } from "./controlsView";
@@ -52,6 +63,12 @@ function extraSection(control: Control, onSet: SetControl): ChipSection {
   }
   return selectSection(control.key, control.label, control, onSet);
 }
+
+/**
+ * Agent options left out of the picker. `agent` is Claude Code's persona list (custom
+ * subagents with paragraph-long descriptions); it needs its own, roomier UI.
+ */
+const HIDDEN_EXTRAS = new Set(["agent"]);
 
 /** Muted chip look of the line above and below the composer. */
 const quietChip =
@@ -113,7 +130,9 @@ export function ModelPicker({
   if (controls?.mode) {
     sections.push(selectSection("mode", controls.mode.label || "Mod", controls.mode, onSetControl));
   }
-  for (const control of controls?.extra ?? []) sections.push(extraSection(control, onSetControl));
+  for (const control of controls?.extra ?? []) {
+    if (!HIDDEN_EXTRAS.has(control.key)) sections.push(extraSection(control, onSetControl));
+  }
 
   // The mark already names the agent: show model and effort, like "Opus 5.5 Orta".
   const parts = summary.length > 1 ? summary.slice(1) : summary;
@@ -135,18 +154,50 @@ export function ModelPicker({
   );
 }
 
-/** Adds files to the message as `@path` mentions the agent can read. */
-export function AttachButton({ onClick }: { onClick: () => void }) {
+interface AttachMenuProps {
+  onPickFiles: () => void;
+  onPickFolder: () => void;
+  /** The file open in the editor, offered as a one-click mention. */
+  openFile: { name: string; onAdd: () => void } | null;
+}
+
+/** The paperclip: a small menu of things to mention in the message (`@path`). */
+export function AttachMenu({ onPickFiles, onPickFolder, openFile }: AttachMenuProps) {
+  const [at, setAt] = useState<{ x: number; y: number } | null>(null);
+  const items: MenuEntry[] = [
+    { label: "Dosya…", icon: FilePlus, onSelect: onPickFiles },
+    { label: "Klasör…", icon: FolderPlus, onSelect: onPickFolder },
+  ];
+  if (openFile) {
+    items.push("separator", {
+      label: `Açık dosya: ${openFile.name}`,
+      icon: FileCode,
+      onSelect: openFile.onAdd,
+    });
+  }
   return (
-    <button
-      type="button"
-      aria-label="Dosya ekle"
-      title="Dosya ekle"
-      onClick={onClick}
-      className="grid size-7 shrink-0 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-    >
-      <Paperclip size={15} strokeWidth={1.75} aria-hidden />
-    </button>
+    <>
+      <button
+        type="button"
+        aria-label="Ekle"
+        aria-haspopup="menu"
+        aria-expanded={at !== null}
+        title="Ekle"
+        onClick={(e) => {
+          const r = e.currentTarget.getBoundingClientRect();
+          setAt(at ? null : { x: r.left, y: r.bottom + 6 });
+        }}
+        className={cn(
+          "grid size-7 shrink-0 place-items-center rounded-md transition-colors duration-fast",
+          at ? "bg-hover text-fg" : "text-fg-subtle hover:bg-hover hover:text-fg",
+        )}
+      >
+        <Paperclip size={15} strokeWidth={1.75} aria-hidden />
+      </button>
+      {at && (
+        <ContextMenu x={at.x} y={at.y} label="Ekle" items={items} onClose={() => setAt(null)} />
+      )}
+    </>
   );
 }
 

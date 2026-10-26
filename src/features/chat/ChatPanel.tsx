@@ -7,6 +7,7 @@ import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import type { AgentId } from "@/features/agents/types";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
+import { useEditorStore } from "@/features/editor/store";
 import { basename } from "@/shared/lib/path";
 import { useHostname } from "@/shared/lib/useHostname";
 import { Kbd } from "@/shared/ui/Kbd";
@@ -14,7 +15,7 @@ import { AgentStatusCard } from "./AgentStatusCard";
 import { ChangesBar } from "./ChangesBar";
 import { Composer, type ComposerHandle } from "./Composer";
 import {
-  AttachButton,
+  AttachMenu,
   ContextMeter,
   ContextRow,
   FolderChip,
@@ -75,6 +76,7 @@ export function ChatPanel() {
   const turn = session?.turn ?? "idle";
   const running = turn !== "idle";
   const hostname = useHostname();
+  const activeFile = useEditorStore((s) => s.activePath);
   const branch = useGitBranch(cwd, session?.lastStopReason, FIXTURE ? "main" : null);
 
   useWarmSession(session === null, agentId, cwd, agent.status);
@@ -169,16 +171,19 @@ export function ChatPanel() {
       .catch((err: unknown) => say(`Ayar değiştirilemedi: ${errorMessage(err)}`));
   };
 
-  const attach = async () => {
+  const mention = (paths: string[], dir = false) => {
+    if (paths.length > 0)
+      composerRef.current?.insert(paths.map((p) => mentionFor(p, cwd, dir)).join(" "));
+  };
+
+  const attach = async (directory: boolean) => {
     const picked = await open({
-      title: "Dosya ekle",
+      title: directory ? "Klasör ekle" : "Dosya ekle",
       multiple: true,
-      directory: false,
+      directory,
       defaultPath: cwd ?? undefined,
     }).catch(() => null);
-    const paths = Array.isArray(picked) ? picked : picked ? [picked] : [];
-    if (paths.length > 0)
-      composerRef.current?.insert(paths.map((p) => mentionFor(p, cwd)).join(" "));
+    mention(Array.isArray(picked) ? picked : picked ? [picked] : [], directory);
   };
 
   const permission = session?.permissions[0] ?? null;
@@ -246,7 +251,15 @@ export function ChatPanel() {
         commands={session?.commands ?? []}
         toolbar={
           <>
-            <AttachButton onClick={() => void attach()} />
+            <AttachMenu
+              onPickFiles={() => void attach(false)}
+              onPickFolder={() => void attach(true)}
+              openFile={
+                activeFile
+                  ? { name: basename(activeFile), onAdd: () => mention([activeFile]) }
+                  : null
+              }
+            />
             <ModelPicker
               agents={agents}
               agentId={agentId}
