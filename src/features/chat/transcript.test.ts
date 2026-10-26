@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChatItem } from "@/features/agents/reducer";
-import { transcriptFileName, transcriptMarkdown } from "./transcript";
+import { handoffPrompt, transcriptFileName, transcriptMarkdown } from "./transcript";
 
 const items = [
   { kind: "user", id: "1", blocks: [{ type: "text", text: "README'yi özetle\nkısa olsun" }] },
@@ -41,5 +41,19 @@ describe("transcriptFileName", () => {
   it("strips characters Windows refuses", () => {
     expect(transcriptFileName('Neden "x/y" çalışmıyor?')).toBe("Neden xy çalışmıyor.md");
     expect(transcriptFileName("   ")).toBe("sohbet.md");
+  });
+});
+
+describe("handoffPrompt", () => {
+  it("names the previous agent and carries the transcript", () => {
+    const text = handoffPrompt("Claude Code", "# Başlık\n\niçerik");
+    expect(text).toContain("Claude Code ile yürütüyordum");
+    expect(text.endsWith("# Başlık\n\niçerik")).toBe(true);
+  });
+
+  it("keeps the latest part of a long transcript", () => {
+    const text = handoffPrompt("Codex", `${"a".repeat(50)}SON`, 10);
+    expect(text).toContain("konuşmanın başı kısaltıldı");
+    expect(text.endsWith("aaaaaaaSON")).toBe(true);
   });
 });

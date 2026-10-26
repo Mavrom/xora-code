@@ -81,3 +81,25 @@ export function transcriptFileName(title: string): string {
     .replace(/[. ]+$/, "");
   return `${safe || "sohbet"}.md`;
 }
+
+/** Longest transcript put into a hand-off prompt; older parts are cut first. */
+export const HANDOFF_MAX = 12_000;
+
+/**
+ * The first message for the agent that takes over a conversation: what happened so far
+ * (its latest part when long), and what to do with it.
+ */
+export function handoffPrompt(fromAgent: string, markdown: string, max = HANDOFF_MAX): string {
+  const body =
+    markdown.length > max
+      ? `_(konuşmanın başı kısaltıldı)_\n\n…${markdown.slice(markdown.length - max)}`
+      : markdown;
+  return [
+    `Bu konuşmayı ${fromAgent} ile yürütüyordum; buradan sen devam et.`,
+    "Önce durumu iki üç cümleyle özetle, sonra kaldığımız yerden sıradaki adımı öner.",
+    "",
+    "---",
+    "",
+    body.trim(),
+  ].join("\n");
+}

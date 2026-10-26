@@ -19,13 +19,13 @@ const h = (
 
 describe("mergeSessionList", () => {
   it("carries pins and prefers the user's name, also over an open session's title", () => {
-    const view = createSessionView(FIXTURE_SETUPS.claude, "C:\p", {
+    const view = createSessionView(FIXTURE_SETUPS.claude, "C:/p", {
       sessionId: "a",
       agentId: "claude",
       title: "agent title",
     });
     const [entry] = mergeSessionList(
-      [{ ...h("a", "C:\p", null, "agent title"), pinned: true, customTitle: "Benim adım" }],
+      [{ ...h("a", "C:/p", null, "agent title"), pinned: true, customTitle: "Benim adım" }],
       { a: { ...view, sessionId: "a" } },
       null,
     );

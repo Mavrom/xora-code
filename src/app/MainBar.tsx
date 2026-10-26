@@ -1,5 +1,14 @@
 import { useRef, useState } from "react";
-import { Copy, Download, Ellipsis, Files, PanelLeft, PanelRight, SquarePen } from "lucide-react";
+import {
+  ArrowRightLeft,
+  Copy,
+  Download,
+  Ellipsis,
+  Files,
+  PanelLeft,
+  PanelRight,
+  SquarePen,
+} from "lucide-react";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { isDocked, sessionTitle } from "@/features/chat/sessionTitle";
@@ -7,7 +16,13 @@ import { useEditorStore } from "@/features/editor/store";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { IconButton } from "@/shared/ui/IconButton";
-import { copyChatMarkdown, exportChatMarkdown } from "@/features/chat/exportChat";
+import {
+  copyChatMarkdown,
+  exportChatMarkdown,
+  handOffTo,
+  handoffTargets,
+} from "@/features/chat/exportChat";
+import { SEPARATOR } from "@/shared/ui/menuModel";
 import { toggleFiles, useUiStore } from "./uiStore";
 import { WindowControls } from "./WindowControls";
 
@@ -98,6 +113,8 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
 function ChatMenu({ title }: { title: string }) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const anchor = useRef<HTMLSpanElement>(null);
+  // Read when the menu opens: which other agents are signed in right now.
+  const targets = at ? handoffTargets() : [];
   return (
     <>
       <span ref={anchor} className="inline-flex">
@@ -132,6 +149,12 @@ function ChatMenu({ title }: { title: string }) {
                   console.error("chat export failed", err),
                 ),
             },
+            ...(targets.length > 0 ? [SEPARATOR] : []),
+            ...targets.map((t) => ({
+              label: `${t.name} ile devam et`,
+              icon: ArrowRightLeft,
+              onSelect: () => void handOffTo(t.id),
+            })),
           ]}
         />
       )}
