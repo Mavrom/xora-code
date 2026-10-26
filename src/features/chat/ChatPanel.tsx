@@ -34,6 +34,8 @@ import { needsStatusCard } from "./toolView";
 import { NEW_CHAT, onChatDraft, onCommand } from "@/features/commands/events";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
+import { DropOverlay } from "./DropOverlay";
+import { useFileDrop } from "./useFileDrop";
 
 const NOTICE_MS = 3200;
 
@@ -218,6 +220,19 @@ export function ChatPanel() {
     );
   };
 
+  // Dropped from Explorer: folders by what the backend can list, everything else as files.
+  const dropping = useFileDrop(
+    (paths) =>
+      void addAttachments(
+        paths.map((path) =>
+          ipc.listDir(path).then(
+            () => attachmentFromPath(path, "folder", ipc.readBytes),
+            () => attachmentFromPath(path, "file", ipc.readBytes),
+          ),
+        ),
+      ),
+  );
+
   const permission = session?.permissions[0] ?? null;
   const side = docked ? "top" : "bottom";
   const hero = !docked;
@@ -351,6 +366,7 @@ export function ChatPanel() {
           {composer}
         </section>
         <div aria-hidden className="min-h-6 flex-[1.15]" />
+        {dropping && <DropOverlay />}
       </div>
     );
   }
@@ -361,6 +377,7 @@ export function ChatPanel() {
         <MessageList session={session} />
       </Suspense>
       <div className="mx-auto w-full max-w-180 px-4 pt-1 pb-2">{composer}</div>
+      {dropping && <DropOverlay />}
     </div>
   );
 }
