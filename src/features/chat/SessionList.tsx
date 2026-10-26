@@ -1,10 +1,13 @@
 import { shortTitle } from "./sessionTitle";
-import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { useEffect, useMemo, useRef, useState, type MouseEvent } from "react";
 import {
   Archive,
   ArchiveRestore,
   ChevronRight,
   MessagesSquare,
+  Pencil,
+  Pin,
+  PinOff,
   MessageSquare,
   RotateCcw,
   Trash2,
@@ -47,10 +50,12 @@ export function SessionList() {
   );
   const filter = useUiStore((s) => s.projectFilter);
   const [archiveOpen, setArchiveOpen] = useState(false);
-  const { days, archived } = useMemo(() => {
+  const { pinned, days, archived } = useMemo(() => {
     const all = flatSessions(visibleGroups(groups, emptyKey, root), filter);
+    const live = all.filter((e) => !e.archived);
     return {
-      days: groupByDay(all.filter((e) => !e.archived)),
+      pinned: live.filter((e) => e.pinned),
+      days: groupByDay(live.filter((e) => !e.pinned)),
       archived: all.filter((e) => e.archived),
     };
   }, [groups, emptyKey, root, filter]);
@@ -77,7 +82,22 @@ export function SessionList() {
 
   return (
     <div className="h-full overflow-y-auto px-2 pb-3 [scrollbar-width:thin]">
-      {days.length === 0 ? (
+      {pinned.length > 0 && (
+        <section aria-label="Sabitlenenler" className="mt-1">
+          <h3 className="flex items-center gap-1.5 px-2.5 pb-1 text-[11px] font-medium text-fg-subtle/80">
+            <Pin size={10} strokeWidth={2} aria-hidden />
+            Sabitlenenler
+          </h3>
+          <ul className="flex flex-col gap-px">
+            {pinned.map((entry) => (
+              <li key={`${entry.agentId}:${entry.sessionId}`}>
+                <SessionRow entry={entry} worktrees={worktrees} />
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+      {days.length === 0 && pinned.length === 0 ? (
         loading ? (
           <ListSkeleton />
         ) : (
@@ -170,6 +190,18 @@ const archive = (entry: SessionListEntry, archived: boolean) =>
     .archiveSession(entry, archived)
     .catch((err: unknown) => console.warn("sessions: archive failed", err));
 
+const pin = (entry: SessionListEntry, pinned: boolean) =>
+  useAgentStore
+    .getState()
+    .pinSession(entry, pinned)
+    .catch((err: unknown) => console.warn("sessions: pin failed", err));
+
+const rename = (entry: SessionListEntry, title: string | null) =>
+  useAgentStore
+    .getState()
+    .renameSession(entry, title)
+    .catch((err: unknown) => console.warn("sessions: rename failed", err));
+
 const remove = (entry: SessionListEntry) =>
   useAgentStore
     .getState()
@@ -191,6 +223,7 @@ function SessionRow({
   const worktree = worktreeOf(worktrees, entry.cwd);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [confirming, setConfirming] = useState(false);
+  const [renaming, setRenaming] = useState(false);
   const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
   const title = entry.title ? shortTitle(entry.title) : "Adsız sohbet";
 
@@ -198,6 +231,18 @@ function SessionRow({
     e.preventDefault();
     setMenu({ x: e.clientX, y: e.clientY });
   };
+
+  if (renaming) {
+    return (
+      <RenameField
+        initial={entry.title ?? ""}
+        onDone={(name) => {
+          setRenaming(false);
+          if (name !== null && name !== (entry.title ?? "")) void rename(entry, name);
+        }}
+      />
+    );
+  }
 
   if (confirming) {
     return (
@@ -280,6 +325,13 @@ function SessionRow({
             </span>
           )}
           <span className="absolute right-0 flex items-center gap-0.5 opacity-0 transition-opacity duration-fast group-focus-within:opacity-100 group-hover:opacity-100">
+            {!entry.archived && (
+              <RowAction
+                icon={entry.pinned ? PinOff : Pin}
+                label={entry.pinned ? "Sabitlemeyi kaldır" : "Sabitle"}
+                onClick={() => void pin(entry, !entry.pinned)}
+              />
+            )}
             <RowAction
               icon={entry.archived ? ArchiveRestore : Archive}
               label={entry.archived ? "Arşivden çıkar" : "Arşivle"}
@@ -297,6 +349,19 @@ function SessionRow({
           onClose={() => setMenu(null)}
           items={[
             { label: "Aç", icon: MessageSquare, onSelect: () => openEntry(entry) },
+            { label: "Yeniden adlandır", icon: Pencil, onSelect: () => setRenaming(true) },
+            ...(entry.archived
+              ? []
+              : [
+                  entry.pinned
+                    ? {
+                        label: "Sabitlemeyi kaldır",
+                        icon: PinOff,
+                        onSelect: () => void pin(entry, false),
+                      }
+                    : { label: "Sabitle", icon: Pin, onSelect: () => void pin(entry, true) },
+                ]),
+            SEPARATOR,
             entry.archived
               ? {
                   label: "Arşivden çıkar",
@@ -310,6 +375,49 @@ function SessionRow({
         />
       )}
     </>
+  );
+}
+
+/**
+ * The row's title as a text field: Enter keeps the name, Esc gives up, leaving the field
+ * keeps it too. A blank name hands the title back to the agent.
+ */
+function RenameField({
+  initial,
+  onDone,
+}: {
+  initial: string;
+  onDone: (name: string | null) => void;
+}) {
+  const [value, setValue] = useState(initial);
+  const done = useRef(false);
+  const finish = (name: string | null) => {
+    if (done.current) return;
+    done.current = true;
+    onDone(name);
+  };
+  return (
+    <input
+      autoFocus
+      aria-label="Sohbetin adı"
+      value={value}
+      maxLength={120}
+      onChange={(e) => setValue(e.target.value)}
+      onFocus={(e) => e.currentTarget.select()}
+      onKeyDown={(e) => {
+        if (e.key === "Enter") {
+          e.preventDefault();
+          finish(value.trim());
+        } else if (e.key === "Escape") {
+          e.preventDefault();
+          e.stopPropagation();
+          finish(null);
+        }
+      }}
+      onBlur={() => finish(value.trim())}
+      placeholder="Ajanın başlığı kullanılır"
+      className="h-8 w-full rounded-lg bg-white/[0.06] px-2.5 text-[13px] text-fg outline-none ring-1 ring-white/15 placeholder:text-fg-subtle"
+    />
   );
 }
 

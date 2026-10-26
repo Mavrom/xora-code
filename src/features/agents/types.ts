@@ -177,6 +177,10 @@ export interface AgentSessionInfo {
   updatedAt: string | null;
   /** In the archive (a local mark); absent on older entries. */
   archived?: boolean;
+  /** Kept at the top of the list (a local mark). */
+  pinned?: boolean;
+  /** The user's own name for it, over the agent's title. */
+  customTitle?: string | null;
 }
 export interface AgentInfo {
   id: AgentId;

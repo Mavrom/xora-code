@@ -26,7 +26,14 @@ interface MainBarProps {
 export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor }: MainBarProps) {
   const session = useAgentStore(selectActiveSession);
   const docked = isDocked(session);
-  const title = docked ? sessionTitle(session) : null;
+  // A name the user gave the conversation wins over the agent's title.
+  const customTitle = useAgentStore((s) =>
+    session
+      ? s.history.find((h) => h.agentId === session.agentId && h.sessionId === session.sessionId)
+          ?.customTitle
+      : null,
+  );
+  const title = docked ? customTitle || sessionTitle(session) : null;
   const hasFiles = useEditorStore((s) => s.tabs.length > 0);
   const filesOpen = useUiStore((s) => s.filesOpen);
 

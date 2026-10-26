@@ -705,6 +705,8 @@ export function createFixtureIpc(opts: FixtureIpcOptions = {}): AgentIpc {
     sessionsList: async (agentId) => FIXTURE_HISTORY.filter((h) => h.agentId === agentId),
     sessionArchive: async () => {},
     sessionDelete: async () => {},
+    sessionPin: async () => {},
+    sessionRename: async () => {},
     prompt: async (sessionId) => {
       const names = Object.keys(FIXTURE_SCENARIOS) as FixtureScenarioName[];
       const name = opts.scenario ?? names[cycle++ % names.length];

@@ -3,7 +3,7 @@
 
 use super::acp::RevertOutcome;
 use super::events::{AgentEvent, AgentId, SessionSetup};
-use super::index::SessionEntry;
+use super::index::{Mark, SessionEntry};
 use super::manager::{AgentError, AgentInfo, AgentManager, LaunchPrefs};
 use serde_json::Value;
 use std::path::PathBuf;
@@ -159,6 +159,33 @@ pub fn agent_session_archive(
 ) -> CmdResult<()> {
     manager
         .session_archive(agent_id, &session_id, &cwd, archived)
+        .map_err(ipc)
+}
+
+#[tauri::command]
+pub fn agent_session_pin(
+    manager: State<'_, AgentManager>,
+    agent_id: AgentId,
+    session_id: String,
+    cwd: PathBuf,
+    pinned: bool,
+) -> CmdResult<()> {
+    manager
+        .session_mark(agent_id, &session_id, &cwd, Mark::Pinned(pinned))
+        .map_err(ipc)
+}
+
+/// Renames a conversation; `None` (or a blank name) gives the agent's title back.
+#[tauri::command]
+pub fn agent_session_rename(
+    manager: State<'_, AgentManager>,
+    agent_id: AgentId,
+    session_id: String,
+    cwd: PathBuf,
+    title: Option<String>,
+) -> CmdResult<()> {
+    manager
+        .session_mark(agent_id, &session_id, &cwd, Mark::Renamed(title))
         .map_err(ipc)
 }
 

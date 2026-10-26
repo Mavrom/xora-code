@@ -22,6 +22,12 @@ pub struct SessionEntry {
     /// running) does not bring it back through `session/list`.
     #[serde(default, skip_serializing_if = "is_false")]
     pub deleted: bool,
+    /// Kept at the top of the sidebar list.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub pinned: bool,
+    /// The user's own name for it; shown instead of the agent's title, which keeps updating.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub custom_title: Option<String>,
 }
 
 fn is_false(value: &bool) -> bool {
@@ -29,10 +35,13 @@ fn is_false(value: &bool) -> bool {
 }
 
 /// A user action on one history entry.
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Mark {
     Archived(bool),
     Deleted,
+    Pinned(bool),
+    /// `None` gives the agent's title back.
+    Renamed(Option<String>),
 }
 
 /// Keeps the newest entries only, so the file stays small.
@@ -101,6 +110,10 @@ pub fn upsert(entries: &mut Vec<SessionEntry>, mut entry: SessionEntry) {
         if entry.title.is_none() {
             entry.title = old.title;
         }
+        // Activity never undoes what the user decided about the conversation.
+        entry.archived = old.archived;
+        entry.pinned = old.pinned;
+        entry.custom_title = old.custom_title;
     }
     entries.insert(0, entry);
     entries.truncate(MAX_ENTRIES);
@@ -133,6 +146,8 @@ impl SessionIndex {
                 updated_at: Some(now_rfc3339()),
                 archived: false,
                 deleted: false,
+                pinned: false,
+                custom_title: None,
             },
         );
         let _ = save(&path, &entries);
@@ -199,6 +214,8 @@ pub fn apply_mark(
                 updated_at: None,
                 archived: false,
                 deleted: false,
+                pinned: false,
+                custom_title: None,
             });
             entries.last_mut().expect("just pushed")
         }
@@ -206,6 +223,10 @@ pub fn apply_mark(
     match mark {
         Mark::Archived(archived) => entry.archived = archived,
         Mark::Deleted => entry.deleted = true,
+        Mark::Pinned(pinned) => entry.pinned = pinned,
+        Mark::Renamed(title) => {
+            entry.custom_title = title.map(|t| t.trim().to_owned()).filter(|t| !t.is_empty());
+        }
     }
 }
 
@@ -225,6 +246,8 @@ pub fn merge(agent: Vec<SessionEntry>, local: Vec<SessionEntry>) -> Vec<SessionE
                 }
                 existing.archived = entry.archived;
                 existing.deleted = entry.deleted;
+                existing.pinned = entry.pinned;
+                existing.custom_title = entry.custom_title;
             }
             None => out.push(entry),
         }
@@ -247,6 +270,8 @@ mod tests {
             updated_at: Some(at.into()),
             archived: false,
             deleted: false,
+            pinned: false,
+            custom_title: None,
         }
     }
 
@@ -304,6 +329,45 @@ mod tests {
     fn formats_unix_time_as_rfc3339() {
         assert_eq!(rfc3339_from_unix(0), "1970-01-01T00:00:00Z");
         assert_eq!(rfc3339_from_unix(1_761_400_000), "2025-10-25T13:46:40Z");
+    }
+
+    #[test]
+    fn activity_keeps_the_users_marks() {
+        let mut entries = vec![entry("a", Some("agent"), "1")];
+        apply_mark(
+            &mut entries,
+            AgentId::Gemini,
+            "a",
+            "C:\\proj",
+            Mark::Archived(true),
+        );
+        apply_mark(
+            &mut entries,
+            AgentId::Gemini,
+            "a",
+            "C:\\proj",
+            Mark::Pinned(true),
+        );
+        apply_mark(
+            &mut entries,
+            AgentId::Gemini,
+            "a",
+            "C:\\proj",
+            Mark::Renamed(Some("  Benim adım ".into())),
+        );
+        upsert(&mut entries, entry("a", Some("newer agent title"), "2"));
+        let e = &entries[0];
+        assert!(e.archived && e.pinned);
+        assert_eq!(e.custom_title.as_deref(), Some("Benim adım"));
+        assert_eq!(e.title.as_deref(), Some("newer agent title"));
+        apply_mark(
+            &mut entries,
+            AgentId::Gemini,
+            "a",
+            "C:\\proj",
+            Mark::Renamed(Some(" ".into())),
+        );
+        assert_eq!(entries[0].custom_title, None);
     }
 
     #[test]

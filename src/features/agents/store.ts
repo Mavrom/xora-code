@@ -85,6 +85,16 @@ export interface AgentStoreState extends AgentData {
     entry: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">,
     archived: boolean,
   ) => Promise<void>;
+  /** Keeps a conversation at the top of the list, or lets it go back. */
+  pinSession: (
+    entry: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">,
+    pinned: boolean,
+  ) => Promise<void>;
+  /** Names a conversation; null (or blank) gives the agent's title back. */
+  renameSession: (
+    entry: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">,
+    title: string | null,
+  ) => Promise<void>;
   /** Deletes a conversation for good (closing it first when open). */
   deleteSession: (entry: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">) => Promise<void>;
 
@@ -387,6 +397,19 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
         await deps.ipc.sessionClose(sessionId).catch((e) => console.warn("agents: close", e));
       },
 
+      pinSession: async ({ agentId, sessionId, cwd }, pinned) => {
+        await deps.ipc.sessionPin(agentId, sessionId, cwd, pinned);
+        set({ history: patchHistory(get().history, { agentId, sessionId, cwd }, { pinned }) });
+      },
+
+      renameSession: async ({ agentId, sessionId, cwd }, title) => {
+        const name = title?.trim() || null;
+        await deps.ipc.sessionRename(agentId, sessionId, cwd, name);
+        set({
+          history: patchHistory(get().history, { agentId, sessionId, cwd }, { customTitle: name }),
+        });
+      },
+
       archiveSession: async ({ agentId, sessionId, cwd }, archived) => {
         await deps.ipc.sessionArchive(agentId, sessionId, cwd, archived);
         const known = get().history.some((h) => h.agentId === agentId && h.sessionId === sessionId);
@@ -549,6 +572,20 @@ export function setAgentIpc(ipc: AgentIpc) {
 const switchableIpc = new Proxy({} as AgentIpc, {
   get: (_, key: keyof AgentIpc) => currentIpc[key],
 });
+
+/** History with one entry's local marks changed (added when not listed yet). */
+function patchHistory(
+  history: AgentSessionInfo[],
+  { agentId, sessionId, cwd }: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">,
+  patch: Partial<AgentSessionInfo>,
+): AgentSessionInfo[] {
+  const known = history.some((h) => h.agentId === agentId && h.sessionId === sessionId);
+  return known
+    ? history.map((h) =>
+        h.agentId === agentId && h.sessionId === sessionId ? { ...h, ...patch } : h,
+      )
+    : [...history, { agentId, sessionId, cwd, title: null, updatedAt: null, ...patch }];
+}
 
 export const useAgentStore = createAgentStore({ ipc: switchableIpc });
 

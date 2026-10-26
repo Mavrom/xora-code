@@ -18,6 +18,23 @@ const h = (
 });
 
 describe("mergeSessionList", () => {
+  it("carries pins and prefers the user's name, also over an open session's title", () => {
+    const view = createSessionView(FIXTURE_SETUPS.claude, "C:\p", {
+      sessionId: "a",
+      agentId: "claude",
+      title: "agent title",
+    });
+    const [entry] = mergeSessionList(
+      [{ ...h("a", "C:\p", null, "agent title"), pinned: true, customTitle: "Benim adım" }],
+      { a: { ...view, sessionId: "a" } },
+      null,
+    );
+    expect(entry.open).toBe(true);
+    expect(entry.pinned).toBe(true);
+    expect(entry.renamed).toBe(true);
+    expect(entry.title).toBe("Benim adım");
+  });
+
   it("sorts by last update, newest first, with unknown dates last", () => {
     const list = mergeSessionList(
       [

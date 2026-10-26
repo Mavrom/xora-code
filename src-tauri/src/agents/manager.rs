@@ -512,6 +512,20 @@ impl AgentManager {
             .map_err(AgentError::from)
     }
 
+    /// Records a user mark (pin, rename) on a conversation in the local index.
+    pub fn session_mark(
+        &self,
+        agent: AgentId,
+        session_id: &str,
+        cwd: &Path,
+        mark: Mark,
+    ) -> Result<()> {
+        self.0
+            .index
+            .mark(agent, session_id, &cwd.to_string_lossy(), mark)
+            .map_err(AgentError::from)
+    }
+
     /// Deletes a conversation: closes it if open, asks a running agent that supports
     /// `session/delete` to drop it too, and leaves a tombstone so it never lists again.
     pub async fn session_delete(&self, agent: AgentId, session_id: &str, cwd: &Path) -> Result<()> {
@@ -1093,6 +1107,8 @@ fn parse_session_list(agent: AgentId, cwd: &Path, result: &Value) -> Vec<Session
                     .map(str::to_owned),
                 archived: false,
                 deleted: false,
+                pinned: false,
+                custom_title: None,
             })
         })
         .collect()

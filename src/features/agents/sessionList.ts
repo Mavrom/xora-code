@@ -19,6 +19,10 @@ export interface SessionListEntry {
   running: boolean;
   /** Moved to the archive by the user. */
   archived: boolean;
+  /** Kept at the top by the user. */
+  pinned: boolean;
+  /** The user named it: the title is theirs, not the agent's. */
+  renamed: boolean;
 }
 
 export interface ProjectGroup {
@@ -68,12 +72,14 @@ export function mergeSessionList(
       agentId: h.agentId,
       sessionId: h.sessionId,
       cwd: h.cwd,
-      title: h.title,
+      title: h.customTitle || h.title,
       updatedAt: h.updatedAt,
       open: false,
       active: false,
       running: false,
       archived: h.archived ?? false,
+      pinned: h.pinned ?? false,
+      renamed: Boolean(h.customTitle),
     });
   }
   for (const v of Object.values(sessions)) {
@@ -83,12 +89,15 @@ export function mergeSessionList(
       agentId: v.agentId,
       sessionId: v.sessionId,
       cwd: v.cwd || prev?.cwd || "",
-      title: v.title ?? prev?.title ?? firstPrompt(v),
+      // A name the user gave wins over the agent's live title.
+      title: prev?.renamed ? prev.title : (v.title ?? prev?.title ?? firstPrompt(v)),
       updatedAt: v.updatedAt ?? prev?.updatedAt ?? null,
       open: true,
       active: v.sessionId === activeSessionId,
       running: v.turn !== "idle",
       archived: prev?.archived ?? false,
+      pinned: prev?.pinned ?? false,
+      renamed: prev?.renamed ?? false,
     });
   }
   // Array.prototype.sort is stable, so equal dates keep insertion order.
