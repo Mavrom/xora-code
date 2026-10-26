@@ -412,7 +412,11 @@ describe("agents and routing", () => {
 
   it("stops running turns of a crashed agent", () => {
     const data = withSession();
-    data.sessions[SID] = { ...data.sessions[SID], turn: "running" };
+    data.sessions[SID] = {
+      ...data.sessions[SID],
+      turn: "running",
+      permissions: [{ requestId: "r", sessionId: SID, toolCall: { toolCallId: "t" }, options: [] }],
+    };
     const out = reduceEvents(
       data,
       [
@@ -425,6 +429,7 @@ describe("agents and routing", () => {
       1,
     );
     expect(out.sessions[SID].turn).toBe("idle");
+    expect(out.sessions[SID].permissions).toEqual([]);
   });
 
   it("buffers events for unknown sessions until the session is attached", () => {

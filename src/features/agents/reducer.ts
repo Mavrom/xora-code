@@ -469,11 +469,13 @@ export function reduceEvents(
       if (ev.status.state === "crashed" || ev.status.state === "stopped") {
         for (const s of Object.values(data.sessions)) {
           if (s.agentId !== ev.agentId) continue;
-          const d = draftFor(s.sessionId);
-          if (d && d.view.turn !== "idle") {
-            d.closeThought(now);
-            d.view.turn = "idle";
-          }
+          const current = drafts.get(s.sessionId)?.view ?? s;
+          if (current.turn === "idle" && current.permissions.length === 0) continue;
+          // The process is gone: its turn and pending permissions are over.
+          const d = draftFor(s.sessionId)!;
+          d.closeThought(now);
+          d.view.turn = "idle";
+          d.view.permissions = [];
         }
       }
       continue;
