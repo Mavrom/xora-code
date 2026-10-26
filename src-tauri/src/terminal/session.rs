@@ -8,6 +8,8 @@ use std::sync::{Arc, Mutex, MutexGuard, PoisonError};
 use std::thread;
 
 /// Output chunk size; one IPC message per read at most this large.
+/// How long an exited shell's remaining output may take to drain.
+const DRAIN_TIMEOUT: std::time::Duration = std::time::Duration::from_millis(750);
 const READ_BUFFER: usize = 16 * 1024;
 
 /// A running shell. Dropping it closes the PTY, which ends the reader thread.
@@ -105,7 +107,8 @@ impl TerminalManager {
             TerminalError::from(err)
         };
 
-        let reader_thread = thread::Builder::new()
+        let (drained_tx, drained_rx) = std::sync::mpsc::channel::<()>();
+        thread::Builder::new()
             .name(format!("term-{id}-read"))
             .spawn(move || {
                 let mut buf = vec![0u8; READ_BUFFER];
@@ -115,6 +118,7 @@ impl TerminalManager {
                         Ok(n) => on_data(buf[..n].to_vec()),
                     }
                 }
+                let _ = drained_tx.send(());
             })
             .map_err(fail)?;
 
@@ -123,9 +127,10 @@ impl TerminalManager {
             .name(format!("term-{id}-wait"))
             .spawn(move || {
                 let code = child.wait().ok().map(|status| status.exit_code());
-                // Closing the PTY ends the reader once the remaining output is drained.
+                // Closing the PTY lets the reader drain the remaining output. ConPTY does
+                // not always deliver EOF afterwards, so wait for the drain only briefly.
                 drop(manager.remove(id));
-                let _ = reader_thread.join();
+                let _ = drained_rx.recv_timeout(DRAIN_TIMEOUT);
                 on_exit(code);
             })
             .map_err(fail)?;
@@ -213,11 +218,24 @@ mod tests {
             .unwrap();
         assert!(id > 0);
 
-        let code = exit_rx
-            .recv_timeout(Duration::from_secs(20))
-            .expect("shell exited");
+        // ConPTY asks the terminal for the cursor position (DSR) before the shell
+        // runs; xterm.js answers in the app, so the test answers like a terminal.
+        let mut output: Vec<u8> = Vec::new();
+        let deadline = std::time::Instant::now() + Duration::from_secs(20);
+        let code = loop {
+            if let Ok(code) = exit_rx.try_recv() {
+                break code;
+            }
+            assert!(std::time::Instant::now() < deadline, "shell exited");
+            if let Ok(chunk) = data_rx.recv_timeout(Duration::from_millis(50)) {
+                if chunk.windows(4).any(|w| w == b"[6n") {
+                    let _ = manager.write(id, b"[1;1R");
+                }
+                output.extend(chunk);
+            }
+        };
         assert_eq!(code, Some(0));
-        let output: Vec<u8> = data_rx.try_iter().flatten().collect();
+        output.extend(data_rx.try_iter().flatten());
         assert!(String::from_utf8_lossy(&output).contains("xora-pty"));
         assert_eq!(manager.session_count(), 0, "an exited session is removed");
     }
