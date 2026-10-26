@@ -1,0 +1,179 @@
+/* Prose styles for agent markdown. Plain CSS on the design tokens: the HTML comes from
+   marked, so utility classes cannot be put on the elements themselves. */
+@reference "../../styles/globals.css";
+
+.md {
+  font-size: var(--text-ui);
+  line-height: 1.7;
+  color: var(--color-fg);
+  overflow-wrap: anywhere;
+  user-select: text;
+  cursor: auto;
+}
+
+.md-block + .md-block {
+  margin-top: 0.85em;
+}
+
+.md
+  :is(p, ul, ol, blockquote, table, .md-code, hr)
+  + :is(p, ul, ol, blockquote, table, .md-code, hr, h1, h2, h3, h4) {
+  margin-top: 0.85em;
+}
+
+.md :is(h1, h2, h3, h4, h5, h6) {
+  font-weight: 600;
+  color: var(--color-fg);
+  letter-spacing: -0.006em;
+}
+.md h1 {
+  font-size: 16px;
+  line-height: 24px;
+}
+.md h2 {
+  font-size: 14px;
+  line-height: 22px;
+}
+.md :is(h3, h4, h5, h6) {
+  font-size: 13px;
+  line-height: 20px;
+}
+.md :is(h1, h2, h3, h4, h5, h6) + * {
+  margin-top: 0.4em;
+}
+
+.md strong {
+  font-weight: 600;
+  color: var(--color-fg);
+}
+.md em {
+  color: var(--color-fg);
+}
+
+.md a {
+  color: var(--color-fg);
+  text-decoration: underline;
+  text-decoration-color: var(--color-fg-subtle);
+  text-underline-offset: 3px;
+  cursor: pointer;
+  transition: text-decoration-color var(--transition-duration-fast) var(--ease-out-quint);
+}
+.md a:hover {
+  text-decoration-color: var(--color-fg);
+}
+
+.md :is(ul, ol) {
+  padding-left: 1.35em;
+}
+.md ul {
+  list-style: disc;
+}
+.md ol {
+  list-style: decimal;
+}
+.md li + li,
+.md li > :is(ul, ol) {
+  margin-top: 0.3em;
+}
+.md li::marker {
+  color: var(--color-fg-subtle);
+}
+.md li > p + p {
+  margin-top: 0.5em;
+}
+.md input[type="checkbox"] {
+  margin-right: 0.4em;
+}
+
+.md blockquote {
+  border-left: 2px solid var(--color-border-strong);
+  padding-left: 12px;
+  color: var(--color-fg-muted);
+}
+
+.md hr {
+  border: 0;
+  border-top: 1px solid var(--color-border);
+}
+
+.md :not(pre) > code {
+  font-family: var(--font-mono);
+  font-size: 0.88em;
+  padding: 0.1em 0.38em;
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-xs);
+  background: var(--color-elevated);
+  color: var(--color-fg);
+}
+
+.md table {
+  display: block;
+  max-width: 100%;
+  overflow-x: auto;
+  border-collapse: collapse;
+  font-size: var(--text-xs);
+  line-height: var(--text-xs--line-height);
+}
+.md :is(th, td) {
+  border: 1px solid var(--color-border);
+  padding: 6px 10px;
+  text-align: left;
+}
+.md th {
+  font-weight: 500;
+  color: var(--color-fg-muted);
+  background: var(--color-surface);
+}
+
+/* Code block: hairline frame, quiet header with the language and a copy button. */
+.md-code {
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-md);
+  background: var(--color-surface);
+  overflow: hidden;
+}
+.md-code-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 30px;
+  padding: 0 6px 0 12px;
+  border-bottom: 1px solid var(--color-border);
+  font-size: var(--text-2xs);
+  color: var(--color-fg-subtle);
+  user-select: none;
+}
+.md-code-copy {
+  height: 22px;
+  padding: 0 8px;
+  border-radius: var(--radius-sm);
+  font-size: var(--text-2xs);
+  color: var(--color-fg-subtle);
+  cursor: pointer;
+  transition:
+    background-color var(--transition-duration-fast) var(--ease-out-quint),
+    color var(--transition-duration-fast) var(--ease-out-quint);
+}
+.md-code-copy:hover {
+  background: var(--color-hover);
+  color: var(--color-fg);
+}
+.md-code-copy[data-done] {
+  color: var(--color-fg);
+}
+.md-code pre {
+  margin: 0;
+  padding: 12px 14px;
+  overflow-x: auto;
+  font-family: var(--font-mono);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--color-fg);
+  tab-size: 2;
+}
+
+/* Streaming caret after the last word of the message (prose only, never inside code). */
+.md-live > :is(p, h1, h2, h3, h4, h5, h6, blockquote):last-child,
+.md-live > :is(ul, ol):last-child > li:last-child {
+  @apply caret;
+}
