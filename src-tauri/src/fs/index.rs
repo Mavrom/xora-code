@@ -94,12 +94,12 @@ fn walk(root: &Path, limit: usize) -> io::Result<Vec<String>> {
                 if !SKIP.contains(&name.as_ref()) {
                     stack.push(entry.path());
                 }
-            } else if kind.is_file() {
-                if let Ok(rel) = entry.path().strip_prefix(root) {
-                    out.push(rel.to_string_lossy().replace('\\', "/"));
-                    if out.len() >= limit {
-                        return Ok(out);
-                    }
+            } else if kind.is_file()
+                && let Ok(rel) = entry.path().strip_prefix(root)
+            {
+                out.push(rel.to_string_lossy().replace('\\', "/"));
+                if out.len() >= limit {
+                    return Ok(out);
                 }
             }
         }
