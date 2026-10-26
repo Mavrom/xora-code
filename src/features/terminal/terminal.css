@@ -1,0 +1,5 @@
+/* xterm paints its viewport with an opaque theme colour even when the theme
+   background is transparent; let the panel's glass surface show through. */
+.xterm .xterm-viewport {
+  background-color: transparent !important;
+}

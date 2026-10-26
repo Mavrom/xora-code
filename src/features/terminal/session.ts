@@ -8,6 +8,7 @@ import { FitAddon } from "@xterm/addon-fit";
 import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
+import "./terminal.css";
 import { registerCloseGuard } from "@/app/closeGuards";
 import { terminalIpc, toBytes, type OutputMessage } from "./ipc";
 import { clipboardAction } from "./keys";
@@ -80,9 +81,11 @@ export class TerminalSession {
       allowTransparency: true,
       drawBoldTextInBrightColors: false,
       macOptionIsMeta: true,
-      theme: buildTerminalTheme(
-        readTokens((v) => getComputedStyle(document.documentElement).getPropertyValue(v)),
-      ),
+      // Transparent canvas: the panel's glass surface (or plain onyx) shows through.
+      theme: buildTerminalTheme({
+        ...readTokens((v) => getComputedStyle(document.documentElement).getPropertyValue(v)),
+        glass: "rgba(0, 0, 0, 0)",
+      }),
       ...(isWindows() ? { windowsPty: { backend: "conpty" as const } } : {}),
     });
     this.term.loadAddon(this.fitAddon);

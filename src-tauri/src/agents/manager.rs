@@ -396,9 +396,8 @@ impl AgentManager {
             cwd.to_path_buf(),
             setup.clone(),
         ));
-        self.0
-            .index
-            .touch(conn.agent, &session_id, &cwd.to_string_lossy(), None);
+        // The history index only learns about a session once a prompt is sent
+        // (see `prompt`): warm, never-used sessions must not clutter the list.
         setup
     }
 

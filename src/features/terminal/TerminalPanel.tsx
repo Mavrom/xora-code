@@ -74,7 +74,7 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
     <section
       aria-label="Terminal"
       onKeyDownCapture={onKeyDownCapture}
-      className="flex h-full min-h-0 flex-col bg-bg"
+      className="flex h-full min-h-0 flex-col"
     >
       <div className="flex h-9 shrink-0 items-center gap-1 pr-1.5 pl-2">
         <div

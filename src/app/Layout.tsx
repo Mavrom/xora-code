@@ -87,7 +87,8 @@ export function Layout() {
         orientation="horizontal"
         defaultLayout={defaultLayout}
         onLayoutChanged={onLayoutChanged}
-        className="min-h-0 flex-1"
+        // Pinned to the cell the settings page overlays; auto-placement would push it down.
+        className="col-start-2 row-start-2 min-h-0"
       >
         <Panel id="files" defaultSize="18%" minSize="12%" className="glass-surface">
           {/* All stay mounted so switching views keeps tree expansion and drafts. */}

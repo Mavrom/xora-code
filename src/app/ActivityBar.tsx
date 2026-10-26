@@ -58,7 +58,7 @@ export function ActivityBar() {
   return (
     <nav
       aria-label="Kenar çubuğu görünümü"
-      className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border glass-bg py-2"
+      className="col-start-1 row-start-2 flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border glass-bg py-2"
     >
       <ActivityItem
         icon={MessagesSquare}
