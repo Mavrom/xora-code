@@ -4,6 +4,7 @@ mod error;
 mod fs;
 mod notes;
 mod settings;
+mod system;
 mod terminal;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -60,6 +61,7 @@ pub fn run() {
             agents::commands::agent_review_changes,
             agents::commands::agent_review_accept,
             agents::commands::agents_shutdown,
+            system::system_hostname,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

@@ -1,23 +1,31 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ask } from "@tauri-apps/plugin-dialog";
-import { SquarePen, X } from "lucide-react";
+import { ask, open } from "@tauri-apps/plugin-dialog";
+import { X } from "lucide-react";
 import { errorMessage, isAuthRequired } from "@/features/agents/ipc";
 import type { SessionView } from "@/features/agents/reducer";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
-import type { AcpContentBlock, AgentId } from "@/features/agents/types";
+import type { AgentId } from "@/features/agents/types";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { basename } from "@/shared/lib/path";
-import { IconButton } from "@/shared/ui/IconButton";
+import { useHostname } from "@/shared/lib/useHostname";
 import { Kbd } from "@/shared/ui/Kbd";
-import { AgentGlyph } from "./AgentGlyph";
 import { AgentStatusCard } from "./AgentStatusCard";
 import { ChangesBar } from "./ChangesBar";
-import { ChatWelcome } from "./ChatWelcome";
 import { Composer, type ComposerHandle } from "./Composer";
-import { ComposerToolbar, ContextMeter, ContextRow, type OpenChip } from "./ComposerToolbar";
+import {
+  AttachButton,
+  ContextMeter,
+  ContextRow,
+  FolderChip,
+  HostChip,
+  ModelPicker,
+  type OpenChip,
+} from "./ComposerToolbar";
+import { mentionFor } from "./mentions";
 import { PermissionPrompt } from "./PermissionPrompt";
 import type { XoraCommandName } from "./slash";
+import { isDocked } from "./sessionTitle";
 import { needsStatusCard } from "./toolView";
 import { onChatDraft } from "@/features/commands/events";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
@@ -62,9 +70,10 @@ export function ChatPanel() {
   const agentId = session?.agentId ?? selectedAgent;
   const agent = agents[agentId];
   const cwd = session?.cwd || root || FIXTURE?.cwd || null;
-  const docked = session !== null && (session.items.length > 0 || session.loading);
+  const docked = isDocked(session);
   const turn = session?.turn ?? "idle";
   const running = turn !== "idle";
+  const hostname = useHostname();
   const branch = useGitBranch(cwd, session?.lastStopReason, FIXTURE ? "main" : null);
 
   useWarmSession(!docked, agentId, cwd, agent.status);
@@ -139,9 +148,27 @@ export function ChatPanel() {
       .catch((err: unknown) => say(`Ayar değiştirilemedi: ${errorMessage(err)}`));
   };
 
+  const attach = async () => {
+    const picked = await open({
+      title: "Dosya ekle",
+      multiple: true,
+      directory: false,
+      defaultPath: cwd ?? undefined,
+    }).catch(() => null);
+    const paths = Array.isArray(picked) ? picked : picked ? [picked] : [];
+    if (paths.length > 0)
+      composerRef.current?.insert(paths.map((p) => mentionFor(p, cwd)).join(" "));
+  };
+
   const permission = session?.permissions[0] ?? null;
   const side = docked ? "top" : "bottom";
   const hero = !docked;
+  const folderChip = (
+    <FolderChip
+      folderName={cwd ? basename(cwd.replace(/[\\/]+$/, "")) : null}
+      onOpenFolder={() => void openFolder()}
+    />
+  );
 
   const composer = (
     <>
@@ -197,12 +224,18 @@ export function ChatPanel() {
         turn={turn}
         commands={session?.commands ?? []}
         toolbar={
-          <ComposerToolbar
-            controls={session?.controls ?? null}
-            onSetControl={setControl}
-            openChip={FIXTURE?.open}
-            side={side}
-          />
+          <>
+            <AttachButton onClick={() => void attach()} />
+            <ModelPicker
+              agents={agents}
+              agentId={agentId}
+              controls={session?.controls ?? null}
+              onSelectAgent={(id) => void selectAgent(id)}
+              onSetControl={setControl}
+              openChip={FIXTURE?.open}
+              side={side}
+            />
+          </>
         }
         meter={
           session?.usage && session.usage.size > 0 ? (
@@ -215,17 +248,9 @@ export function ChatPanel() {
         onRefused={say}
       />
       <ContextRow
-        agents={agents}
-        agentId={agentId}
-        controls={session?.controls ?? null}
-        onSelectAgent={(id) => void selectAgent(id)}
-        onSetControl={setControl}
-        folderName={cwd ? basename(cwd.replace(/[\\/]+$/, "")) : null}
-        onOpenFolder={() => void openFolder()}
+        folder={hero ? null : folderChip}
         branch={branch}
-        openChip={FIXTURE?.open}
-        side={side}
-        aside={<ShortcutHint running={running} />}
+        aside={running ? <StopHint /> : null}
       />
       <div role="status" aria-atomic="true" className="min-h-4.5 px-2 pt-1 text-2xs text-fg-muted">
         {notice && (
@@ -241,17 +266,21 @@ export function ChatPanel() {
     return (
       <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
         <div aria-hidden className="min-h-6 flex-1" />
-        <div className="mx-auto w-full max-w-180 px-6">
-          <ChatWelcome onPick={(text) => composerRef.current?.fill(text)}>{composer}</ChatWelcome>
-        </div>
-        <div aria-hidden className="min-h-6 flex-[1.35]" />
+        <section aria-label="Yeni sohbet" className="mx-auto w-full max-w-186 px-6">
+          {/* Where the agent will work, just above the field. */}
+          <div className="mb-1 flex justify-end gap-1">
+            <HostChip hostname={hostname} />
+            {folderChip}
+          </div>
+          {composer}
+        </section>
+        <div aria-hidden className="min-h-6 flex-[1.15]" />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full flex-col">
-      <ChatHeader session={session} onNewChat={newChat} />
+    <div className="bg-bg flex h-full flex-col">
       <Suspense fallback={<div className="min-h-0 flex-1" />}>
         <MessageList session={session} />
       </Suspense>
@@ -260,50 +289,11 @@ export function ChatPanel() {
   );
 }
 
-function ChatHeader({ session, onNewChat }: { session: SessionView; onNewChat: () => void }) {
-  const title = session.title ?? firstLine(session.items);
-  return (
-    <div className="flex h-10 shrink-0 items-center gap-2 pr-2 pl-4">
-      <AgentGlyph agent={session.agentId} size={13} className="text-fg-subtle" />
-      <h2 className="min-w-0 flex-1 truncate text-xs text-fg-muted" title={title}>
-        {title}
-      </h2>
-      <IconButton icon={SquarePen} label="Yeni sohbet" onClick={onNewChat} />
-    </div>
-  );
-}
-
-function firstLine(items: SessionView["items"]): string {
-  for (const item of items) {
-    if (item.kind !== "user") continue;
-    const text = item.blocks
-      .flatMap((b: AcpContentBlock) => (b.type === "text" ? [b.text] : []))
-      .join(" ")
-      .trim();
-    if (text) return text.split("\n")[0];
-  }
-  return "Yeni sohbet";
-}
-
-function ShortcutHint({ running }: { running: boolean }) {
+function StopHint() {
   return (
     <p className="flex items-center gap-1.5 text-2xs text-fg-subtle">
-      {running ? (
-        <>
-          <Kbd keys="escape" />
-          <span>durdur</span>
-        </>
-      ) : (
-        <>
-          <Kbd keys="enter" />
-          <span>gönder</span>
-          <span aria-hidden className="px-0.5">
-            ·
-          </span>
-          <Kbd keys="/" />
-          <span>komutlar</span>
-        </>
-      )}
+      <Kbd keys="escape" />
+      <span>durdur</span>
     </p>
   );
 }

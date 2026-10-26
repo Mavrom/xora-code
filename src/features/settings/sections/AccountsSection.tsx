@@ -211,7 +211,7 @@ function ProviderCard({
   return (
     <article
       aria-label={info.name}
-      className="overflow-hidden glass-card rounded-lg border border-border transition-colors duration-base hover:border-border-strong"
+      className="overflow-hidden bg-surface rounded-lg border border-border transition-colors duration-base hover:border-border-strong"
     >
       <div className="flex items-center gap-3.5 px-4 py-3.5">
         <ProviderMark info={info} dim={!installed} />
@@ -306,7 +306,7 @@ function ProviderSkeleton({ info }: { info: ProviderInfo }) {
   return (
     <div
       aria-label={`${info.name} algılanıyor`}
-      className="flex items-center gap-3.5 glass-card rounded-lg border border-border px-4 py-3.5"
+      className="flex items-center gap-3.5 bg-surface rounded-lg border border-border px-4 py-3.5"
     >
       <ProviderMark info={info} dim />
       <div className="flex-1">

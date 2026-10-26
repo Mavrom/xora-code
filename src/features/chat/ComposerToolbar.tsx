@@ -1,12 +1,11 @@
 import type { ReactNode } from "react";
-import { Folder, GitBranch, ShieldCheck, Zap } from "lucide-react";
+import { ChevronDown, Folder, GitBranch, Monitor, Paperclip } from "lucide-react";
 import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
 import { AGENT_IDS } from "@/features/agents/reducer";
 import type { AgentId, AgentInfo } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
 import { AgentGlyph } from "./AgentGlyph";
 import { ChipMenu, type ChipOption, type ChipSection } from "./ChipMenu";
-import { chipClass } from "./chipStyles";
 import { effortLabel, pickerSummary, statusNote } from "./controlsView";
 import { contextRatio, formatTokens } from "./format";
 
@@ -37,74 +36,117 @@ const selectSection = (
   onSelect: (value) => onSet(control.key, value),
 });
 
-interface ComposerToolbarProps {
+/** Agent-specific extras (e.g. Codex fast mode): a toggle becomes an Açık/Kapalı choice. */
+function extraSection(control: Control, onSet: SetControl): ChipSection {
+  if ("boolean" in control) {
+    return {
+      key: control.key,
+      label: control.label,
+      value: control.current ? "on" : "off",
+      options: [
+        { value: "on", name: "Açık" },
+        { value: "off", name: "Kapalı" },
+      ],
+      onSelect: (value) => onSet(control.key, value === "on"),
+    };
+  }
+  return selectSection(control.key, control.label, control, onSet);
+}
+
+/** Muted chip look of the line above and below the composer. */
+const quietChip =
+  "inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-xs text-fg-muted transition-colors duration-fast hover:bg-glass hover:text-fg";
+
+interface ModelPickerProps {
+  agents: Record<AgentId, AgentInfo>;
+  agentId: AgentId;
   controls: SessionControls | null;
+  onSelectAgent: (id: AgentId) => void;
   onSetControl: SetControl;
   openChip?: OpenChip;
-  /** The hero composer has room below; the docked one opens upwards. */
   side: "top" | "bottom";
 }
 
-/** Chips inside the composer: approval mode and agent-specific extras (e.g. Codex fast mode). */
-export function ComposerToolbar({ controls, onSetControl, openChip, side }: ComposerToolbarProps) {
-  if (!controls) return null;
-  const { mode, extra } = controls;
+/**
+ * The one chip inside the composer: the agent's mark, model and effort ("Opus 5.5 Orta").
+ * Its menu also holds the agent, the approval mode and any agent-specific extras.
+ */
+export function ModelPicker({
+  agents,
+  agentId,
+  controls,
+  onSelectAgent,
+  onSetControl,
+  openChip,
+  side,
+}: ModelPickerProps) {
+  const agent = agents[agentId];
+  const summary = pickerSummary(agent.displayName, controls?.model, controls?.effort);
+
+  const sections: ChipSection[] = [
+    {
+      key: "agent",
+      label: "Agent",
+      value: agentId,
+      onSelect: (value) => onSelectAgent(value as AgentId),
+      options: AGENT_IDS.map((id) => ({
+        value: id,
+        name: agents[id].displayName,
+        leading: <AgentGlyph agent={id} tinted />,
+        meta: statusNote(agents[id].status),
+      })),
+    },
+  ];
+  if (controls?.model) sections.push(selectSection("model", "Model", controls.model, onSetControl));
+  if (controls?.effort) {
+    const effort = controls.effort;
+    sections.push(
+      selectSection(
+        "effort",
+        "Düşünme düzeyi",
+        effort,
+        onSetControl,
+        effort.options.map((o) => ({ value: o.value, name: effortLabel(o.value, o.name) })),
+      ),
+    );
+  }
+  if (controls?.mode) {
+    sections.push(selectSection("mode", controls.mode.label || "Mod", controls.mode, onSetControl));
+  }
+  for (const control of controls?.extra ?? []) sections.push(extraSection(control, onSetControl));
+
+  // The mark already names the agent: show model and effort, like "Opus 5.5 Orta".
+  const parts = summary.length > 1 ? summary.slice(1) : summary;
   return (
-    <>
-      {mode && (
-        <ChipMenu
-          label={`Mod: ${mode.label}`}
-          leading={
-            <ShieldCheck size={13} strokeWidth={1.75} aria-hidden className="text-fg-subtle" />
-          }
-          display={mode.options.find((o) => o.value === mode.current)?.name ?? mode.current}
-          sections={[selectSection("mode", mode.label || "Mod", mode, onSetControl)]}
-          defaultOpen={openChip === "mode"}
-          side={side}
-        />
-      )}
-      {extra.map((control) => (
-        <ExtraControl key={control.key} control={control} onSet={onSetControl} side={side} />
+    <ChipMenu
+      label="Agent, model ve ayarlar"
+      side={side}
+      defaultOpen={openChip === "picker" || openChip === "mode"}
+      chevron={false}
+      buttonClassName="inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 text-xs transition-colors duration-fast hover:bg-hover"
+      leading={<AgentGlyph agent={agentId} size={13} tinted />}
+      display={parts.map((part, i) => (
+        <span key={i} className={i === 0 ? "font-medium text-fg" : "ml-1.5 text-fg-subtle"}>
+          {part}
+        </span>
       ))}
-    </>
+      sections={sections}
+    />
   );
 }
 
-function ExtraControl({
-  control,
-  onSet,
-  side,
-}: {
-  control: Control;
-  onSet: SetControl;
-  side: "top" | "bottom";
-}) {
-  if ("boolean" in control) {
-    return (
-      <button
-        type="button"
-        aria-pressed={control.current}
-        title={control.label}
-        onClick={() => onSet(control.key, !control.current)}
-        className={cn(chipClass(false, "quiet"), control.current && "bg-hover text-fg")}
-      >
-        <Zap
-          size={13}
-          strokeWidth={1.75}
-          aria-hidden
-          className={control.current ? "text-fg" : "text-fg-subtle"}
-        />
-        {control.label}
-      </button>
-    );
-  }
+/** Adds files to the message as `@path` mentions the agent can read. */
+export function AttachButton({ onClick }: { onClick: () => void }) {
   return (
-    <ChipMenu
-      label={control.label}
-      display={control.options.find((o) => o.value === control.current)?.name ?? control.current}
-      sections={[selectSection(control.key, control.label, control, onSet)]}
-      side={side}
-    />
+    <button
+      type="button"
+      aria-label="Dosya ekle"
+      title="Dosya ekle"
+      onClick={onClick}
+      className="grid size-7 shrink-0 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+    >
+      <Paperclip size={15} strokeWidth={1.75} aria-hidden />
+    </button>
   );
 }
 
@@ -143,105 +185,72 @@ export function ContextMeter({ used, size }: { used: number; size: number }) {
   );
 }
 
-interface ContextRowProps {
-  agents: Record<AgentId, AgentInfo>;
-  agentId: AgentId;
-  controls: SessionControls | null;
-  onSelectAgent: (id: AgentId) => void;
-  onSetControl: SetControl;
+/** Where the agent runs: this computer. The only place for now, so the menu has one entry. */
+export function HostChip({ hostname }: { hostname: string | null }) {
+  const name = hostname ?? "Bu bilgisayar";
+  return (
+    <ChipMenu
+      label="Çalışma ortamı"
+      side="top"
+      align="end"
+      buttonClassName={cn(quietChip, "uppercase")}
+      leading={<Monitor size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />}
+      display={name}
+      sections={[
+        {
+          key: "host",
+          label: "Çalışma ortamı",
+          value: "local",
+          options: [{ value: "local", name, description: "Agent bu bilgisayarda çalışır." }],
+          onSelect: () => {},
+        },
+      ]}
+    />
+  );
+}
+
+/** Opens another folder; the folder the agent works in. */
+export function FolderChip({
+  folderName,
+  onOpenFolder,
+}: {
   folderName: string | null;
   onOpenFolder: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onOpenFolder}
+      title={folderName ? "Başka bir klasör aç" : "Klasör aç"}
+      className={cn(quietChip, "shrink")}
+    >
+      <Folder size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
+      <span className="truncate">{folderName ?? "Klasör seç"}</span>
+      <ChevronDown size={12} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
+    </button>
+  );
+}
+
+interface ContextRowProps {
+  /** Shown first in the row when the composer has no folder chip above it. */
+  folder?: ReactNode;
   branch: string | null;
-  openChip?: OpenChip;
-  side: "top" | "bottom";
-  /** Right-aligned quiet content (shortcut hints, a refused-send notice). */
+  /** Right-aligned quiet content (the stop hint while a turn runs). */
   aside?: ReactNode;
 }
 
-/**
- * The line under the composer: one chip for agent · model · effort, then the folder and git
- * branch the agent works in.
- */
-export function ContextRow({
-  agents,
-  agentId,
-  controls,
-  onSelectAgent,
-  onSetControl,
-  folderName,
-  onOpenFolder,
-  branch,
-  openChip,
-  side,
-  aside,
-}: ContextRowProps) {
-  const agent = agents[agentId];
-  const summary = pickerSummary(agent.displayName, controls?.model, controls?.effort);
-
-  const sections: ChipSection[] = [
-    {
-      key: "agent",
-      label: "Agent",
-      value: agentId,
-      onSelect: (value) => onSelectAgent(value as AgentId),
-      options: AGENT_IDS.map((id) => ({
-        value: id,
-        name: agents[id].displayName,
-        leading: <AgentGlyph agent={id} className="text-fg-muted" />,
-        meta: statusNote(agents[id].status),
-      })),
-    },
-  ];
-  if (controls?.model) sections.push(selectSection("model", "Model", controls.model, onSetControl));
-  if (controls?.effort) {
-    const effort = controls.effort;
-    sections.push(
-      selectSection(
-        "effort",
-        "Düşünme düzeyi",
-        effort,
-        onSetControl,
-        effort.options.map((o) => ({ value: o.value, name: effortLabel(o.value, o.name) })),
-      ),
-    );
-  }
-
+/** The line under the composer: the folder (docked) and the git branch the agent works on. */
+export function ContextRow({ folder, branch, aside }: ContextRowProps) {
   return (
-    <div className="mt-2 flex min-h-7 items-center gap-1 px-1 @container">
-      <ChipMenu
-        label="Agent, model ve düşünme düzeyi"
-        tone="outline"
-        side={side}
-        defaultOpen={openChip === "picker"}
-        leading={<AgentGlyph agent={agentId} className="text-fg" />}
-        display={summary.map((part, i) => (
-          <span key={i} className={i === 0 ? "text-fg" : undefined}>
-            {i > 0 && (
-              <span aria-hidden className="px-1 text-fg-subtle">
-                ·
-              </span>
-            )}
-            {part}
-          </span>
-        ))}
-        sections={sections}
-      />
-      <button
-        type="button"
-        onClick={onOpenFolder}
-        title={folderName ? "Başka bir klasör aç" : "Klasör aç"}
-        className={cn(chipClass(false, "outline"), "shrink")}
-      >
-        <Folder size={13} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
-        <span className="truncate">{folderName ?? "Klasör seç"}</span>
-      </button>
+    <div className="mt-2 flex min-h-7 items-center gap-1 @container">
+      {folder}
       {branch && (
         <span
           title={`Git dalı: ${branch}`}
-          className="inline-flex h-7 min-w-0 shrink items-center gap-1.5 px-2 text-xs text-fg-subtle"
+          className={cn(quietChip, "shrink hover:bg-transparent")}
         >
           <GitBranch size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
-          <span className="truncate font-mono text-2xs">{branch}</span>
+          <span className="truncate">{branch}</span>
         </span>
       )}
       <span className="flex-1" />

@@ -1,12 +1,5 @@
-import {
-  useEffect,
-  useLayoutEffect,
-  useRef,
-  useState,
-  type KeyboardEvent,
-  type ReactNode,
-  type RefObject,
-} from "react";
+import { WindowControls } from "@/app/WindowControls";
+import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import {
   Bot,
   CircleUserRound,
@@ -28,11 +21,9 @@ import { AppearanceSection } from "./sections/AppearanceSection";
 import { EditorSection } from "./sections/EditorSection";
 import { GeneralSection } from "./sections/GeneralSection";
 import { ShortcutsSection } from "./sections/ShortcutsSection";
-import { wallpaperSrc } from "./glass";
 import { isSidebarShortcut } from "./settingsKeys";
 import { useSettingsStore } from "./store";
 import { SETTINGS_SECTIONS, useSettingsView, type SettingsSection } from "./viewStore";
-import { WallpaperImage } from "./WallpaperImage";
 
 const NAV: Record<SettingsSection, { label: string; icon: LucideIcon; render: () => ReactNode }> = {
   accounts: { label: "Hesaplar", icon: CircleUserRound, render: () => <AccountsSection /> },
@@ -52,45 +43,8 @@ const NAV_GROUPS: SettingsSection[][] = [
 ];
 
 /**
- * The wallpaper again, inside the settings page: the page covers the work panels,
- * so it cannot see the app-wide layer through them. Sized to the window and offset
- * by the page's position, it lines up exactly with that layer.
- */
-function SettingsBackdrop({ host }: { host: RefObject<HTMLDivElement | null> }) {
-  const appearance = useSettingsStore((s) => s.settings.appearance);
-  const src = wallpaperSrc(appearance.wallpaper);
-  const [failed, setFailed] = useState<string | null>(null);
-  const [offset, setOffset] = useState({ x: 0, y: 0, w: 0, h: 0 });
-
-  useLayoutEffect(() => {
-    const measure = () => {
-      const rect = host.current?.getBoundingClientRect();
-      if (rect)
-        setOffset({ x: rect.left, y: rect.top, w: window.innerWidth, h: window.innerHeight });
-    };
-    measure();
-    window.addEventListener("resize", measure);
-    return () => window.removeEventListener("resize", measure);
-  }, [host]);
-
-  if (!src || failed === src || offset.w === 0) return null;
-  return (
-    <WallpaperImage
-      key={src}
-      src={src}
-      blur={appearance.blur}
-      dim={appearance.dim}
-      onError={() => setFailed(src)}
-      className="absolute"
-      style={{ left: -offset.x, top: -offset.y, width: offset.w, height: offset.h }}
-    />
-  );
-}
-
-/**
- * Full-height settings page over the panel area (the activity and title bars stay).
- * Left: section nav. Right: the section, centred in a readable column. Esc closes.
- * Both panes are glass over the wallpaper (solid onyx when there is none).
+ * Settings page over the whole window. Left: section nav. Right: the section, centred in a
+ * readable column. Esc closes.
  */
 export default function SettingsView() {
   const section = useSettingsView((s) => s.section);
@@ -142,15 +96,14 @@ export default function SettingsView() {
       aria-label="Ayarlar"
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      className="relative z-20 col-start-2 row-start-2 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-bg outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
+      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-bg outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
     >
-      <SettingsBackdrop host={root} />
       <nav
         aria-label="Ayar bölümleri"
         onKeyDown={onNavKeyDown}
-        className="glass-surface relative flex min-h-0 flex-col border-r border-border"
+        className="bg-surface relative flex min-h-0 flex-col border-r border-border"
       >
-        <div className="flex h-14 shrink-0 items-center px-5">
+        <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center px-5">
           <h1 className="text-ui font-semibold tracking-tight text-fg">Ayarlar</h1>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 pb-3">
@@ -207,16 +160,23 @@ export default function SettingsView() {
         </div>
       </nav>
 
-      <div className="glass-bg relative min-h-0">
-        <button
-          type="button"
-          aria-label="Ayarları kapat"
-          title="Kapat (Esc)"
-          onClick={close}
-          className="absolute top-3 right-4 z-10 grid size-8 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+      <div className="bg-bg relative min-h-0">
+        {/* The page covers the window, so it carries the drag strip and caption buttons. */}
+        <div
+          data-tauri-drag-region="deep"
+          className="absolute inset-x-0 top-0 z-10 flex h-10 items-center justify-end"
         >
-          <X size={16} strokeWidth={1.75} aria-hidden />
-        </button>
+          <button
+            type="button"
+            aria-label="Ayarları kapat"
+            title="Kapat (Esc)"
+            onClick={close}
+            className="mr-2 grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+          >
+            <X size={15} strokeWidth={1.75} aria-hidden />
+          </button>
+          <WindowControls />
+        </div>
 
         {/* Keyed so each section starts at the top and fades in. */}
         <div key={section} className="h-full overflow-y-auto [scrollbar-gutter:stable]">

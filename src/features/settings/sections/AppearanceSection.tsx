@@ -1,27 +1,25 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { ImagePlus, RotateCcw, Trash2 } from "lucide-react";
+import { ArrowUp, ImagePlus, Trash2 } from "lucide-react";
+import { BackdropCanvas } from "@/features/backdrop/BackdropCanvas";
 import { Button } from "@/shared/ui/Button";
-import { cn } from "@/shared/ui/cn";
+import { Segmented } from "../controls/Segmented";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { Slider } from "../controls/Slider";
-import { fileName, WALLPAPER_EXTENSIONS, wallpaperSrc } from "../glass";
 import { settingsIpc } from "../ipc";
 import { useSettingsStore } from "../store";
-import {
-  BLUR_RANGE,
-  DEFAULT_SETTINGS,
-  DIM_RANGE,
-  GLASS_RANGE,
-  type AppearanceSettings,
-} from "../types";
-import { WallpaperImage } from "../WallpaperImage";
+import { DIM_RANGE, type AppearanceSettings, type BackgroundEffect } from "../types";
+import { fileName, WALLPAPER_EXTENSIONS, wallpaperSrc } from "../wallpaper";
 
-/** The preview is about a third of the window wide, so the same blur looks stronger there. */
-const PREVIEW_BLUR_RATIO = 0.4;
+const EFFECTS: { value: BackgroundEffect; label: string }[] = [
+  { value: "none", label: "Yok" },
+  { value: "dither", label: "Dither" },
+  { value: "ascii", label: "ASCII" },
+  { value: "halftone", label: "Halftone" },
+  { value: "scanlines", label: "Tarama" },
+];
 
 const percent = (v: number) => `${v}%`;
-const pixels = (v: number) => `${v} px`;
 
 export function AppearanceSection() {
   const appearance = useSettingsStore((s) => s.settings.appearance);
@@ -30,11 +28,6 @@ export function AppearanceSection() {
   const [error, setError] = useState<string | null>(null);
   const set = (patch: Partial<AppearanceSettings>) => update({ appearance: patch });
   const hasWallpaper = appearance.wallpaper !== null;
-  const defaults = DEFAULT_SETTINGS.appearance;
-  const atDefaults =
-    appearance.glass === defaults.glass &&
-    appearance.blur === defaults.blur &&
-    appearance.dim === defaults.dim;
 
   const pick = async () => {
     setError(null);
@@ -67,7 +60,7 @@ export function AppearanceSection() {
     <>
       <SectionHeader
         title="Görünüm"
-        description="Arka plana kendi görselinizi koyun; paneller onun üstünde cam gibi durur. Duvar kağıdı yokken Xora saf onyx kalır."
+        description="Yeni sohbet ekranının üstüne kendi görselinizi koyun; composer'ın altında onyx'e karışır. Görsel yokken Xora saf onyx kalır."
       />
 
       <AppearancePreview appearance={appearance} busy={busy} onPick={() => void pick()} />
@@ -104,57 +97,22 @@ export function AppearanceSection() {
         </p>
       )}
 
-      <SettingGroup
-        title="Cam efekti"
-        action={
-          <Button
-            variant="ghost"
-            size="sm"
-            icon={RotateCcw}
-            disabled={atDefaults}
-            onClick={() => set({ glass: defaults.glass, blur: defaults.blur, dim: defaults.dim })}
-          >
-            Varsayılan
-          </Button>
-        }
-      >
+      <SettingGroup title="Görsel">
         <SettingRow
-          label="Saydamlık"
-          description={
-            hasWallpaper
-              ? "0 saf onyx; arttıkça duvar kağıdı panellerin arkasından daha çok görünür."
-              : "Önce bir duvar kağıdı seçin."
-          }
+          label="Efekt"
+          description="Görseli dither, ASCII, halftone ya da tarama çizgileriyle yeniden çizer."
           control={(id) => (
-            <Slider
+            <Segmented
               labelledBy={id}
-              value={appearance.glass}
-              min={GLASS_RANGE.min}
-              max={GLASS_RANGE.max}
-              format={percent}
-              disabled={!hasWallpaper}
-              onChange={(glass) => set({ glass })}
-            />
-          )}
-        />
-        <SettingRow
-          label="Bulanıklık"
-          description="Cam arkasındaki görselin ne kadar yumuşatılacağı."
-          control={(id) => (
-            <Slider
-              labelledBy={id}
-              value={appearance.blur}
-              min={BLUR_RANGE.min}
-              max={BLUR_RANGE.max}
-              format={pixels}
-              disabled={!hasWallpaper}
-              onChange={(blur) => set({ blur })}
+              value={appearance.effect}
+              options={EFFECTS}
+              onChange={(effect) => set({ effect })}
             />
           )}
         />
         <SettingRow
           label="Karartma"
-          description="Parlak görsellerde yazıların okunur kalması için görseli koyulaştırır."
+          description="Parlak görsellerde composer'ın öne çıkması için görseli koyulaştırır."
           control={(id) => (
             <Slider
               labelledBy={id}
@@ -179,8 +137,8 @@ interface PreviewProps {
 }
 
 /**
- * A miniature of the window: the wallpaper with the live glass variables on a mock
- * sidebar and panels. Without a wallpaper it doubles as the drop-in "choose" button.
+ * A miniature of the new-chat screen: the picture with the chosen effect sinking into
+ * onyx, a mock sidebar and the composer. Without a picture it is the "choose" button.
  */
 function AppearancePreview({ appearance, busy, onPick }: PreviewProps) {
   const src = wallpaperSrc(appearance.wallpaper);
@@ -190,66 +148,48 @@ function AppearancePreview({ appearance, busy, onPick }: PreviewProps) {
   return (
     <figure
       aria-label="Görünüm önizlemesi"
-      className="relative mt-8 aspect-[16/8.5] overflow-hidden rounded-lg border border-border bg-bg shadow-well"
+      className="relative mt-8 grid aspect-[16/8.5] grid-cols-[22%_minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-bg shadow-well"
     >
-      {showImage ? (
-        <WallpaperImage
-          key={src}
-          src={src}
-          blur={appearance.blur * PREVIEW_BLUR_RATIO}
-          dim={appearance.dim}
-          onError={() => setFailed(src)}
-          className="absolute inset-0"
-        />
-      ) : (
-        <div aria-hidden className="hero-glow absolute inset-0" />
-      )}
-
-      {/* Mock window. Uses the same glass utilities as the real shell. */}
-      <div
-        aria-hidden
-        className={cn(
-          "absolute inset-5 grid grid-cols-[22px_26%_minmax(0,1fr)_30%] grid-rows-[18px_minmax(0,1fr)] overflow-hidden rounded-md border border-border shadow-2xl shadow-black/60 transition-opacity duration-slow",
-          !showImage && "opacity-60",
-        )}
-      >
-        <div className="glass-bg col-span-4 flex items-center gap-1 border-b border-border px-2">
-          <span className="size-1 rounded-full bg-fg-subtle/60" />
-          <span className="h-1 w-10 rounded-full bg-fg-subtle/30" />
-        </div>
-        <div className="glass-bg border-r border-border" />
-        <div className="glass-surface flex flex-col gap-1.5 border-r border-border p-2.5">
-          {[70, 52, 64, 40, 58].map((w, i) => (
-            <span key={i} className="h-1 rounded-full bg-fg-subtle/30" style={{ width: `${w}%` }} />
-          ))}
-        </div>
-        <div className="glass-bg flex flex-col justify-end gap-1.5 border-r border-border p-3">
-          <span className="h-1 w-3/5 rounded-full bg-fg-subtle/30" />
-          <span className="h-1 w-2/5 rounded-full bg-fg-subtle/30" />
-          <span className="mt-1.5 h-4 rounded-sm border border-border-strong bg-elevated/70" />
-        </div>
-        <div className="glass-surface flex flex-col gap-1.5 p-2.5 font-mono">
-          {[45, 72, 60, 30, 66, 50].map((w, i) => (
-            <span key={i} className="h-1 rounded-full bg-fg-muted/25" style={{ width: `${w}%` }} />
-          ))}
-        </div>
+      <div aria-hidden className="flex flex-col gap-1.5 border-r border-border bg-surface p-3 pt-6">
+        {[70, 52, 64, 40, 58].map((w, i) => (
+          <span key={i} className="h-1 rounded-full bg-fg-subtle/30" style={{ width: `${w}%` }} />
+        ))}
       </div>
-
-      {!showImage && (
-        <button
-          type="button"
-          onClick={onPick}
-          disabled={busy}
-          className="absolute inset-0 flex flex-col items-center justify-center gap-2 text-fg-muted transition-colors duration-fast hover:text-fg focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-fg-subtle"
+      <div className="relative isolate">
+        {showImage && (
+          <BackdropCanvas
+            key={src}
+            src={src}
+            effect={appearance.effect}
+            dim={appearance.dim}
+            onError={() => setFailed(src)}
+            className="hero-backdrop absolute inset-x-0 top-0 h-[58%]"
+          />
+        )}
+        <div
+          aria-hidden
+          className="absolute inset-x-[14%] top-[44%] flex h-[18%] items-end justify-end rounded-md border border-glass-border bg-glass-strong p-1.5 backdrop-blur-xl"
         >
-          <span className="grid size-10 place-items-center rounded-full border border-border-strong bg-elevated shadow-well">
-            <ImagePlus size={17} strokeWidth={1.75} aria-hidden />
+          <span className="grid size-3.5 place-items-center rounded-full bg-fg text-bg">
+            <ArrowUp size={9} strokeWidth={2.5} />
           </span>
-          <span className="text-ui font-medium">
-            {src && failed === src ? "Görsel açılamadı, yenisini seçin" : "Duvar kağıdı seçin"}
-          </span>
-        </button>
-      )}
+        </div>
+        {!showImage && (
+          <button
+            type="button"
+            onClick={onPick}
+            disabled={busy}
+            className="absolute inset-x-0 top-0 flex h-[42%] flex-col items-center justify-center gap-2 text-fg-muted transition-colors duration-fast hover:text-fg focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-fg-subtle"
+          >
+            <span className="grid size-9 place-items-center rounded-full border border-border-strong bg-elevated shadow-well">
+              <ImagePlus size={16} strokeWidth={1.75} aria-hidden />
+            </span>
+            <span className="text-xs font-medium">
+              {src && failed === src ? "Görsel açılamadı, yenisini seçin" : "Görsel seçin"}
+            </span>
+          </button>
+        )}
+      </div>
     </figure>
   );
 }

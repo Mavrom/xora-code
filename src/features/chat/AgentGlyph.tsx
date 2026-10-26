@@ -4,16 +4,26 @@ import { cn } from "@/shared/ui/cn";
 interface AgentGlyphProps {
   agent: AgentId;
   size?: number;
+  /** Draws the mark in the agent's own colour instead of the text colour. */
+  tinted?: boolean;
   className?: string;
 }
 
+/** Each agent's colour, used for its mark in lists and the model chip. */
+const AGENT_TINT: Record<AgentId, string> = {
+  claude: "#d97757",
+  codex: "#e8e8e8",
+  gemini: "#7aa7f5",
+};
+
 /**
- * Monochrome marks that tell the three agents apart at a glance without borrowing their
- * brand logos: a burst for Claude, a hexagon for Codex, a four-point star for Gemini.
+ * Marks that tell the three agents apart at a glance without borrowing their brand
+ * logos: a burst for Claude, a hexagon for Codex, a four-point star for Gemini.
  */
-export function AgentGlyph({ agent, size = 14, className }: AgentGlyphProps) {
+export function AgentGlyph({ agent, size = 14, tinted, className }: AgentGlyphProps) {
   return (
     <svg
+      style={tinted ? { color: AGENT_TINT[agent] } : undefined}
       viewBox="0 0 16 16"
       width={size}
       height={size}

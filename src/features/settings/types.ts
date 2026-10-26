@@ -37,14 +37,14 @@ export interface EditorSettings {
   formatOnSave: boolean;
 }
 
+/** How the new-chat background picture is redrawn. */
+export type BackgroundEffect = "none" | "dither" | "ascii" | "halftone" | "scanlines";
+
 export interface AppearanceSettings {
   /** Absolute path of the copy in app_data_dir/wallpapers/, or null for plain onyx. */
   wallpaper: string | null;
-  /** 0 = solid onyx panels, 100 = the most see-through glass. */
-  glass: number;
-  /** Blur of the wallpaper behind the glass, in px. */
-  blur: number;
-  /** Darkening over the wallpaper, 0-100. */
+  effect: BackgroundEffect;
+  /** Darkening over the picture, 0-100. */
   dim: number;
 }
 
@@ -65,8 +65,6 @@ export const SETTINGS_VERSION = 1;
 
 export const FONT_SIZE_RANGE = { min: 10, max: 24 } as const;
 export const TAB_SIZE_RANGE = { min: 1, max: 8 } as const;
-export const GLASS_RANGE = { min: 0, max: 100 } as const;
-export const BLUR_RANGE = { min: 0, max: 64 } as const;
 export const DIM_RANGE = { min: 0, max: 100 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
@@ -89,5 +87,5 @@ export const DEFAULT_SETTINGS: Settings = {
     renderWhitespace: "none",
     formatOnSave: false,
   },
-  appearance: { wallpaper: null, glass: 75, blur: 24, dim: 35 },
+  appearance: { wallpaper: null, effect: "dither", dim: 15 },
 };

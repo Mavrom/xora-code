@@ -6,7 +6,7 @@ Açık kaynak, agent-first bir kod editörü. Kendi Claude, ChatGPT veya Gemini 
 
 ![Xora Code: dosya gezgini, sohbet alanı ve editör yan yana](docs/assets/screenshot.png)
 
-Xora Code, pencerenin merkezine bir AI agent sohbetini koyar. Sohbetlerin solda durur, dosya gezgini ve editör gerektiğinde açılır, kendi duvar kağıdın cam panellerin arkasından görünebilir. Agent'lar zaten kullandığın CLI'ların (Claude Code, Codex, Gemini CLI) resmi adapter'ları üzerinden, kendi aboneliğinle giriş yapılarak çalışır. Xora Code'un kendi AI faturası yoktur ve API key istemez.
+Xora Code, pencerenin merkezine bir AI agent sohbetini koyar. Sohbetlerin solda durur, dosya gezgini ve editör gerektiğinde açılır, yeni sohbet kendi görselinin altında açılabilir; görsel dither, ASCII, halftone ya da tarama çizgisi efektiyle yeniden çizilir. Agent'lar zaten kullandığın CLI'ların (Claude Code, Codex, Gemini CLI) resmi adapter'ları üzerinden, kendi aboneliğinle giriş yapılarak çalışır. Xora Code'un kendi AI faturası yoktur ve API key istemez.
 
 > **Durum:** Faz 1 ve 2 hazır: editör temeli, ACP üzerinden çalışan agent sohbeti, ayarlar ve hesaplar, entegre terminal. Windows'ta Claude Code ile uçtan uca doğrulandı. Gemini CLI bağlanıp girişe kadar geliyor, ama Google kişisel hesapla Gemini CLI girişini kapattı (artık Antigravity'ye yönlendiriyor), bu yüzden Gemini aboneliği bugün bu yolla kullanılamıyor. Codex kuruluyor, başlıyor ve ChatGPT girişine geliyor; tam bir tur için ChatGPT hesabı gerekiyor. İlk hedef Windows; kod çapraz platform kalacak şekilde yazılıyor. Arayüz metinleri Türkçe.
 
@@ -22,7 +22,7 @@ Bugün çalışanlar:
 | Sandbox       | Agent'ın dosya ve terminal erişimi açık klasörle sınırlı (symlink, `..` ve junction'lar kontrolden önce çözülür).                                                                                                           |
 | Sohbetler     | Kenar çubuğunda projeye göre gruplu sohbetler; agent'ın kendi geçmişiyle yeniden açılır (`session/load` / `resume`), geçmişi olmayan agent'lar için yerel indeks.                                                           |
 | Ayarlar       | Hesaplar (her CLI'ı algılar, giriş durumu, giriş yap / kur), agent varsayılanları, editör, genel, kısayollar, hakkında. `Ctrl+,`.                                                                                           |
-| Görünüm       | Onyx / AMOLED siyahı, özel çerçevesiz başlık çubuğu. İsteğe bağlı duvar kağıdı; cam, bulanıklık ve karartma ayarlanabilir.                                                                                                  |
+| Görünüm       | Onyx / AMOLED siyahı, çerçevesiz pencere. Yeni sohbet için isteğe bağlı görsel; dither, ASCII, halftone ya da tarama efekti ve ayarlanabilir karartma.                                                                      |
 | Terminal      | Sohbet ve editörün altında PowerShell / kabuk sekmeleri (``Ctrl+` ``).                                                                                                                                                      |
 | Yerleşim      | Sohbet önce: editör bir dosya açılana kadar kapalı kalır. Boyutu ayarlanabilir paneller, boyutlar oturumlar arasında hatırlanır.                                                                                            |
 | Activity bar  | Kenar çubuğunu **Sohbetler**, **Gezgin** ve **Inbox** arasında değiştirir; ayarlar en altta. Inbox simgesi açık not sayısını rozetle gösterir.                                                                              |
@@ -99,7 +99,7 @@ Temel fikir **kendi aboneliğini getir**: Xora Code resmi agent CLI'larıyla [Ag
 | -------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1        | **Tamamlandı.** Editör temeli: yerleşim, tema, Gezgin, Monaco, Inbox, komut paleti.                                                                        |
 | 2        | **Tamamlandı.** Kendi aboneliğinle ACP agent bağlantısı: akan sohbet, izinler, diff incelemesi ve geri alma, sandbox, dosya izleyici.                      |
-| 3        | **Tamamlandı.** Ayarlar ve hesaplar, duvar kağıdı ve cam görünüm, entegre terminal, sohbet geçmişi.                                                        |
+| 3        | **Tamamlandı.** Ayarlar ve hesaplar, yeni sohbet görseli ve efektleri, entegre terminal, sohbet geçmişi.                                                   |
 | Sıradaki | Codex ve Gemini ile tam deneme, Windows kurulum paketi, Claude adapter'ı için isteğe bağlı yönetilen Node.js, sabitlenmiş adapter güncelleme bildirimleri. |
 
 ## Teknoloji

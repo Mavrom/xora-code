@@ -28,6 +28,8 @@ import { SlashPopover } from "./SlashPopover";
 export interface ComposerHandle {
   /** Replaces the draft (e.g. from a suggestion) and focuses the field. */
   fill: (text: string) => void;
+  /** Adds text at the end of the draft (attached file mentions) and focuses the field. */
+  insert: (text: string) => void;
   focus: () => void;
 }
 
@@ -81,15 +83,21 @@ export function Composer({
 
   useAutoGrow(fieldRef, value);
 
+  const replaceDraft = (text: string) => {
+    setValue(text);
+    requestAnimationFrame(() => {
+      const el = fieldRef.current;
+      if (!el) return;
+      el.focus();
+      el.setSelectionRange(text.length, text.length);
+    });
+  };
+
   useImperativeHandle(ref, () => ({
-    fill: (text) => {
-      setValue(text);
-      requestAnimationFrame(() => {
-        const el = fieldRef.current;
-        if (!el) return;
-        el.focus();
-        el.setSelectionRange(text.length, text.length);
-      });
+    fill: replaceDraft,
+    insert: (text) => {
+      const draft = fieldRef.current?.value ?? "";
+      replaceDraft(draft && !/\s$/.test(draft) ? `${draft} ${text} ` : `${draft}${text} `);
     },
     focus: () => fieldRef.current?.focus(),
   }));
@@ -192,7 +200,7 @@ export function Composer({
       )}
       <div
         className={cn(
-          "rounded-2xl border border-glass-border bg-glass-strong backdrop-blur-xl",
+          "rounded-xl border border-glass-border bg-[rgb(26_26_26/0.78)] backdrop-blur-xl",
           "shadow-[inset_0_1px_0_var(--color-glass-border)] transition-[border-color,box-shadow] duration-base ease-out-quint",
           "focus-within:border-border-strong focus-within:shadow-halo",
           hero && "shadow-2xl shadow-black/40",
@@ -234,11 +242,11 @@ export function Composer({
           className={cn(
             "block max-h-[40vh] w-full resize-none bg-transparent text-fg [field-sizing:content] outline-none placeholder:text-fg-subtle focus-visible:outline-none",
             hero
-              ? "min-h-22 px-5 pt-4.5 pb-2 text-[15px] leading-6"
+              ? "min-h-16 px-4 pt-4 pb-1 text-[14px] leading-6"
               : "min-h-11 px-4 pt-3 pb-1 text-ui",
           )}
         />
-        <div className={cn("flex items-center gap-2 pt-1", hero ? "px-3 pb-3" : "px-2.5 pb-2.5")}>
+        <div className="flex items-center gap-2 px-2 pt-1 pb-2">
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{toolbar}</div>
           {meter}
           <SendButton
@@ -283,18 +291,14 @@ function SendButton({ running, cancelling, canSend, hasText, onSend, onStop }: S
       disabled={!enabled}
       onClick={stop ? onStop : onSend}
       className={cn(
-        "relative grid size-8 shrink-0 place-items-center rounded-xl border transition-[background-color,color,border-color] duration-base ease-out-quint disabled:cursor-not-allowed",
-        enabled
-          ? "border-transparent bg-accent text-accent-fg hover:bg-fg"
-          : hasText
-            ? "border-border-strong bg-elevated text-fg-muted"
-            : "border-glass-border bg-glass text-fg-subtle",
+        "relative grid size-7 shrink-0 place-items-center rounded-full bg-fg text-bg transition-[opacity,background-color] duration-base ease-out-quint disabled:cursor-not-allowed",
+        enabled ? "hover:bg-white" : "opacity-55",
       )}
     >
       {/* Both icons stay mounted and cross-fade, so the swap never jumps. */}
       <ArrowUp
-        size={16}
-        strokeWidth={2}
+        size={15}
+        strokeWidth={2.25}
         aria-hidden
         className={cn(
           "col-start-1 row-start-1 transition-[opacity,scale] duration-fast ease-out-quint",

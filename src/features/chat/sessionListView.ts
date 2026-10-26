@@ -1,6 +1,10 @@
 // Sidebar ordering on top of package C's project groups: untouched (empty) open sessions are
 // hidden, and the open workspace's group comes first.
-import { sameProject, type ProjectGroup } from "@/features/agents/sessionList";
+import {
+  sameProject,
+  type ProjectGroup,
+  type SessionListEntry,
+} from "@/features/agents/sessionList";
 import type { SessionView } from "@/features/agents/reducer";
 
 /** Stable key of the open sessions that have no messages yet ("" when none). */
@@ -27,4 +31,16 @@ export function visibleGroups(
   const index = out.findIndex((g) => sameProject(g.cwd, currentCwd));
   if (index > 0) out.unshift(...out.splice(index, 1));
   return out;
+}
+
+/** One newest-first list across projects, or just `project`'s sessions when set. */
+export function flatSessions(
+  groups: readonly ProjectGroup[],
+  project: string | null,
+): SessionListEntry[] {
+  const picked = project ? groups.filter((g) => sameProject(g.cwd, project)) : groups;
+  // Open sessions without a timestamp are the ones in use right now: keep them on top.
+  const rank = (e: SessionListEntry) =>
+    e.updatedAt ? Date.parse(e.updatedAt) || 0 : e.open ? Number.MAX_SAFE_INTEGER : 0;
+  return picked.flatMap((g) => g.sessions).sort((a, b) => rank(b) - rank(a));
 }

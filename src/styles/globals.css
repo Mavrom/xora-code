@@ -250,41 +250,9 @@
   }
 }
 
-/* Glass surfaces (Settings > Görünüm). `src/app/Wallpaper.tsx` writes --glass-alpha on <html>:
-   1 (solid, the default) without a wallpaper, lower with one. Blur lives on the wallpaper image
-   itself, not in backdrop-filter, so fixed-position menus inside panels keep working. */
-@utility glass-bg {
-  background-color: color-mix(
-    in srgb,
-    var(--color-bg) calc(var(--glass-alpha, 1) * 100%),
-    transparent
-  );
-}
-
-@utility glass-surface {
-  background-color: color-mix(
-    in srgb,
-    var(--color-surface) calc(var(--glass-alpha, 1) * 100%),
-    transparent
-  );
-}
-
-/* Cards on glass stay a step more solid than the pane under them, for legibility. */
-@utility glass-card {
-  background-color: color-mix(
-    in srgb,
-    var(--color-surface) calc(min(1, var(--glass-alpha, 1) + 0.3) * 100%),
-    transparent
-  );
-}
-
-/* Faint radial light behind a hero block; AMOLED black everywhere else. */
-@utility hero-glow {
-  background: radial-gradient(
-    closest-side,
-    color-mix(in srgb, var(--color-fg) 3.5%, transparent),
-    transparent
-  );
+/* The new-chat picture melts into onyx towards the composer (HeroBackdrop). */
+@utility hero-backdrop {
+  mask-image: linear-gradient(to bottom, #000 45%, rgb(0 0 0 / 0.55) 70%, transparent 100%);
 }
 
 /* Streaming caret appended after the last token. */

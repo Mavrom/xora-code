@@ -27,6 +27,9 @@ function writeView(view: SidebarView) {
 interface UiState {
   sidebarView: SidebarView;
   setSidebarView: (view: SidebarView) => void;
+  /** Project folder the sessions list is narrowed to; null shows every project. */
+  projectFilter: string | null;
+  setProjectFilter: (cwd: string | null) => void;
 }
 
 export const useUiStore = create<UiState>((set) => ({
@@ -35,4 +38,6 @@ export const useUiStore = create<UiState>((set) => ({
     set({ sidebarView: view });
     writeView(view);
   },
+  projectFilter: null,
+  setProjectFilter: (cwd) => set({ projectFilter: cwd }),
 }));

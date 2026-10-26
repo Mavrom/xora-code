@@ -23,7 +23,7 @@ export function SettingGroup({ title, action, children, className }: SettingGrou
           {action}
         </div>
       )}
-      <div className="glass-card divide-y divide-border overflow-visible rounded-lg border border-border">
+      <div className="bg-surface divide-y divide-border overflow-visible rounded-lg border border-border">
         {children}
       </div>
     </section>

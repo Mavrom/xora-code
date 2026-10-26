@@ -47,6 +47,10 @@ interface ChipMenuProps {
   side?: "top" | "bottom";
   /** `quiet` for chips inside the composer, `outline` for the context row under it. */
   tone?: ChipTone;
+  /** Draws the trailing chevron (off for an icon-only "more" button). */
+  chevron?: boolean;
+  /** Replaces the chip look of the trigger button. */
+  buttonClassName?: string;
   className?: string;
 }
 
@@ -71,6 +75,8 @@ export function ChipMenu({
   align = "start",
   side = "top",
   tone = "quiet",
+  chevron = true,
+  buttonClassName,
   className,
 }: ChipMenuProps) {
   const id = useId();
@@ -165,19 +171,21 @@ export function ChipMenu({
             show();
           }
         }}
-        className={chipClass(open, tone)}
+        className={buttonClassName ?? chipClass(open, tone)}
       >
         {leading}
         <span className="min-w-0 truncate">{display}</span>
-        <ChevronDown
-          size={12}
-          strokeWidth={1.75}
-          aria-hidden
-          className={cn(
-            "-mr-0.5 shrink-0 text-fg-subtle transition-transform duration-base ease-out-quint",
-            open && "rotate-180",
-          )}
-        />
+        {chevron && (
+          <ChevronDown
+            size={12}
+            strokeWidth={1.75}
+            aria-hidden
+            className={cn(
+              "-mr-0.5 shrink-0 text-fg-subtle transition-transform duration-base ease-out-quint",
+              open && "rotate-180",
+            )}
+          />
+        )}
       </button>
       {open && (
         <div

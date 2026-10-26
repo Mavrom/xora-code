@@ -6,7 +6,7 @@ An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemin
 
 ![Xora Code: file explorer, chat surface and editor side by side](docs/assets/screenshot.png)
 
-Xora Code puts an AI agent conversation at the center of the window. Your conversations sit on the left, the file explorer and the editor open when you need them, and your own wallpaper can glow through glass panels. Agents run through the official adapters for the CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
+Xora Code puts an AI agent conversation at the center of the window. Your conversations sit on the left, the file explorer and the editor open when you need them, and a new chat can open under your own picture, redrawn with a dither, ASCII, halftone or scanline effect. Agents run through the official adapters for the CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
 
 > **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows. Gemini CLI connects and reaches sign-in, but Google has retired personal Google sign-in for Gemini CLI (it now points to Antigravity), so a Gemini subscription cannot be used this way today. Codex installs, starts and reaches ChatGPT sign-in; a full turn still needs a ChatGPT account. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
 
@@ -22,7 +22,7 @@ What works today:
 | Sandbox         | Agent file and terminal access is limited to the open folder (symlinks, `..` and junctions are resolved before the check).                                                                          |
 | Sessions        | Conversations grouped by project in the sidebar, reopened with the agent's own history (`session/load` / `resume`), plus a local index for agents without one.                                      |
 | Settings        | Accounts (detects each CLI, sign-in state, sign in / install), agent defaults, editor, general, shortcuts, about. `Ctrl+,`.                                                                         |
-| Look            | Onyx / AMOLED black, custom frameless title bar. Optional wallpaper with adjustable glass, blur and dim.                                                                                            |
+| Look            | Onyx / AMOLED black, frameless window. Optional new-chat picture with dither, ASCII, halftone or scanline effect and adjustable dim.                                                                |
 | Terminal        | Integrated PowerShell / shell tabs under the chat and editor (``Ctrl+` ``).                                                                                                                         |
 | Layout          | Chat-first: the editor stays closed until a file opens. Resizable panels, sizes remembered between sessions.                                                                                        |
 | Activity bar    | Switches the sidebar between **Conversations**, **Explorer** and **Inbox**; settings sit at the bottom. The Inbox icon shows a badge with the number of open notes.                                 |
@@ -99,7 +99,7 @@ The core idea is **bring your own subscription**: Xora Code talks to the officia
 | ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
 | 1     | **Done.** Editor foundation: layout, theme, Explorer, Monaco, Inbox, command palette.                                                   |
 | 2     | **Done.** ACP agent connection with your own subscriptions: streaming chat, permissions, diff review and revert, sandbox, file watcher. |
-| 3     | **Done.** Settings and accounts, wallpaper and glass, integrated terminal, conversation history.                                        |
+| 3     | **Done.** Settings and accounts, new-chat picture and effects, integrated terminal, conversation history.                               |
 | Next  | Full Codex and Gemini runs, a Windows installer, optional managed Node.js for the Claude adapter, update notices for pinned adapters.   |
 
 ## Tech stack

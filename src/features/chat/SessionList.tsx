@@ -1,15 +1,15 @@
 import { useEffect, useId, useMemo, useState } from "react";
-import { ChevronRight, MessagesSquare, RotateCcw, SquarePen } from "lucide-react";
-import type { ProjectGroup, SessionListEntry } from "@/features/agents/sessionList";
+import { ChevronDown, MessagesSquare, RotateCcw, SquarePen } from "lucide-react";
+import { useUiStore } from "@/app/uiStore";
+import type { SessionListEntry } from "@/features/agents/sessionList";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
 import { relativeTime } from "@/features/inbox/relativeTime";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { cn } from "@/shared/ui/cn";
 import { IconButton } from "@/shared/ui/IconButton";
-import { PanelHeader } from "@/shared/ui/PanelHeader";
 import { AgentGlyph } from "./AgentGlyph";
 import { Collapse } from "./Disclosure";
-import { emptySessionKey, visibleGroups } from "./sessionListView";
+import { emptySessionKey, flatSessions, visibleGroups } from "./sessionListView";
 
 /**
  * Conversation history for the sidebar, grouped by project folder (the open workspace
@@ -26,7 +26,13 @@ export function SessionList() {
   const finished = useAgentStore((s) =>
     Object.values(s.sessions).reduce((n, v) => n + (v.turn === "idle" ? v.items.length : 0), 0),
   );
-  const shown = useMemo(() => visibleGroups(groups, emptyKey, root), [groups, emptyKey, root]);
+  const filter = useUiStore((s) => s.projectFilter);
+  const shown = useMemo(
+    () => flatSessions(visibleGroups(groups, emptyKey, root), filter),
+    [groups, emptyKey, root, filter],
+  );
+  const id = useId();
+  const [open, setOpen] = useState(true);
 
   useEffect(() => {
     if (root) void useAgentStore.getState().refreshHistory(root);
@@ -36,10 +42,33 @@ export function SessionList() {
 
   return (
     <div className="flex h-full flex-col">
-      <PanelHeader
-        title="Sohbetler"
-        actions={<IconButton icon={SquarePen} label="Yeni sohbet" size="sm" onClick={newChat} />}
-      />
+      <div className="group/h flex h-8 shrink-0 items-center gap-1 pr-2 pl-3.5">
+        <h2 id={`${id}-h`} className="min-w-0 flex-1 truncate text-xs text-fg-subtle">
+          Oturumlar
+        </h2>
+        <span className="opacity-0 transition-opacity duration-fast group-hover/h:opacity-100 focus-within:opacity-100">
+          <IconButton icon={SquarePen} label="Yeni sohbet" size="sm" onClick={newChat} />
+        </span>
+        <button
+          type="button"
+          aria-expanded={open}
+          aria-controls={id}
+          aria-label={open ? "Oturumları daralt" : "Oturumları genişlet"}
+          title={open ? "Daralt" : "Genişlet"}
+          onClick={() => setOpen((v) => !v)}
+          className="grid size-6 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+        >
+          <ChevronDown
+            size={13}
+            strokeWidth={1.75}
+            aria-hidden
+            className={cn(
+              "transition-transform duration-base ease-out-quint",
+              !open && "-rotate-90",
+            )}
+          />
+        </button>
+      </div>
       <div className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-3">
         {shown.length === 0 ? (
           loading ? (
@@ -59,9 +88,15 @@ export function SessionList() {
             </div>
           )
         ) : (
-          shown.map((group, index) => (
-            <ProjectSection key={group.cwd} group={group} first={index === 0} />
-          ))
+          <Collapse open={open} id={id}>
+            <ul aria-labelledby={`${id}-h`} className="flex flex-col gap-px">
+              {shown.map((entry) => (
+                <li key={`${entry.agentId}:${entry.sessionId}`}>
+                  <SessionRow entry={entry} />
+                </li>
+              ))}
+            </ul>
+          </Collapse>
         )}
         {error && (
           <div className="mt-2 flex items-start gap-2 px-2.5 text-2xs text-fg-subtle">
@@ -83,47 +118,6 @@ export function SessionList() {
   );
 }
 
-function ProjectSection({ group, first }: { group: ProjectGroup; first: boolean }) {
-  const id = useId();
-  const [open, setOpen] = useState(true);
-  return (
-    <section aria-labelledby={`${id}-h`} className={cn(!first && "mt-2")}>
-      <button
-        type="button"
-        id={`${id}-h`}
-        aria-expanded={open}
-        aria-controls={id}
-        onClick={() => setOpen((v) => !v)}
-        title={group.cwd}
-        className="group flex h-7 w-full items-center gap-1.5 rounded-md px-2 text-left text-2xs font-medium text-fg-subtle transition-colors duration-fast hover:text-fg-muted"
-      >
-        <ChevronRight
-          size={12}
-          strokeWidth={1.75}
-          aria-hidden
-          className={cn(
-            "shrink-0 transition-transform duration-base ease-out-quint",
-            open && "rotate-90",
-          )}
-        />
-        <span className="min-w-0 truncate">{group.name}</span>
-        <span className="ml-auto tabular-nums opacity-0 transition-opacity duration-fast group-hover:opacity-100">
-          {group.sessions.length}
-        </span>
-      </button>
-      <Collapse open={open} id={id}>
-        <ul className="flex flex-col gap-px">
-          {group.sessions.map((entry) => (
-            <li key={`${entry.agentId}:${entry.sessionId}`}>
-              <SessionRow entry={entry} />
-            </li>
-          ))}
-        </ul>
-      </Collapse>
-    </section>
-  );
-}
-
 function SessionRow({ entry }: { entry: SessionListEntry }) {
   const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
   const open = () => {
@@ -138,18 +132,19 @@ function SessionRow({ entry }: { entry: SessionListEntry }) {
       aria-current={entry.active ? "page" : undefined}
       title={entry.title ?? undefined}
       className={cn(
-        "relative flex h-8 w-full items-center gap-2 rounded-md pr-2 pl-6 text-left text-xs transition-colors duration-fast",
+        "flex h-8 w-full items-center gap-2 rounded-md px-2 text-left text-[13px] transition-colors duration-fast",
         entry.active ? "bg-elevated text-fg" : "text-fg-muted hover:bg-hover hover:text-fg",
       )}
     >
-      {entry.active && (
-        <span aria-hidden className="absolute top-2 bottom-2 left-2.5 w-px rounded-full bg-fg" />
-      )}
-      <AgentGlyph
-        agent={entry.agentId}
-        size={12}
-        className={entry.active ? "text-fg-muted" : "text-fg-subtle"}
+      {/* Status dot: lit while the agent works, faint otherwise. */}
+      <span
+        aria-hidden
+        className={cn(
+          "size-1.5 shrink-0 rounded-full",
+          entry.running ? "animate-pulse bg-fg" : "bg-fg-subtle/50",
+        )}
       />
+      <AgentGlyph agent={entry.agentId} size={13} tinted />
       <span className={cn("min-w-0 flex-1 truncate", entry.running && "shimmer")}>
         {entry.title || "Adsız sohbet"}
       </span>

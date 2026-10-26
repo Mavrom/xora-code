@@ -23,7 +23,7 @@ interface CaptionButtonProps {
   danger?: boolean;
 }
 
-/** Windows-style caption button: 46px wide, full bar height, flat hover. */
+/** Compact caption button: full bar height, small glyph, flat hover. */
 function CaptionButton({ icon: Icon, label, onClick, danger }: CaptionButtonProps) {
   return (
     <button
@@ -33,13 +33,13 @@ function CaptionButton({ icon: Icon, label, onClick, danger }: CaptionButtonProp
       tabIndex={-1}
       onClick={onClick}
       className={cn(
-        "inline-flex h-full w-[46px] items-center justify-center text-fg-muted transition-colors duration-150",
+        "inline-flex h-full w-9 items-center justify-center text-fg drop-shadow-[0_1px_2px_rgb(0_0_0_/0.6)] transition-colors duration-150",
         danger
           ? "hover:bg-danger hover:text-fg active:opacity-80"
           : "hover:bg-hover hover:text-fg active:bg-elevated",
       )}
     >
-      <Icon size={14} strokeWidth={1.25} aria-hidden />
+      <Icon size={13} strokeWidth={1.5} aria-hidden />
     </button>
   );
 }

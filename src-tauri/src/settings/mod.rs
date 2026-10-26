@@ -162,17 +162,26 @@ pub enum RenderWhitespace {
 pub const FONT_SIZE_RANGE: (u32, u32) = (10, 24);
 pub const TAB_SIZE_RANGE: (u32, u32) = (1, 8);
 
-/// Background picture and the glass look of the panels over it.
+/// How the new-chat background picture is redrawn.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum BackgroundEffect {
+    None,
+    #[default]
+    Dither,
+    Ascii,
+    Halftone,
+    Scanlines,
+}
+
+/// The picture behind the new-chat composer.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Appearance {
     /// Absolute path of the copy in `app_data_dir/wallpapers/`, or none.
     pub wallpaper: Option<String>,
-    /// 0 = solid onyx panels, 100 = the most see-through glass.
-    pub glass: u32,
-    /// Blur of the wallpaper behind the glass, in px.
-    pub blur: u32,
-    /// Darkening over the wallpaper, 0-100.
+    pub effect: BackgroundEffect,
+    /// Darkening over the picture, 0-100.
     pub dim: u32,
 }
 
@@ -180,15 +189,12 @@ impl Default for Appearance {
     fn default() -> Self {
         Self {
             wallpaper: None,
-            glass: 75,
-            blur: 24,
-            dim: 35,
+            effect: BackgroundEffect::default(),
+            dim: 15,
         }
     }
 }
 
-pub const GLASS_RANGE: (u32, u32) = (0, 100);
-pub const BLUR_RANGE: (u32, u32) = (0, 64);
 pub const DIM_RANGE: (u32, u32) = (0, 100);
 
 impl Settings {
@@ -204,8 +210,6 @@ impl Settings {
             .tab_size
             .clamp(TAB_SIZE_RANGE.0, TAB_SIZE_RANGE.1);
         let look = &mut self.appearance;
-        look.glass = look.glass.clamp(GLASS_RANGE.0, GLASS_RANGE.1);
-        look.blur = look.blur.clamp(BLUR_RANGE.0, BLUR_RANGE.1);
         look.dim = look.dim.clamp(DIM_RANGE.0, DIM_RANGE.1);
         if look
             .wallpaper
@@ -367,27 +371,27 @@ mod tests {
         assert_eq!(value["editor"]["fontSize"], json!(13));
         assert_eq!(
             value["appearance"],
-            json!({ "wallpaper": null, "glass": 75, "blur": 24, "dim": 35 })
+            json!({ "wallpaper": null, "effect": "dither", "dim": 15 })
         );
     }
 
     #[test]
     fn appearance_is_clamped_and_wallpaper_can_be_cleared() {
         let settings = from_value(&json!({
-            "appearance": { "wallpaper": "C:/w/a.png", "glass": 140, "blur": 500, "dim": -3 }
+            "appearance": { "wallpaper": "C:/w/a.png", "effect": "sparkle", "dim": 140 }
         }));
         assert_eq!(settings.appearance.wallpaper.as_deref(), Some("C:/w/a.png"));
-        assert_eq!(settings.appearance.glass, GLASS_RANGE.1);
-        assert_eq!(settings.appearance.blur, BLUR_RANGE.1);
         assert_eq!(
-            settings.appearance.dim, 35,
-            "a negative value is invalid, default kept"
+            settings.appearance.effect,
+            BackgroundEffect::Dither,
+            "an unknown effect is invalid, default kept"
         );
+        assert_eq!(settings.appearance.dim, DIM_RANGE.1);
 
         let cleared =
             apply_patch(&settings, &json!({ "appearance": { "wallpaper": null } })).unwrap();
         assert_eq!(cleared.appearance.wallpaper, None);
-        assert_eq!(cleared.appearance.glass, GLASS_RANGE.1);
+        assert_eq!(cleared.appearance.dim, DIM_RANGE.1);
 
         let blank = from_value(&json!({ "appearance": { "wallpaper": "  " } }));
         assert_eq!(blank.appearance.wallpaper, None);
