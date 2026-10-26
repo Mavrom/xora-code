@@ -27,7 +27,8 @@ import { PermissionPrompt } from "./PermissionPrompt";
 import type { XoraCommandName } from "./slash";
 import { isDocked } from "./sessionTitle";
 import { needsStatusCard } from "./toolView";
-import { onChatDraft } from "@/features/commands/events";
+import { NEW_CHAT, onChatDraft, onCommand } from "@/features/commands/events";
+import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 
 const NOTICE_MS = 3200;
@@ -80,6 +81,26 @@ export function ChatPanel() {
 
   // An Inbox note sent to the chat lands in the composer, ready to edit and send.
   useEffect(() => onChatDraft((text) => composerRef.current?.fill(text)), []);
+
+  // "Yeni sohbet" from the sidebar, or Ctrl+N anywhere.
+  useEffect(() => {
+    const start = () => {
+      useAgentStore.getState().setActiveSession(null);
+      requestAnimationFrame(() => composerRef.current?.focus());
+    };
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.repeat || isPaletteOpen() || !e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.code !== "KeyN") return;
+      e.preventDefault();
+      start();
+    };
+    window.addEventListener("keydown", onKeyDown, true);
+    const off = onCommand(NEW_CHAT, start);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown, true);
+      off();
+    };
+  }, []);
 
   useEffect(() => {
     if (!notice) return;

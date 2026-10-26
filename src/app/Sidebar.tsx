@@ -1,25 +1,33 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Folder,
-  MoreHorizontal,
+  Files,
+  Inbox,
+  MessagesSquare,
   PanelLeft,
+  Search,
   Settings,
+  SquarePen,
   type LucideIcon,
 } from "lucide-react";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
-import { SessionList } from "@/features/chat/SessionList";
+import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { ChipMenu } from "@/features/chat/ChipMenu";
+import { statusNote } from "@/features/chat/controlsView";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
+import { SessionList } from "@/features/chat/SessionList";
+import { emitCommand, NEW_CHAT, OPEN_PALETTE } from "@/features/commands/events";
 import { FileTree } from "@/features/files/FileTree";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
-import { useInboxStore } from "@/features/inbox/store";
-import { openCount } from "@/features/inbox/sortNotes";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
-import { closeSettings, useSettingsView } from "@/features/settings/viewStore";
+import { openCount } from "@/features/inbox/sortNotes";
+import { useInboxStore } from "@/features/inbox/store";
+import { closeSettings, openSettings, useSettingsView } from "@/features/settings/viewStore";
 import { openFolder } from "@/features/workspace/openFolder";
+import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
+import { Kbd } from "@/shared/ui/Kbd";
 import { useUiStore, type SidebarView } from "./uiStore";
 
 /** Ctrl+Shift+<code> per view. Avoids WebView2's Ctrl+Shift+I/J (devtools). */
@@ -27,12 +35,6 @@ const SHORTCUTS: Record<SidebarView, { code: string; label: string }> = {
   sessions: { code: "KeyH", label: "Ctrl+Shift+H" },
   explorer: { code: "KeyE", label: "Ctrl+Shift+E" },
   inbox: { code: "KeyN", label: "Ctrl+Shift+N" },
-};
-
-const VIEW_NAMES: Record<SidebarView, string> = {
-  sessions: "Oturumlar",
-  explorer: "Gezgin",
-  inbox: "Inbox",
 };
 
 /** Opening the inbox is a capture gesture: land straight in the composer. */
@@ -47,15 +49,17 @@ function showView(next: SidebarView) {
 }
 
 /**
- * The left column: hide + back/forward on top (also the window's drag handle), the
- * project filter with a "more" menu for the other views, the current view, and the
- * settings avatar in the corner.
+ * The left column. Top: window controls and history arrows (also the drag handle), then
+ * the two everyday actions (new chat, search) and the three views. Middle: the current
+ * view. Bottom: this computer and the agent's state, with settings beside it.
  */
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const view = useUiStore((s) => s.sidebarView);
   const settingsOpen = useSettingsView((s) => s.open);
+  const badge = useInboxStore((s) => openCount(s.notes));
   const canBack = useNavHistory((s) => canTravel(s, -1));
   const canForward = useNavHistory((s) => canTravel(s, 1));
+  const active = settingsOpen ? null : view;
 
   // Load once at startup so the badge is right before the inbox is opened.
   useEffect(() => {
@@ -82,8 +86,16 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   }, []);
 
   return (
-    <div className="flex h-full flex-col bg-surface">
-      <div data-tauri-drag-region="deep" className="flex h-10 shrink-0 items-center gap-1 px-2">
+    <div className="relative flex h-full flex-col bg-[#0b0b0c]">
+      {/* A breath of light along the top edge, so the column reads as a surface. */}
+      <div
+        aria-hidden
+        className="pointer-events-none absolute inset-x-0 top-0 h-40 bg-[radial-gradient(120%_100%_at_0%_0%,rgb(255_255_255/0.035),transparent_70%)]"
+      />
+      <div
+        data-tauri-drag-region="deep"
+        className="relative flex h-10 shrink-0 items-center gap-0.5 px-2"
+      >
         <BarButton icon={PanelLeft} label="Kenar çubuğunu gizle" onClick={onCollapse} />
         <BarButton icon={ArrowLeft} label="Geri" disabled={!canBack} onClick={() => travel(-1)} />
         <BarButton
@@ -93,14 +105,77 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           onClick={() => travel(1)}
         />
       </div>
-      <div className="flex h-9 shrink-0 items-center gap-1 pr-2 pl-1.5">
-        <ProjectPicker />
-        <ViewMenu view={settingsOpen ? null : view} />
+
+      <div className="relative flex flex-col gap-1.5 px-2.5 pt-1">
+        <button
+          type="button"
+          onClick={() => {
+            closeSettings();
+            emitCommand(NEW_CHAT);
+          }}
+          className="group flex h-9 items-center gap-2.5 rounded-lg border border-white/[0.07] bg-white/[0.06] px-2.5 text-[13px] font-medium text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_1px_2px_rgb(0_0_0/0.4)] transition-colors duration-fast hover:bg-white/[0.09]"
+        >
+          <SquarePen size={15} strokeWidth={1.75} aria-hidden />
+          Yeni sohbet
+          <Kbd
+            keys="mod+n"
+            className="ml-auto opacity-0 transition-opacity duration-fast group-hover:opacity-100"
+          />
+        </button>
+        <button
+          type="button"
+          onClick={() => emitCommand(OPEN_PALETTE)}
+          className="group flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-fg-subtle transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
+        >
+          <Search size={15} strokeWidth={1.75} aria-hidden />
+          Ara
+          <Kbd
+            keys="mod+k"
+            className="ml-auto opacity-60 transition-opacity duration-fast group-hover:opacity-100"
+          />
+        </button>
       </div>
+
+      <nav aria-label="Kenar çubuğu görünümü" className="relative mt-3 flex flex-col gap-px px-2.5">
+        <NavItem
+          icon={MessagesSquare}
+          label="Sohbetler"
+          shortcut={SHORTCUTS.sessions.label}
+          active={active === "sessions"}
+          onClick={() => showView("sessions")}
+        />
+        <NavItem
+          icon={Files}
+          label="Gezgin"
+          shortcut={SHORTCUTS.explorer.label}
+          active={active === "explorer"}
+          onClick={() => showView("explorer")}
+        />
+        <NavItem
+          icon={Inbox}
+          label="Inbox"
+          shortcut={SHORTCUTS.inbox.label}
+          active={active === "inbox"}
+          onClick={() => showView("inbox")}
+          meta={
+            badge > 0 ? (
+              <span className="rounded-full bg-white/[0.08] px-1.5 text-[11px] leading-4.5 font-medium text-fg-muted tabular-nums">
+                {badge > 99 ? "99+" : badge}
+              </span>
+            ) : null
+          }
+        />
+      </nav>
+
+      <div aria-hidden className="mx-4 mt-3 h-px bg-white/[0.05]" />
+
       {/* All stay mounted so switching views keeps tree expansion and drafts. */}
-      <div className="mt-1 min-h-0 flex-1">
-        <div className="h-full" hidden={view !== "sessions"}>
-          <SessionList />
+      <div className="relative mt-1 min-h-0 flex-1">
+        <div className="flex h-full flex-col" hidden={view !== "sessions"}>
+          <ProjectPicker />
+          <div className="min-h-0 flex-1">
+            <SessionList />
+          </div>
         </div>
         <div className="h-full" hidden={view !== "explorer"}>
           <FileTree onOpenFolder={openFolder} />
@@ -109,26 +184,48 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           <InboxPanel />
         </div>
       </div>
-      <div className="shrink-0 px-3 pt-1 pb-3">
-        <button
-          type="button"
-          aria-pressed={settingsOpen}
-          aria-label="Ayarlar (Ctrl+,)"
-          title="Ayarlar (Ctrl+,)"
-          onClick={() => useSettingsView.getState().toggleSettings()}
-          className={cn(
-            "grid size-5 place-items-center rounded-full transition-colors duration-fast",
-            settingsOpen ? "bg-fg text-bg" : "bg-elevated text-fg-muted hover:bg-fg hover:text-bg",
-          )}
-        >
-          <Settings size={11} strokeWidth={2} aria-hidden />
-        </button>
-      </div>
+
+      <AccountCard settingsOpen={settingsOpen} />
     </div>
   );
 }
 
-/** "Tüm projeler": narrows the sessions list to one project folder. */
+interface NavItemProps {
+  icon: LucideIcon;
+  label: string;
+  shortcut: string;
+  active: boolean;
+  meta?: ReactNode;
+  onClick: () => void;
+}
+
+function NavItem({ icon: Icon, label, shortcut, active, meta, onClick }: NavItemProps) {
+  return (
+    <button
+      type="button"
+      aria-current={active ? "page" : undefined}
+      title={`${label} (${shortcut})`}
+      onClick={onClick}
+      className={cn(
+        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-[background-color,color] duration-fast",
+        active
+          ? "bg-white/[0.07] text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]"
+          : "text-fg-muted hover:bg-white/[0.04] hover:text-fg",
+      )}
+    >
+      <Icon
+        size={15}
+        strokeWidth={1.75}
+        aria-hidden
+        className={active ? "text-fg" : "text-fg-subtle"}
+      />
+      {label}
+      {meta && <span className="ml-auto">{meta}</span>}
+    </button>
+  );
+}
+
+/** "Tüm projeler ▾": narrows the conversations to one project folder. */
 function ProjectPicker() {
   const groups = useAgentStore(selectProjectGroups);
   const filter = useUiStore((s) => s.projectFilter);
@@ -142,66 +239,86 @@ function ProjectPicker() {
   );
 
   return (
-    <ChipMenu
-      label="Proje"
-      side="bottom"
-      className="flex-1"
-      buttonClassName="flex h-8 w-full min-w-0 items-center gap-2 rounded-md px-2 text-[13px] font-medium text-fg transition-colors duration-fast hover:bg-hover [&>svg:last-child]:ml-auto"
-      leading={
-        <Folder size={15} strokeWidth={1.5} aria-hidden className="shrink-0 text-fg-muted" />
-      }
-      display={current?.name ?? "Tüm projeler"}
-      sections={[
-        {
-          key: "project",
-          label: "Proje",
-          value: current?.cwd ?? "",
-          options,
-          onSelect: (value) => {
-            useUiStore.getState().setProjectFilter(value || null);
-            showView("sessions");
+    <div className="flex h-8 shrink-0 items-center px-2.5">
+      <ChipMenu
+        label="Proje"
+        side="bottom"
+        buttonClassName="inline-flex h-6 min-w-0 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-fg-subtle transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
+        display={current?.name ?? "Tüm projeler"}
+        sections={[
+          {
+            key: "project",
+            label: "Proje",
+            value: current?.cwd ?? "",
+            options,
+            onSelect: (value) => useUiStore.getState().setProjectFilter(value || null),
           },
-        },
-      ]}
-    />
+        ]}
+      />
+    </div>
   );
 }
 
-/** The "…" menu: switches the sidebar between sessions, files and the inbox. */
-function ViewMenu({ view }: { view: SidebarView | null }) {
-  const badge = useInboxStore((s) => openCount(s.notes));
+/** Bottom card: this computer, the selected agent's state and the way into settings. */
+function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
+  const hostname = useHostname();
+  const agentId = useAgentStore((s) => s.selectedAgent);
+  const agent = useAgentStore((s) => s.agents[s.selectedAgent]);
+  const note = statusNote(agent.status) || "Hazır";
+  const ready = agent.status.state === "ready" || agent.status.state === "stopped";
+  const name = hostname ?? "Bu bilgisayar";
+
   return (
-    <ChipMenu
-      label="Kenar çubuğu görünümü"
-      side="bottom"
-      align="end"
-      chevron={false}
-      buttonClassName="relative grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-      display={
-        <>
-          <MoreHorizontal size={16} strokeWidth={1.75} aria-hidden />
-          {badge > 0 && (
-            <span
-              aria-hidden
-              className="absolute top-1 right-1 size-1.5 rounded-full bg-fg ring-2 ring-surface"
-            />
+    <div className="relative shrink-0 border-t border-white/[0.05] p-2">
+      <div className="flex items-center gap-1">
+        <button
+          type="button"
+          onClick={() => openSettings("accounts")}
+          title="Hesaplar"
+          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-fast hover:bg-white/[0.04]"
+        >
+          <span
+            aria-hidden
+            className="grid size-7 shrink-0 place-items-center rounded-full bg-[conic-gradient(from_210deg,#d97757,#7aa7f5,#e8e8e8,#d97757)] p-px"
+          >
+            <span className="grid size-full place-items-center rounded-full bg-[#141415] text-[11px] font-semibold text-fg">
+              {name.charAt(0).toUpperCase()}
+            </span>
+          </span>
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-xs font-medium text-fg">{name}</span>
+            <span className="flex items-center gap-1.5 text-[11px] text-fg-subtle">
+              <AgentGlyph agent={agentId} size={10} tinted />
+              <span className="truncate">
+                {agent.displayName} · {note}
+              </span>
+              <span
+                aria-hidden
+                className={cn(
+                  "size-1.5 shrink-0 rounded-full",
+                  ready ? "bg-emerald-400/80" : "bg-amber-400/80",
+                )}
+              />
+            </span>
+          </span>
+        </button>
+        <button
+          type="button"
+          aria-pressed={settingsOpen}
+          aria-label="Ayarlar (Ctrl+,)"
+          title="Ayarlar (Ctrl+,)"
+          onClick={() => useSettingsView.getState().toggleSettings()}
+          className={cn(
+            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-fast",
+            settingsOpen
+              ? "bg-white/[0.08] text-fg"
+              : "text-fg-subtle hover:bg-white/[0.05] hover:text-fg",
           )}
-        </>
-      }
-      sections={[
-        {
-          key: "view",
-          label: "Görünüm",
-          value: view ?? "",
-          options: (Object.keys(VIEW_NAMES) as SidebarView[]).map((v) => ({
-            value: v,
-            name: VIEW_NAMES[v],
-            meta: v === "inbox" && badge > 0 ? `${badge} açık` : SHORTCUTS[v].label,
-          })),
-          onSelect: (value) => showView(value as SidebarView),
-        },
-      ]}
-    />
+        >
+          <Settings size={15} strokeWidth={1.75} aria-hidden />
+        </button>
+      </div>
+    </div>
   );
 }
 
@@ -220,7 +337,7 @@ function BarButton({ icon: Icon, label, disabled, onClick }: BarButtonProps) {
       title={label}
       disabled={disabled}
       onClick={onClick}
-      className="grid size-7 place-items-center rounded-md text-fg-muted transition-colors duration-fast hover:bg-hover hover:text-fg disabled:text-fg-subtle/50 disabled:hover:bg-transparent"
+      className="grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-white/[0.05] hover:text-fg disabled:text-fg-subtle/40 disabled:hover:bg-transparent"
     >
       <Icon size={15} strokeWidth={1.5} aria-hidden />
     </button>

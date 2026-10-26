@@ -4,8 +4,16 @@
 export const TOGGLE_EDITOR = "xora:toggle-editor";
 export const SAVE_ACTIVE_FILE = "xora:save-active-file";
 export const TOGGLE_TERMINAL = "xora:toggle-terminal";
+export const OPEN_PALETTE = "xora:open-palette";
+/** Back to the welcome composer, focused (sidebar button, Ctrl+N). */
+export const NEW_CHAT = "xora:new-chat";
 
-export type CommandEvent = typeof TOGGLE_EDITOR | typeof SAVE_ACTIVE_FILE | typeof TOGGLE_TERMINAL;
+export type CommandEvent =
+  | typeof TOGGLE_EDITOR
+  | typeof SAVE_ACTIVE_FILE
+  | typeof TOGGLE_TERMINAL
+  | typeof OPEN_PALETTE
+  | typeof NEW_CHAT;
 
 export const emitCommand = (name: CommandEvent) => window.dispatchEvent(new Event(name));
 

@@ -44,3 +44,34 @@ export function flatSessions(
     e.updatedAt ? Date.parse(e.updatedAt) || 0 : e.open ? Number.MAX_SAFE_INTEGER : 0;
   return picked.flatMap((g) => g.sessions).sort((a, b) => rank(b) - rank(a));
 }
+
+export interface DayGroup {
+  label: string;
+  entries: SessionListEntry[];
+}
+
+const DAY = 24 * 60 * 60 * 1000;
+const startOfDay = (ms: number) => new Date(ms).setHours(0, 0, 0, 0);
+
+/**
+ * Splits a newest-first list into "Bugün", "Dün", "Bu hafta" and "Daha eski". Sessions with
+ * no timestamp are the ones open right now and count as today.
+ */
+export function groupByDay(entries: readonly SessionListEntry[], now = Date.now()): DayGroup[] {
+  const today = startOfDay(now);
+  const labelFor = (e: SessionListEntry) => {
+    const time = e.updatedAt ? Date.parse(e.updatedAt) : NaN;
+    if (!Number.isFinite(time) || time >= today) return "Bugün";
+    if (time >= today - DAY) return "Dün";
+    if (time >= today - 6 * DAY) return "Bu hafta";
+    return "Daha eski";
+  };
+  const groups: DayGroup[] = [];
+  for (const entry of entries) {
+    const label = labelFor(entry);
+    const last = groups[groups.length - 1];
+    if (last?.label === label) last.entries.push(entry);
+    else groups.push({ label, entries: [entry] });
+  }
+  return groups;
+}

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectGroup, SessionListEntry } from "@/features/agents/sessionList";
 import type { SessionView } from "@/features/agents/reducer";
-import { emptySessionKey, visibleGroups } from "./sessionListView";
+import { emptySessionKey, flatSessions, groupByDay, visibleGroups } from "./sessionListView";
 
 const entry = (sessionId: string, extra: Partial<SessionListEntry> = {}): SessionListEntry => ({
   agentId: "claude",
@@ -47,5 +47,42 @@ describe("visibleGroups", () => {
   it("moves the open workspace to the top", () => {
     const groups = [group("C:/b", [entry("x")]), group("C:/A/", [entry("y")])];
     expect(visibleGroups(groups, "", "c:\\a").map((g) => g.cwd)).toEqual(["C:/A/", "C:/b"]);
+  });
+});
+
+describe("flatSessions", () => {
+  it("merges projects newest first, open untimed sessions on top, or keeps one project", () => {
+    const groups = [
+      group("C:/a", [entry("old", { updatedAt: "2026-01-01T00:00:00Z" })]),
+      group("C:/b", [
+        entry("new", { cwd: "C:/b", updatedAt: "2026-02-01T00:00:00Z" }),
+        entry("live", { cwd: "C:/b", open: true }),
+      ]),
+    ];
+    expect(flatSessions(groups, null).map((e) => e.sessionId)).toEqual(["live", "new", "old"]);
+    expect(flatSessions(groups, "c:\\A").map((e) => e.sessionId)).toEqual(["old"]);
+  });
+});
+
+describe("groupByDay", () => {
+  it("labels today, yesterday, this week and older, in list order", () => {
+    const now = new Date(2026, 9, 26, 15, 0).getTime();
+    const at = (d: number, h = 12) => new Date(2026, 9, d, h).toISOString();
+    const groups = groupByDay(
+      [
+        entry("live", { open: true }),
+        entry("t", { updatedAt: at(26, 9) }),
+        entry("y", { updatedAt: at(25) }),
+        entry("w", { updatedAt: at(21) }),
+        entry("o", { updatedAt: at(10) }),
+      ],
+      now,
+    );
+    expect(groups.map((g) => [g.label, g.entries.map((e) => e.sessionId)])).toEqual([
+      ["Bugün", ["live", "t"]],
+      ["Dün", ["y"]],
+      ["Bu hafta", ["w"]],
+      ["Daha eski", ["o"]],
+    ]);
   });
 });
