@@ -12,6 +12,7 @@ import { Search } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
 import { setPaletteOpen } from "./paletteGuard";
+import { dynamicCommands } from "./dynamic";
 import { COMMANDS, type Command } from "./registry";
 import { flatten, moveIndex, rankCommands, type Ranked } from "./results";
 
@@ -30,7 +31,9 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
   const list = useRef<HTMLDivElement>(null);
   const baseId = useId();
 
-  const groups = useMemo(() => rankCommands(COMMANDS, query), [query]);
+  // Static commands plus "go anywhere" entries (conversations, recent folders), read once on open.
+  const commands = useMemo(() => [...COMMANDS, ...dynamicCommands()], []);
+  const groups = useMemo(() => rankCommands(commands, query), [commands, query]);
   const results = useMemo(() => flatten(groups), [groups]);
   // Row index = position in the flattened list that keyboard navigation walks.
   const indexOf = useMemo(() => new Map(results.map((r, i) => [r.item.id, i])), [results]);
@@ -109,7 +112,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
               setQuery(e.target.value);
               setActive(0);
             }}
-            placeholder="Bir komut ara…"
+            placeholder="Komut, sohbet ya da klasör ara…"
             className="h-full min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none placeholder:text-fg-subtle focus-visible:outline-none"
           />
           <Kbd keys="esc" />

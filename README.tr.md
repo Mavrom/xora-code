@@ -29,7 +29,7 @@ Bugün çalışanlar:
 | Gezgin        | Sanallaştırılmış klasör ağacı; dosya izleyiciyle canlı yenilenir, son açılan klasörler listelenir, açılışta son klasör geri gelir. Tam klavye gezintisi: roving tabindex, ok tuşları, Home/End, type-ahead.                 |
 | Editör        | Monaco, yerel olarak paketlenmiş (çevrimdışı çalışır) ve yalnızca ilk dosya açıldığında lazy-load edilir. Özel `xora-onyx` teması, sekmeler, kaydedilmemiş değişiklik (dirty) takibi, kaydetme ve kapatma kısayolları.      |
 | Inbox         | Hızlı not alma: ekleme, yerinde düzenleme, sabitleme, tamamlandı işaretleme, geri alınabilir silme. Rust `notes` modülü ile diske atomik olarak yazılır; debounce'lu kayıt, otomatik yeniden deneme ve kapanışta son flush. |
-| Komut paleti  | `Ctrl+K` veya `Ctrl+Shift+P`. Türkçe karakterleri tanıyan fuzzy arama (`klasor ac`, `Klasör aç`'ı bulur), gruplanmış komutlar, kısayol ipuçları.                                                                            |
+| Komut paleti  | `Ctrl+K` veya `Ctrl+Shift+P`. Açık klasörün sohbetlerine ve son klasörlere de atlar. Türkçe karakterleri tanıyan fuzzy arama (`klasor ac`, `Klasör aç`'ı bulur), gruplanmış komutlar, kısayol ipuçları.                     |
 
 ## Klavye kısayolları
 
