@@ -29,7 +29,7 @@ tauri-plugin-single-instance = "2"
 portable-pty = "0.9"
 # Phase 2 ACP agent core (design doc 3.1)
 agent-client-protocol-schema = { version = "=1.12.0", default-features = false }
-tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros", "rt"] }
+tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macros", "rt", "fs"] }
 uuid = { version = "1", features = ["v4"] }
 # Windows canonicalize without the \\?\ prefix (fs sandbox, package B)
 dunce = "1"

@@ -35,7 +35,6 @@ async fn with_lock<T: Send + 'static>(
 
 /// Current settings for other Rust modules (e.g. agents reading
 /// `agent.claudeIgnoreApiKey` at spawn time). Defaults if the file is unreadable.
-#[allow(dead_code)] // first callers arrive with the agents module (phase 2)
 pub async fn read(app: &AppHandle) -> Settings {
     let Ok(path) = settings_path(app) else {
         return Settings::default();

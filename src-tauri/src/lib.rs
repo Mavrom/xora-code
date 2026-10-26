@@ -21,6 +21,7 @@ pub fn run() {
         .manage(terminal::TerminalManager::default())
         .on_window_event(terminal::commands::on_window_event)
         .manage(settings::commands::SettingsLock::default())
+        .manage(agents::AgentManager::default())
         .invoke_handler(tauri::generate_handler![
             fs::commands::fs_list_dir,
             fs::commands::fs_read_file,
@@ -39,6 +40,24 @@ pub fn run() {
             settings::commands::settings_wallpaper_remove,
             accounts::commands::accounts_detect,
             accounts::commands::accounts_login,
+            agents::commands::agents_subscribe,
+            agents::commands::agents_list,
+            agents::commands::agent_install,
+            agents::commands::agent_authenticate,
+            agents::commands::agent_auth_terminal,
+            agents::commands::agent_session_new,
+            agents::commands::agent_session_load,
+            agents::commands::agent_session_resume,
+            agents::commands::agent_session_close,
+            agents::commands::agent_sessions_list,
+            agents::commands::agent_prompt,
+            agents::commands::agent_cancel,
+            agents::commands::agent_set_config_option,
+            agents::commands::agent_set_mode,
+            agents::commands::agent_set_model,
+            agents::commands::agent_permission_respond,
+            agents::commands::agent_review_revert,
+            agents::commands::agents_shutdown,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
