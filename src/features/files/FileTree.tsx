@@ -10,23 +10,21 @@ import {
   type KeyboardEvent,
   type RefObject,
 } from "react";
-import { ChevronRight, Folder, FolderOpen, FolderSearch, RotateCw } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, FolderSearch } from "lucide-react";
 import type { DirEntry } from "@/shared/lib/ipc";
 import { basename } from "@/shared/lib/path";
 import { useUiStore } from "@/app/uiStore";
 import { useEditorStore } from "@/features/editor/store";
 import { isShown } from "@/features/editor/editorKeys";
-import { requestRefresh } from "@/features/workspace/fsWatch";
 import { openRecent } from "@/features/workspace/openFolder";
 import { parentLabel } from "@/features/workspace/recents";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { useWorkspaceLifecycle } from "@/features/workspace/useWorkspaceLifecycle";
 import { Button } from "@/shared/ui/Button";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { IconButton } from "@/shared/ui/IconButton";
-import { PanelHeader } from "@/shared/ui/PanelHeader";
 import { cn } from "@/shared/ui/cn";
 import { FileIcon } from "./FileIcon";
+import { FolderTabs } from "./FolderTabs";
 import {
   activeGuideDepth,
   buildTreeRows,
@@ -73,14 +71,7 @@ export function FileTree({ onOpenFolder }: FileTreeProps) {
 
   return (
     <div ref={panel} className="flex h-full flex-col">
-      <PanelHeader
-        title={root ? basename(root) : "Dosyalar"}
-        actions={
-          root ? (
-            <IconButton icon={RotateCw} size="sm" label="Yenile" onClick={() => requestRefresh()} />
-          ) : undefined
-        }
-      />
+      <FolderTabs onAdd={onOpenFolder} />
       {root ? (
         // Re-mount on root change so expanded state never leaks between folders.
         <TreeRoot key={root} root={root} />

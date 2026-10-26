@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vitest";
 import {
+  addFolder,
   MAX_RECENTS,
   parentLabel,
+  parseFolders,
   parseRecents,
   pathKey,
   pushRecent,
@@ -40,5 +42,17 @@ describe("recent folders", () => {
     expect(parentLabel("C:\\code\\xora")).toBe("C:/code");
     expect(parentLabel("/home/me/proj/")).toBe("/home/me");
     expect(parentLabel("C:\\")).toBe("");
+  });
+});
+
+describe("folder tabs", () => {
+  it("appends new folders and keeps open ones in place", () => {
+    expect(addFolder(["C:/a", "C:/b"], "c:\\A\\")).toEqual(["C:/a", "C:/b"]);
+    expect(addFolder(["C:/a"], "C:/b")).toEqual(["C:/a", "C:/b"]);
+  });
+
+  it("parses stored tabs, dropping junk and duplicates", () => {
+    expect(parseFolders('["C:/a", 3, "", "c:/A/", "C:/b"]')).toEqual(["C:/a", "C:/b"]);
+    expect(parseFolders("{")).toEqual([]);
   });
 });

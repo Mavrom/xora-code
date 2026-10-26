@@ -31,6 +31,28 @@ export function parseRecents(raw: string | null): string[] {
   }
 }
 
+/** How many folder tabs stay open over the tree. */
+export const MAX_FOLDERS = 12;
+
+/** Appends `path` unless it is already open (tabs keep their place). */
+export function addFolder(list: readonly string[], path: string): string[] {
+  return list.some((p) => samePath(p, path)) ? [...list] : [...list, path].slice(-MAX_FOLDERS);
+}
+
+/** Parses the stored folder tabs, ignoring anything malformed and duplicates. */
+export function parseFolders(raw: string | null): string[] {
+  if (!raw) return [];
+  try {
+    const value: unknown = JSON.parse(raw);
+    if (!Array.isArray(value)) return [];
+    return value
+      .filter((p): p is string => typeof p === "string" && p.length > 0)
+      .reduce<string[]>((acc, p) => addFolder(acc, p), []);
+  } catch {
+    return [];
+  }
+}
+
 /** Parent folder of `path` for display ("C:/code" for "C:\code\xora"), or "" at a root. */
 export function parentLabel(path: string): string {
   const normalized = path.replace(/\\/g, "/").replace(/\/+$/, "");
