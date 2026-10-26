@@ -11,16 +11,14 @@ import { onCommand, TOGGLE_EDITOR } from "@/features/commands/events";
 import { HeroBackdrop } from "@/features/backdrop/HeroBackdrop";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
-import { FileTree } from "@/features/files/FileTree";
-import { openFolder } from "@/features/workspace/openFolder";
 import { moveFocusOutOfEditor } from "@/features/editor/editorFocus";
 import { useEditorStore } from "@/features/editor/store";
 import { TerminalDock } from "@/features/terminal/TerminalDock";
 import { SettingsHost } from "@/features/settings/SettingsHost";
+import { FilesDrawer } from "./FilesDrawer";
 import { MainBar } from "./MainBar";
 import { Sidebar } from "./Sidebar";
 import { cn } from "@/shared/ui/cn";
-import { useUiStore } from "./uiStore";
 
 /**
  * 1px divider; the library widens the actual hit target around it. `quiet` ones (beside the
@@ -57,7 +55,6 @@ export function Layout() {
   const editorPanel = usePanelRef();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editorOpen, setEditorOpen] = useState(true);
-  const filesOpen = useUiStore((s) => s.filesOpen);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-shell" });
   const center = useDefaultLayout({ id: "xora-center" });
 
@@ -179,12 +176,7 @@ export function Layout() {
                   </Group>
                 </TerminalDock>
               </div>
-              {/* Files column. Always mounted: the tree also runs the workspace lifecycle. */}
-              <aside aria-label="Dosyalar" hidden={!filesOpen} className="w-64 shrink-0 pr-2 pb-2">
-                <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#0b0b0c]/95 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-xl">
-                  <FileTree onOpenFolder={openFolder} />
-                </div>
-              </aside>
+              <FilesDrawer />
             </div>
           </div>
         </Panel>

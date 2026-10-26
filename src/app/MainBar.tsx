@@ -68,7 +68,11 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
           )}
           <IconButton
             icon={Files}
-            label={filesOpen ? "Dosyaları gizle (Ctrl+Shift+E)" : "Dosyaları göster (Ctrl+Shift+E)"}
+            label={
+              filesOpen
+                ? "Dosyaları sabitlemeyi bırak (Ctrl+Shift+E)"
+                : "Dosyaları sabitle (Ctrl+Shift+E)"
+            }
             active={filesOpen}
             onClick={toggleFiles}
           />

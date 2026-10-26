@@ -95,7 +95,7 @@ export const COMMANDS: Command[] = [
   },
   {
     id: "view.explorer",
-    title: "Dosyaları göster/gizle",
+    title: "Dosya çekmecesini sabitle/bırak",
     group: "Görünüm",
     shortcut: "ctrl+shift+e",
     icon: Files,
