@@ -4,6 +4,7 @@
 
 use serde::Serialize;
 use serde_json::Value;
+use std::sync::{Arc, Mutex, PoisonError};
 
 #[derive(Debug, Clone, Copy, Serialize, serde::Deserialize, PartialEq, Eq, Hash)]
 #[serde(rename_all = "lowercase")]
@@ -110,10 +111,64 @@ pub struct SessionSetup {
     pub agent_capabilities: Value,
 }
 
+type Emitter = Arc<dyn Fn(AgentEvent) + Send + Sync>;
+
+/// Where `AgentEvent`s go: the frontend `Channel` from `agents_subscribe`, or
+/// a closure in tests. Cheap to clone; events emitted before a subscriber
+/// exists are dropped (the UI re-reads state via `agents_list` on mount).
+#[derive(Clone, Default)]
+pub struct EventSink(Arc<Mutex<Option<Emitter>>>);
+
+impl EventSink {
+    /// Replaces the current subscriber.
+    pub fn set(&self, emit: impl Fn(AgentEvent) + Send + Sync + 'static) {
+        *self.0.lock().unwrap_or_else(PoisonError::into_inner) = Some(Arc::new(emit));
+    }
+
+    pub fn emit(&self, event: AgentEvent) {
+        // Clone out of the lock so a slow subscriber never blocks other emitters.
+        let emitter = self
+            .0
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone();
+        if let Some(emit) = emitter {
+            emit(event);
+        }
+    }
+}
+
+impl std::fmt::Debug for EventSink {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        f.write_str("EventSink")
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use serde_json::json;
+
+    #[test]
+    fn sink_drops_without_subscriber_then_delivers() {
+        let sink = EventSink::default();
+        sink.emit(AgentEvent::PermissionResolved {
+            request_id: "r0".into(),
+            option_id: None,
+        });
+        let seen = Arc::new(Mutex::new(Vec::new()));
+        let store = Arc::clone(&seen);
+        sink.clone().set(move |ev| store.lock().unwrap().push(ev));
+        sink.emit(AgentEvent::PermissionResolved {
+            request_id: "r1".into(),
+            option_id: None,
+        });
+        let seen = seen.lock().unwrap();
+        assert_eq!(seen.len(), 1);
+        assert!(
+            matches!(&seen[0], AgentEvent::PermissionResolved { request_id, .. } if request_id == "r1")
+        );
+    }
 
     fn to_json<T: Serialize>(value: &T) -> Value {
         serde_json::to_value(value).unwrap()
