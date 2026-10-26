@@ -25,6 +25,13 @@ export interface AgentIpc {
   sessionResume: (agentId: AgentId, sessionId: string, cwd: string) => Promise<SessionSetup>;
   sessionClose: (sessionId: string) => Promise<void>;
   sessionsList: (agentId: AgentId, cwd: string) => Promise<AgentSessionInfo[]>;
+  sessionArchive: (
+    agentId: AgentId,
+    sessionId: string,
+    cwd: string,
+    archived: boolean,
+  ) => Promise<void>;
+  sessionDelete: (agentId: AgentId, sessionId: string, cwd: string) => Promise<void>;
   prompt: (sessionId: string, blocks: AcpContentBlock[]) => Promise<void>;
   cancel: (sessionId: string) => Promise<void>;
   setConfigOption: (
@@ -57,6 +64,10 @@ export const tauriAgentIpc: AgentIpc = {
   sessionClose: (sessionId) => invoke<void>("agent_session_close", { sessionId }),
   sessionsList: (agentId, cwd) =>
     invoke<AgentSessionInfo[]>("agent_sessions_list", { agentId, cwd }),
+  sessionArchive: (agentId, sessionId, cwd, archived) =>
+    invoke<void>("agent_session_archive", { agentId, sessionId, cwd, archived }),
+  sessionDelete: (agentId, sessionId, cwd) =>
+    invoke<void>("agent_session_delete", { agentId, sessionId, cwd }),
   prompt: (sessionId, blocks) => invoke<void>("agent_prompt", { sessionId, blocks }),
   cancel: (sessionId) => invoke<void>("agent_cancel", { sessionId }),
   setConfigOption: (sessionId, configId, value) =>

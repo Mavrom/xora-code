@@ -309,6 +309,29 @@ describe("history and session list", () => {
     expect(s().history).toHaveLength(2);
   });
 
+  it("archives and unarchives, leaving the archived chat when it was open", async () => {
+    const { s, ipc } = setup();
+    const id = await s().newSession("claude", "C:\\p");
+    const entry = { agentId: "claude" as const, sessionId: id, cwd: "C:\\p" };
+    await s().archiveSession(entry, true);
+    expect(ipc.sessionArchive).toHaveBeenCalledWith("claude", id, "C:\\p", true);
+    expect(s().activeSessionId).toBeNull();
+    expect(selectSessionList(s()).find((e) => e.sessionId === id)?.archived).toBe(true);
+    await s().archiveSession(entry, false);
+    expect(s().history.filter((h) => h.sessionId === id)).toHaveLength(1);
+    expect(selectSessionList(s()).find((e) => e.sessionId === id)?.archived).toBe(false);
+  });
+
+  it("deletes a chat from history and the open sessions", async () => {
+    const { s, ipc } = setup();
+    const id = await s().newSession("claude", "C:\\p");
+    await s().deleteSession({ agentId: "claude", sessionId: id, cwd: "C:\\p" });
+    expect(ipc.sessionDelete).toHaveBeenCalledWith("claude", id, "C:\\p");
+    expect(s().sessions[id]).toBeUndefined();
+    expect(s().activeSessionId).toBeNull();
+    expect(selectSessionList(s()).some((e) => e.sessionId === id)).toBe(false);
+  });
+
   it("memoises list selectors", async () => {
     const { s } = setup();
     await s().newSession("claude", "C:\\p");

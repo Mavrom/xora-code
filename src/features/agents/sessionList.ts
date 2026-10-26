@@ -17,6 +17,8 @@ export interface SessionListEntry {
   active: boolean;
   /** A turn is in progress. */
   running: boolean;
+  /** Moved to the archive by the user. */
+  archived: boolean;
 }
 
 export interface ProjectGroup {
@@ -71,6 +73,7 @@ export function mergeSessionList(
       open: false,
       active: false,
       running: false,
+      archived: h.archived ?? false,
     });
   }
   for (const v of Object.values(sessions)) {
@@ -85,6 +88,7 @@ export function mergeSessionList(
       open: true,
       active: v.sessionId === activeSessionId,
       running: v.turn !== "idle",
+      archived: prev?.archived ?? false,
     });
   }
   // Array.prototype.sort is stable, so equal dates keep insertion order.

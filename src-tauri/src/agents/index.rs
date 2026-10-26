@@ -15,6 +15,24 @@ pub struct SessionEntry {
     pub title: Option<String>,
     /// RFC 3339 (what ACP `session_info_update.updatedAt` uses).
     pub updated_at: Option<String>,
+    /// Moved out of the sidebar list by the user; still openable from the archive.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub archived: bool,
+    /// Deleted by the user. Kept as a tombstone so an agent that cannot delete (or was not
+    /// running) does not bring it back through `session/list`.
+    #[serde(default, skip_serializing_if = "is_false")]
+    pub deleted: bool,
+}
+
+fn is_false(value: &bool) -> bool {
+    !value
+}
+
+/// A user action on one history entry.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Mark {
+    Archived(bool),
+    Deleted,
 }
 
 /// Keeps the newest entries only, so the file stays small.
@@ -113,9 +131,29 @@ impl SessionIndex {
                 cwd: cwd.to_owned(),
                 title,
                 updated_at: Some(now_rfc3339()),
+                archived: false,
+                deleted: false,
             },
         );
         let _ = save(&path, &entries);
+    }
+
+    /// Archives, unarchives or deletes an entry, adding it (without a timestamp, so its
+    /// place in the list does not move) when only the agent knew about it.
+    pub fn mark(
+        &self,
+        agent_id: AgentId,
+        session_id: &str,
+        cwd: &str,
+        mark: Mark,
+    ) -> std::io::Result<()> {
+        let Some(path) = self.path() else {
+            return Ok(());
+        };
+        let _guard = self.lock.lock().unwrap_or_else(PoisonError::into_inner);
+        let mut entries = load(&path);
+        apply_mark(&mut entries, agent_id, session_id, cwd, mark);
+        save(&path, &entries)
     }
 
     /// Entries of one agent in one folder (case-insensitive path match on Windows).
@@ -140,8 +178,40 @@ fn normalize(path: &str) -> String {
     }
 }
 
+pub fn apply_mark(
+    entries: &mut Vec<SessionEntry>,
+    agent_id: AgentId,
+    session_id: &str,
+    cwd: &str,
+    mark: Mark,
+) {
+    let pos = entries
+        .iter()
+        .position(|e| e.agent_id == agent_id && e.session_id == session_id);
+    let entry = match pos {
+        Some(pos) => &mut entries[pos],
+        None => {
+            entries.push(SessionEntry {
+                agent_id,
+                session_id: session_id.to_owned(),
+                cwd: cwd.to_owned(),
+                title: None,
+                updated_at: None,
+                archived: false,
+                deleted: false,
+            });
+            entries.last_mut().expect("just pushed")
+        }
+    };
+    match mark {
+        Mark::Archived(archived) => entry.archived = archived,
+        Mark::Deleted => entry.deleted = true,
+    }
+}
+
 /// Agent-reported sessions first (they include sessions started from the CLI),
-/// then index-only ones; titles fall back to the index.
+/// then index-only ones; titles fall back to the index, the user's archive and
+/// delete marks always come from it, and deleted sessions are left out.
 pub fn merge(agent: Vec<SessionEntry>, local: Vec<SessionEntry>) -> Vec<SessionEntry> {
     let mut out = agent;
     for entry in local {
@@ -153,10 +223,13 @@ pub fn merge(agent: Vec<SessionEntry>, local: Vec<SessionEntry>) -> Vec<SessionE
                 if existing.updated_at.is_none() {
                     existing.updated_at = entry.updated_at;
                 }
+                existing.archived = entry.archived;
+                existing.deleted = entry.deleted;
             }
             None => out.push(entry),
         }
     }
+    out.retain(|e| !e.deleted);
     out.sort_by(|a, b| b.updated_at.cmp(&a.updated_at));
     out
 }
@@ -172,7 +245,59 @@ mod tests {
             cwd: "C:\\proj".into(),
             title: title.map(Into::into),
             updated_at: Some(at.into()),
+            archived: false,
+            deleted: false,
         }
+    }
+
+    #[test]
+    fn marks_follow_the_index_into_the_merged_list() {
+        let mut local = vec![entry("a", Some("kept"), "2025-01-01")];
+        apply_mark(
+            &mut local,
+            AgentId::Gemini,
+            "a",
+            "C:/proj",
+            Mark::Archived(true),
+        );
+        // Known only to the agent: added without a timestamp, then hidden as deleted.
+        apply_mark(&mut local, AgentId::Gemini, "b", "C:/proj", Mark::Deleted);
+        assert_eq!(local.len(), 2);
+        assert_eq!(local[1].updated_at, None);
+
+        let agent = vec![
+            entry("a", None, "2025-01-02"),
+            entry("b", None, "2025-01-03"),
+        ];
+        let merged = merge(agent, local);
+        assert_eq!(merged.len(), 1, "deleted sessions are dropped");
+        assert!(merged[0].archived);
+        assert_eq!(merged[0].title.as_deref(), Some("kept"));
+    }
+
+    #[test]
+    fn unarchive_and_old_files_without_flags() {
+        let mut local = vec![entry("a", None, "1")];
+        apply_mark(
+            &mut local,
+            AgentId::Gemini,
+            "a",
+            "C:/proj",
+            Mark::Archived(true),
+        );
+        apply_mark(
+            &mut local,
+            AgentId::Gemini,
+            "a",
+            "C:/proj",
+            Mark::Archived(false),
+        );
+        assert!(!local[0].archived);
+        let old: SessionEntry = serde_json::from_str(
+            r#"{"agentId":"gemini","sessionId":"x","cwd":"C:/p","title":null,"updatedAt":null}"#,
+        )
+        .unwrap();
+        assert!(!old.archived && !old.deleted);
     }
 
     #[test]

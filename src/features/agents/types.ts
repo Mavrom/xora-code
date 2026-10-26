@@ -175,6 +175,8 @@ export interface AgentSessionInfo {
   cwd: string;
   title: string | null;
   updatedAt: string | null;
+  /** In the archive (a local mark); absent on older entries. */
+  archived?: boolean;
 }
 export interface AgentInfo {
   id: AgentId;

@@ -80,6 +80,13 @@ export interface AgentStoreState extends AgentData {
   /** Opens a past session (replay) or activates it when already open. */
   loadSession: (agentId: AgentId, sessionId: string, cwd: string) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
+  /** Moves a conversation into or out of the archive. */
+  archiveSession: (
+    entry: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">,
+    archived: boolean,
+  ) => Promise<void>;
+  /** Deletes a conversation for good (closing it first when open). */
+  deleteSession: (entry: Pick<AgentSessionInfo, "agentId" | "sessionId" | "cwd">) => Promise<void>;
 
   /** Sends a prompt, or queues it while a turn is running. */
   prompt: (sessionId: string, input: string | AcpContentBlock[]) => Promise<void>;
@@ -378,6 +385,36 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
           activeSessionId: get().activeSessionId === sessionId ? null : get().activeSessionId,
         });
         await deps.ipc.sessionClose(sessionId).catch((e) => console.warn("agents: close", e));
+      },
+
+      archiveSession: async ({ agentId, sessionId, cwd }, archived) => {
+        await deps.ipc.sessionArchive(agentId, sessionId, cwd, archived);
+        const known = get().history.some((h) => h.agentId === agentId && h.sessionId === sessionId);
+        set({
+          history: known
+            ? get().history.map((h) =>
+                h.agentId === agentId && h.sessionId === sessionId ? { ...h, archived } : h,
+              )
+            : [
+                ...get().history,
+                { agentId, sessionId, cwd, title: null, updatedAt: null, archived },
+              ],
+          activeSessionId:
+            archived && get().activeSessionId === sessionId ? null : get().activeSessionId,
+        });
+      },
+
+      deleteSession: async ({ agentId, sessionId, cwd }) => {
+        await deps.ipc.sessionDelete(agentId, sessionId, cwd);
+        const sessions = { ...get().sessions };
+        delete sessions[sessionId];
+        set({
+          sessions,
+          history: get().history.filter(
+            (h) => !(h.agentId === agentId && h.sessionId === sessionId),
+          ),
+          activeSessionId: get().activeSessionId === sessionId ? null : get().activeSessionId,
+        });
       },
 
       prompt: async (sessionId, input) => {

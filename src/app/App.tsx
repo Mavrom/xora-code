@@ -4,12 +4,14 @@ import { CommandPalette } from "@/features/commands/CommandPalette";
 import { onCommand, OPEN_PALETTE } from "@/features/commands/events";
 import { installNavHistory } from "@/features/chat/navHistory";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
+import { installContextMenuGuard } from "@/shared/ui/menuModel";
 import { usePaletteShortcut } from "@/features/commands/usePaletteShortcut";
 import { Layout } from "./Layout";
 
 // Before the first render, so it runs ahead of every feature's own shortcut listener.
 installPaletteGuard();
 installNavHistory();
+installContextMenuGuard();
 
 export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);

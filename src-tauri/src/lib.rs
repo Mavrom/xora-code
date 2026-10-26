@@ -51,6 +51,8 @@ pub fn run() {
             agents::commands::agent_session_resume,
             agents::commands::agent_session_close,
             agents::commands::agent_sessions_list,
+            agents::commands::agent_session_archive,
+            agents::commands::agent_session_delete,
             agents::commands::agent_prompt,
             agents::commands::agent_cancel,
             agents::commands::agent_set_config_option,

@@ -6,7 +6,7 @@
 use super::acp::{ClientHandlers, RpcError};
 use super::bridge::Bridges;
 use super::events::{AgentEvent, AgentId, AgentStatus, EventSink, SessionSetup};
-use super::index::{self, SessionEntry, SessionIndex};
+use super::index::{self, Mark, SessionEntry, SessionIndex};
 use super::permissions::{PermissionBroker, outcome_json};
 use super::process::{self, AgentProcess, JobObject, LaunchSpec, SharedStderrTail};
 use super::registry::{self, AgentSpec, NodeRuntime};
@@ -46,6 +46,8 @@ pub enum AgentError {
     Unavailable(String),
     #[error("unknown session")]
     UnknownSession,
+    #[error("session history could not be saved: {0}")]
+    History(#[from] std::io::Error),
 }
 
 impl AgentError {
@@ -485,6 +487,46 @@ impl AgentManager {
         self.0.bridges.session_closed(session_id).await;
         self.0.sessions.remove(session_id);
         Ok(())
+    }
+
+    /// Moves a conversation into or out of the archive (a local mark; agents have no archive).
+    pub fn session_archive(
+        &self,
+        agent: AgentId,
+        session_id: &str,
+        cwd: &Path,
+        archived: bool,
+    ) -> Result<()> {
+        self.0
+            .index
+            .mark(
+                agent,
+                session_id,
+                &cwd.to_string_lossy(),
+                Mark::Archived(archived),
+            )
+            .map_err(AgentError::from)
+    }
+
+    /// Deletes a conversation: closes it if open, asks a running agent that supports
+    /// `session/delete` to drop it too, and leaves a tombstone so it never lists again.
+    pub async fn session_delete(&self, agent: AgentId, session_id: &str, cwd: &Path) -> Result<()> {
+        if self.0.sessions.agent_of(session_id).is_some() {
+            self.session_close(session_id).await?;
+        }
+        let conn = self.0.conns.lock().await.get(&agent).cloned();
+        if let Some(conn) = conn.filter(|c| c.supports("/sessionCapabilities/delete")) {
+            // The tombstone below hides it either way; an agent-side failure only means
+            // its own history keeps a copy.
+            let _ = conn
+                .peer
+                .request("session/delete", json!({ "sessionId": session_id }))
+                .await;
+        }
+        self.0
+            .index
+            .mark(agent, session_id, &cwd.to_string_lossy(), Mark::Deleted)
+            .map_err(AgentError::from)
     }
 
     pub async fn sessions_list(&self, agent: AgentId, cwd: PathBuf) -> Vec<SessionEntry> {
@@ -1036,6 +1078,8 @@ fn parse_session_list(agent: AgentId, cwd: &Path, result: &Value) -> Vec<Session
                     .get("updatedAt")
                     .and_then(Value::as_str)
                     .map(str::to_owned),
+                archived: false,
+                deleted: false,
             })
         })
         .collect()

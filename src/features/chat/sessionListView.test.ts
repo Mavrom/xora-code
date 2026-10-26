@@ -12,6 +12,7 @@ const entry = (sessionId: string, extra: Partial<SessionListEntry> = {}): Sessio
   open: false,
   active: false,
   running: false,
+  archived: false,
   ...extra,
 });
 

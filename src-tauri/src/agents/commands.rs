@@ -150,6 +150,32 @@ pub async fn agent_session_close(
 }
 
 #[tauri::command]
+pub fn agent_session_archive(
+    manager: State<'_, AgentManager>,
+    agent_id: AgentId,
+    session_id: String,
+    cwd: PathBuf,
+    archived: bool,
+) -> CmdResult<()> {
+    manager
+        .session_archive(agent_id, &session_id, &cwd, archived)
+        .map_err(ipc)
+}
+
+#[tauri::command]
+pub async fn agent_session_delete(
+    manager: State<'_, AgentManager>,
+    agent_id: AgentId,
+    session_id: String,
+    cwd: PathBuf,
+) -> CmdResult<()> {
+    manager
+        .session_delete(agent_id, &session_id, &cwd)
+        .await
+        .map_err(ipc)
+}
+
+#[tauri::command]
 pub async fn agent_sessions_list(
     app: AppHandle,
     manager: State<'_, AgentManager>,
