@@ -14,10 +14,13 @@ import { useAgentStore } from "./store";
  */
 export function useAgentEvents() {
   useEffect(() => {
-    const fixture = fixtureParams();
-    if (fixture) {
-      void startFixtureMode(fixture).catch((err) => console.error("agents: fixture mode", err));
-      return;
+    // Statically false in production builds, so the fixture chunk is dropped.
+    if (import.meta.env.DEV) {
+      const fixture = fixtureParams();
+      if (fixture) {
+        void startFixtureMode(fixture).catch((err) => console.error("agents: fixture mode", err));
+        return;
+      }
     }
     if (!isTauri()) return;
     void useAgentStore.getState().init();
