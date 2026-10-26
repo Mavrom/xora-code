@@ -233,15 +233,12 @@ export function Composer({
           }
           className={cn(
             "block max-h-[40vh] w-full resize-none bg-transparent text-fg [field-sizing:content] outline-none placeholder:text-fg-subtle focus-visible:outline-none",
-            hero ? "min-h-22 px-5 pt-4.5 pb-2 text-[15px] leading-6" : "min-h-11 px-4 pt-3 pb-1 text-ui",
+            hero
+              ? "min-h-22 px-5 pt-4.5 pb-2 text-[15px] leading-6"
+              : "min-h-11 px-4 pt-3 pb-1 text-ui",
           )}
         />
-        <div
-          className={cn(
-            "flex items-center gap-2 pt-1",
-            hero ? "px-3 pb-3" : "px-2.5 pb-2.5",
-          )}
-        >
+        <div className={cn("flex items-center gap-2 pt-1", hero ? "px-3 pb-3" : "px-2.5 pb-2.5")}>
           <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{toolbar}</div>
           {meter}
           <SendButton
@@ -270,7 +267,13 @@ interface SendButtonProps {
 /** Send while idle; a square Stop while the agent works (text typed then still queues on Enter). */
 function SendButton({ running, cancelling, canSend, hasText, onSend, onStop }: SendButtonProps) {
   const stop = running && !hasText;
-  const label = cancelling ? "Durduruluyor…" : stop ? "Durdur (Esc)" : running ? "Sıraya ekle" : "Gönder";
+  const label = cancelling
+    ? "Durduruluyor…"
+    : stop
+      ? "Durdur (Esc)"
+      : running
+        ? "Sıraya ekle"
+        : "Gönder";
   const enabled = stop ? !cancelling : canSend;
   return (
     <button

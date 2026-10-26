@@ -2,7 +2,7 @@ import { memo, useEffect, useMemo, useRef, type MouseEvent } from "react";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { cn } from "@/shared/ui/cn";
 import { highlightCodeBlocks } from "./codeHighlight";
-import { closeOpenFence, splitBlocks } from "./markdown";
+import { closeOpenFence, splitBlocks } from "./markdownBlocks";
 import { renderMarkdown } from "./renderMarkdown";
 import "./chat.css";
 
@@ -67,7 +67,7 @@ function onMarkdownClick(event: MouseEvent<HTMLDivElement>) {
   if (copy) {
     const code = copy.closest(".md-code")?.querySelector("code")?.textContent ?? "";
     void navigator.clipboard.writeText(code).then(() => {
-      copy.textContent = "Kopyalandı";
+      copy.textContent = "KopyalandÄ±";
       copy.dataset.done = "";
       window.setTimeout(() => {
         copy.textContent = "Kopyala";

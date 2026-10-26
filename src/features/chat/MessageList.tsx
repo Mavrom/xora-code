@@ -87,11 +87,7 @@ export function MessageList({ session }: MessageListProps) {
           {session.loading && items.length === 0 && <ReplaySkeleton />}
           {items.map((item, index) => (
             <div key={item.id} className={gapBefore(items[index - 1]?.kind, item.kind)}>
-              <Item
-                item={item}
-                streaming={running && item === last}
-                terminals={terminals}
-              />
+              <Item item={item} streaming={running && item === last} terminals={terminals} />
             </div>
           ))}
           {working && (
@@ -105,7 +101,12 @@ export function MessageList({ session }: MessageListProps) {
               role="alert"
               className="mt-4 flex items-start gap-2.5 rounded-lg border border-border-strong bg-glass px-3 py-2.5 text-xs"
             >
-              <CircleAlert size={14} strokeWidth={1.75} aria-hidden className="mt-0.5 shrink-0 text-danger" />
+              <CircleAlert
+                size={14}
+                strokeWidth={1.75}
+                aria-hidden
+                className="mt-0.5 shrink-0 text-danger"
+              />
               <p className="min-w-0 text-fg-muted">
                 <span className="text-fg">Tur tamamlanamadı.</span> {session.error.message}
               </p>
@@ -135,7 +136,8 @@ function isProgressVisible(item: ChatItem | undefined): boolean {
   if (!item) return false;
   if (item.kind === "agent") return item.text.length > 0;
   if (item.kind === "thought") return item.endedAt === null;
-  if (item.kind === "tool") return item.call.status === "pending" || item.call.status === "in_progress";
+  if (item.kind === "tool")
+    return item.call.status === "pending" || item.call.status === "in_progress";
   return false;
 }
 
@@ -216,7 +218,10 @@ function NoticeRow({ severity, title }: { severity: string; title: string }) {
         size={12}
         strokeWidth={1.75}
         aria-hidden
-        className={cn(severity === "error" && "text-danger", severity === "warning" && "text-warning")}
+        className={cn(
+          severity === "error" && "text-danger",
+          severity === "warning" && "text-warning",
+        )}
       />
       {title}
     </p>

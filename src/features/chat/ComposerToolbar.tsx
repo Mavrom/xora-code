@@ -54,7 +54,9 @@ export function ComposerToolbar({ controls, onSetControl, openChip, side }: Comp
       {mode && (
         <ChipMenu
           label={`Mod: ${mode.label}`}
-          leading={<ShieldCheck size={13} strokeWidth={1.75} aria-hidden className="text-fg-subtle" />}
+          leading={
+            <ShieldCheck size={13} strokeWidth={1.75} aria-hidden className="text-fg-subtle" />
+          }
           display={mode.options.find((o) => o.value === mode.current)?.name ?? mode.current}
           sections={[selectSection("mode", mode.label || "Mod", mode, onSetControl)]}
           defaultOpen={openChip === "mode"}

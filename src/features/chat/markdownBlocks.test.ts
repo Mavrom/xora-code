@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
-import { closeOpenFence, openFence, splitBlocks } from "./markdown";
+import { closeOpenFence, openFence, splitBlocks } from "./markdownBlocks";
 
 describe("splitBlocks", () => {
   it("splits paragraphs at blank lines and drops extra blank lines", () => {
-    expect(splitBlocks("Bir.\n\n\n\nİki\nüç.")).toEqual(["Bir.", "İki\nüç."]);
+    expect(splitBlocks("Bir.\n\n\n\nÄ°ki\nÃ¼Ã§.")).toEqual(["Bir.", "Ä°ki\nÃ¼Ã§."]);
   });
 
   it("returns nothing for empty or whitespace-only text", () => {
@@ -12,9 +12,9 @@ describe("splitBlocks", () => {
   });
 
   it("keeps a fenced code block whole, blank lines included", () => {
-    const text = "Önce:\n\n```ts\nconst a = 1;\n\nconst b = 2;\n```\n\nSonra.";
+    const text = "Ã–nce:\n\n```ts\nconst a = 1;\n\nconst b = 2;\n```\n\nSonra.";
     expect(splitBlocks(text)).toEqual([
-      "Önce:",
+      "Ã–nce:",
       "```ts\nconst a = 1;\n\nconst b = 2;\n```",
       "Sonra.",
     ]);
@@ -31,8 +31,8 @@ describe("splitBlocks", () => {
   });
 
   it("keeps a loose list together and indented continuations attached", () => {
-    const text = "- bir\n\n- iki\n\n  devamı\n\nParagraf";
-    expect(splitBlocks(text)).toEqual(["- bir\n\n- iki\n\n  devamı", "Paragraf"]);
+    const text = "- bir\n\n- iki\n\n  devamÄ±\n\nParagraf";
+    expect(splitBlocks(text)).toEqual(["- bir\n\n- iki\n\n  devamÄ±", "Paragraf"]);
   });
 
   it("keeps ordered loose lists together", () => {
