@@ -2,6 +2,7 @@ mod accounts;
 mod agents;
 mod error;
 mod fs;
+mod git;
 mod notes;
 mod settings;
 mod system;
@@ -64,6 +65,10 @@ pub fn run() {
             agents::commands::agent_review_accept,
             agents::commands::agents_shutdown,
             system::system_hostname,
+            git::commands::git_worktrees,
+            git::commands::git_worktree_create,
+            git::commands::git_worktree_merge,
+            git::commands::git_worktree_remove,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

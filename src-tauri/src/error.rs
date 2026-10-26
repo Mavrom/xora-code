@@ -12,6 +12,8 @@ pub enum AppError {
     Notes(#[from] crate::notes::NotesError),
     #[error(transparent)]
     Settings(#[from] crate::settings::SettingsError),
+    #[error(transparent)]
+    Git(#[from] crate::git::GitError),
 }
 
 impl Serialize for AppError {
