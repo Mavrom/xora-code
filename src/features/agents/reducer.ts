@@ -505,6 +505,22 @@ export function reduceEvents(
 }
 
 /** Adds (or replaces) a session and replays events that arrived before it. */
+/**
+ * Starts a turn locally: appends the user's message (agents echo user chunks
+ * only on replay) and marks the session running.
+ */
+export function beginTurn(view: SessionView, blocks: AcpContentBlock[], now: number): SessionView {
+  const d = new SessionDraft(view);
+  d.push((id) => ({ kind: "user", id, blocks }), now);
+  Object.assign(d.view, {
+    turn: "running",
+    error: null,
+    lastStopReason: null,
+    updatedAt: new Date(now).toISOString(),
+  } satisfies Partial<SessionView>);
+  return d.view;
+}
+
 export function attachSession(data: AgentData, view: SessionView, now: number): AgentData {
   const pending = data.orphans[view.sessionId];
   const orphans = { ...data.orphans };
