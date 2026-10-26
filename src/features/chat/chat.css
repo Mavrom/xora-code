@@ -3,7 +3,8 @@
 @reference "../../styles/globals.css";
 
 .md {
-  font-size: var(--text-ui);
+  /* Settings > Genel > Sohbet yazı boyutu. */
+  font-size: var(--chat-text, var(--text-ui));
   line-height: 1.7;
   color: var(--color-fg);
   overflow-wrap: anywhere;

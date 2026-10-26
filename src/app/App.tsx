@@ -4,6 +4,8 @@ import { CommandPalette } from "@/features/commands/CommandPalette";
 import { onCommand, OPEN_PALETTE } from "@/features/commands/events";
 import { installAttention } from "@/features/agents/attention";
 import { installModelCatalog } from "@/features/agents/modelCatalog";
+import { installAutoSave } from "@/features/editor/autoSave";
+import { installUiPrefs } from "./uiPrefs";
 import { installWindowLook } from "./windowLook";
 import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
@@ -19,6 +21,8 @@ installSessionReaper();
 installModelCatalog();
 installAttention();
 installWindowLook();
+installUiPrefs();
+installAutoSave();
 installContextMenuGuard();
 
 export default function App() {

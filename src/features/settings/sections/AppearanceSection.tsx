@@ -11,6 +11,7 @@ import { settingsIpc } from "../ipc";
 import { useSettingsStore } from "../store";
 import {
   DIM_RANGE,
+  UI_SCALE_RANGE,
   type AppearanceSettings,
   type BackgroundEffect,
   type WindowLook,
@@ -107,7 +108,24 @@ export function AppearanceSection() {
 
       <SettingGroup title="Pencere">
         <SettingRow
+          label="Arayüz ölçeği"
+          setting="appearance.uiScale"
+          description="Bütün arayüzü büyütür ya da küçültür. Kısayol: Ctrl + / Ctrl - / Ctrl 0."
+          control={(id) => (
+            <Slider
+              labelledBy={id}
+              value={appearance.uiScale}
+              min={UI_SCALE_RANGE.min}
+              max={UI_SCALE_RANGE.max}
+              step={10}
+              format={percent}
+              onChange={(uiScale) => set({ uiScale })}
+            />
+          )}
+        />
+        <SettingRow
           label="Saydamlık"
+          setting="appearance.window"
           description="Buzlu: arkadaki uygulamalar ve masaüstü bulanık görünür. Net: bulanıklık olmadan görünür. Opak: saf onyx."
           control={(id) => (
             <Segmented
@@ -120,6 +138,7 @@ export function AppearanceSection() {
         />
         <SettingRow
           label="Koyuluk"
+          setting="appearance.tint"
           description="Arkası görünen pencerenin ne kadar karartılacağı; yazılar okunaklı kalsın diye."
           control={(id) => (
             <Slider
@@ -138,6 +157,7 @@ export function AppearanceSection() {
       <SettingGroup title="Görsel">
         <SettingRow
           label="Görsel göster"
+          setting="appearance.picture"
           description="Kapalıyken yeni sohbet saf onyx açılır."
           control={(id) => (
             <Toggle
@@ -149,6 +169,7 @@ export function AppearanceSection() {
         />
         <SettingRow
           label="Efekt"
+          setting="appearance.effect"
           description="Görseli dither, ASCII, halftone ya da tarama çizgileriyle yeniden çizer."
           control={(id) => (
             <Segmented
@@ -161,6 +182,7 @@ export function AppearanceSection() {
         />
         <SettingRow
           label="Karartma"
+          setting="appearance.dim"
           description="Parlak görsellerde composer'ın öne çıkması için görseli koyulaştırır."
           control={(id) => (
             <Slider

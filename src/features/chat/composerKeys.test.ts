@@ -25,6 +25,16 @@ describe("getComposerKeyAction", () => {
     expect(getComposerKeyAction({ key: "Enter", shiftKey: false, keyCode: 13 })).toBe("submit");
   });
 
+  it("sends on Ctrl+Enter and breaks the line on Enter when set to Ctrl+Enter", () => {
+    expect(getComposerKeyAction({ key: "Enter", shiftKey: false }, "ctrlEnter")).toBe("newline");
+    expect(
+      getComposerKeyAction({ key: "Enter", shiftKey: false, ctrlKey: true }, "ctrlEnter"),
+    ).toBe("submit");
+    expect(
+      getComposerKeyAction({ key: "Enter", shiftKey: false, metaKey: true }, "ctrlEnter"),
+    ).toBe("submit");
+  });
+
   it("ignores other keys", () => {
     expect(getComposerKeyAction({ key: "a", shiftKey: false })).toBe("none");
     expect(getComposerKeyAction({ key: "Escape", shiftKey: true })).toBe("none");

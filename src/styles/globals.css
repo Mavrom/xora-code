@@ -301,3 +301,18 @@
   animation-iteration-count: 1 !important;
   transition-duration: 0.01ms !important;
 }
+
+/* Settings search: the row it lands on glows once. */
+@keyframes setting-flash {
+  0%,
+  35% {
+    background: rgb(255 255 255 / 0.07);
+  }
+  100% {
+    background: transparent;
+  }
+}
+
+.setting-flash {
+  animation: setting-flash 1.6s var(--ease-out-quint);
+}

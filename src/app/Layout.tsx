@@ -19,6 +19,7 @@ import { FilesDrawer } from "./FilesDrawer";
 import { MainBar } from "./MainBar";
 import { Sidebar } from "./Sidebar";
 import { cn } from "@/shared/ui/cn";
+import { useSettingsView } from "@/features/settings/viewStore";
 
 /**
  * 1px divider; the library widens the actual hit target around it. `quiet` ones (beside the
@@ -55,6 +56,8 @@ export function Layout() {
   const editorPanel = usePanelRef();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editorOpen, setEditorOpen] = useState(true);
+  // Under the settings page only the picture and the window glass show, not the app.
+  const settingsOpen = useSettingsView((s) => s.open);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-shell" });
   const center = useDefaultLayout({ id: "xora-center" });
 
@@ -134,7 +137,7 @@ export function Layout() {
         orientation="horizontal"
         defaultLayout={defaultLayout}
         onLayoutChanged={onLayoutChanged}
-        className="relative h-full"
+        className={cn("relative h-full", settingsOpen && "invisible")}
       >
         <Panel
           id="files"

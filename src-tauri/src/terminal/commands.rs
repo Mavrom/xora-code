@@ -1,4 +1,4 @@
-use super::{TerminalError, TerminalManager, default_shell, home_dir, resolve_cwd};
+use super::{TerminalError, TerminalManager, configured_shell, home_dir, resolve_cwd};
 use std::path::PathBuf;
 use tauri::ipc::{Channel, InvokeResponseBody};
 use tauri::{Manager, State};
@@ -13,7 +13,8 @@ pub struct SpawnInfo {
     shell: String,
 }
 
-/// Starts the default shell in a new PTY and returns the session id and shell name.
+/// Starts a shell in a new PTY and returns the session id and shell name. `shell` is the
+/// Settings > Terminal choice (`auto` when absent).
 ///
 /// `on_data` streams raw output bytes (an `ArrayBuffer` in JS); `on_exit` fires once with
 /// the exit code (`null` if unknown) after the last output chunk. `cwd` falls back to home.
@@ -24,10 +25,11 @@ pub async fn term_spawn(
     cols: u16,
     rows: u16,
     cwd: Option<String>,
+    shell: Option<String>,
     on_data: Channel<InvokeResponseBody>,
     on_exit: Channel<Option<u32>>,
 ) -> TermResult<SpawnInfo> {
-    let shell = default_shell();
+    let shell = configured_shell(shell.as_deref().unwrap_or("auto"));
     let cwd = resolve_cwd(cwd.map(PathBuf::from).as_deref(), home_dir());
     let id = state.spawn(
         &shell,

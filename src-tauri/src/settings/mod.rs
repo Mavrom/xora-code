@@ -20,6 +20,7 @@ pub struct Settings {
     pub general: General,
     pub agent: Agent,
     pub editor: Editor,
+    pub terminal: Terminal,
     pub appearance: Appearance,
 }
 
@@ -30,6 +31,7 @@ impl Default for Settings {
             general: General::default(),
             agent: Agent::default(),
             editor: Editor::default(),
+            terminal: Terminal::default(),
             appearance: Appearance::default(),
         }
     }
@@ -43,7 +45,21 @@ pub struct General {
     pub reduced_motion: ReducedMotion,
     /// Flash the taskbar when an agent finishes or asks for approval in the background.
     pub notify_when_done: bool,
+    /// Which key sends a message from the composer (the other one adds a line).
+    pub send_key: SendKey,
+    /// Text size of the conversation, in px.
+    pub chat_font_size: u32,
 }
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum SendKey {
+    #[default]
+    Enter,
+    CtrlEnter,
+}
+
+pub const CHAT_FONT_SIZE_RANGE: (u32, u32) = (12, 18);
 
 impl Default for General {
     fn default() -> Self {
@@ -52,6 +68,8 @@ impl Default for General {
             confirm_dirty_close: true,
             reduced_motion: ReducedMotion::System,
             notify_when_done: true,
+            send_key: SendKey::default(),
+            chat_font_size: 13,
         }
     }
 }
@@ -140,6 +158,42 @@ pub struct Editor {
     pub ligatures: bool,
     pub render_whitespace: RenderWhitespace,
     pub format_on_save: bool,
+    pub auto_save: AutoSave,
+    pub line_numbers: LineNumbers,
+    pub cursor_style: CursorStyle,
+    /// Keeps the enclosing scopes pinned at the top while scrolling.
+    pub sticky_scroll: bool,
+    /// Colours matching bracket pairs by depth.
+    pub bracket_colors: bool,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum AutoSave {
+    #[default]
+    Off,
+    /// A moment after typing stops.
+    Delay,
+    /// When the editor loses focus.
+    FocusChange,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum LineNumbers {
+    #[default]
+    On,
+    Relative,
+    Off,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum CursorStyle {
+    #[default]
+    Line,
+    Block,
+    Underline,
 }
 
 impl Default for Editor {
@@ -152,6 +206,11 @@ impl Default for Editor {
             ligatures: true,
             render_whitespace: RenderWhitespace::None,
             format_on_save: false,
+            auto_save: AutoSave::default(),
+            line_numbers: LineNumbers::default(),
+            cursor_style: CursorStyle::default(),
+            sticky_scroll: true,
+            bracket_colors: true,
         }
     }
 }
@@ -166,6 +225,36 @@ pub enum RenderWhitespace {
 }
 
 pub const FONT_SIZE_RANGE: (u32, u32) = (10, 24);
+
+/// The integrated terminal.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
+#[serde(rename_all = "camelCase", default)]
+pub struct Terminal {
+    pub shell: ShellKind,
+    pub font_size: u32,
+}
+
+impl Default for Terminal {
+    fn default() -> Self {
+        Self {
+            shell: ShellKind::default(),
+            font_size: 13,
+        }
+    }
+}
+
+/// Which shell a new terminal starts. `Auto` is PowerShell 7 when installed, else Windows
+/// PowerShell (on other systems, `$SHELL`).
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum ShellKind {
+    #[default]
+    Auto,
+    Pwsh,
+    PowerShell,
+    Cmd,
+    GitBash,
+}
 pub const TAB_SIZE_RANGE: (u32, u32) = (1, 8);
 
 /// How the new-chat background picture is redrawn.
@@ -208,7 +297,11 @@ pub struct Appearance {
     pub window: WindowLook,
     /// How dark the see-through window is tinted, 0-100 (ignored when solid).
     pub tint: u32,
+    /// Interface zoom, in percent.
+    pub ui_scale: u32,
 }
+
+pub const UI_SCALE_RANGE: (u32, u32) = (80, 150);
 
 impl Default for Appearance {
     fn default() -> Self {
@@ -219,6 +312,7 @@ impl Default for Appearance {
             dim: 15,
             window: WindowLook::default(),
             tint: 72,
+            ui_scale: 100,
         }
     }
 }
@@ -237,7 +331,16 @@ impl Settings {
             .editor
             .tab_size
             .clamp(TAB_SIZE_RANGE.0, TAB_SIZE_RANGE.1);
+        self.general.chat_font_size = self
+            .general
+            .chat_font_size
+            .clamp(CHAT_FONT_SIZE_RANGE.0, CHAT_FONT_SIZE_RANGE.1);
+        self.terminal.font_size = self
+            .terminal
+            .font_size
+            .clamp(FONT_SIZE_RANGE.0, FONT_SIZE_RANGE.1);
         let look = &mut self.appearance;
+        look.ui_scale = look.ui_scale.clamp(UI_SCALE_RANGE.0, UI_SCALE_RANGE.1);
         look.dim = look.dim.clamp(DIM_RANGE.0, DIM_RANGE.1);
         look.tint = look.tint.clamp(DIM_RANGE.0, DIM_RANGE.1);
         if look
@@ -400,7 +503,7 @@ mod tests {
         assert_eq!(value["editor"]["fontSize"], json!(13));
         assert_eq!(
             value["appearance"],
-            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15, "window": "frosted", "tint": 72 })
+            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15, "window": "frosted", "tint": 72, "uiScale": 100 })
         );
     }
 
@@ -439,6 +542,27 @@ mod tests {
         assert!(settings.editor.minimap);
         assert_eq!(settings.agent.default_effort, Effort::Medium);
         assert_eq!(settings.agent.default_agent, AgentId::Codex);
+    }
+
+    #[test]
+    fn new_fields_default_and_clamp() {
+        let fresh = Settings::default();
+        assert_eq!(fresh.general.send_key, SendKey::Enter);
+        assert_eq!(fresh.editor.auto_save, AutoSave::Off);
+        assert_eq!(fresh.terminal.shell, ShellKind::Auto);
+        let wild = from_value(&json!({
+            "general": { "chatFontSize": 40, "sendKey": "ctrlEnter" },
+            "terminal": { "fontSize": 2, "shell": "gitBash" },
+            "appearance": { "uiScale": 400 },
+            "editor": { "lineNumbers": "relative", "cursorStyle": "block" }
+        }));
+        assert_eq!(wild.general.chat_font_size, CHAT_FONT_SIZE_RANGE.1);
+        assert_eq!(wild.general.send_key, SendKey::CtrlEnter);
+        assert_eq!(wild.terminal.font_size, FONT_SIZE_RANGE.0);
+        assert_eq!(wild.terminal.shell, ShellKind::GitBash);
+        assert_eq!(wild.appearance.ui_scale, UI_SCALE_RANGE.1);
+        assert_eq!(wild.editor.line_numbers, LineNumbers::Relative);
+        assert_eq!(wild.editor.cursor_style, CursorStyle::Block);
     }
 
     #[test]

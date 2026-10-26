@@ -81,6 +81,7 @@ export function AccountsSection() {
       <SettingGroup title="Varsayılan" className="mt-10">
         <SettingRow
           label="Varsayılan ajan"
+          setting="agent.defaultAgent"
           description="Yeni sohbetler bu ajanla başlar."
           control={(id) => (
             <Segmented
@@ -96,6 +97,7 @@ export function AccountsSection() {
       <SettingGroup title="Claude Code">
         <SettingRow
           label="ANTHROPIC_API_KEY'i yok say"
+          setting="agent.claudeIgnoreApiKey"
           description="Ortamda bir API anahtarı tanımlı olsa bile Claude Code aboneliğinizle çalışır."
           control={(id) => (
             <Toggle

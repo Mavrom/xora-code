@@ -1,5 +1,8 @@
 import { useId, type ReactNode } from "react";
+import { RotateCcw } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
+import { isModified, resetPatch, type SettingPath } from "../settingPath";
+import { useSettingsStore } from "../store";
 
 interface SettingGroupProps {
   title?: string;
@@ -7,12 +10,14 @@ interface SettingGroupProps {
   action?: ReactNode;
   children: ReactNode;
   className?: string;
+  /** For groups that are one setting (a custom picker): where the settings search lands. */
+  setting?: SettingPath;
 }
 
 /** A titled card of setting rows separated by hairlines. */
-export function SettingGroup({ title, action, children, className }: SettingGroupProps) {
+export function SettingGroup({ title, action, children, className, setting }: SettingGroupProps) {
   return (
-    <section className={cn("mt-8", className)}>
+    <section data-setting={setting} className={cn("mt-8 rounded-lg", className)}>
       {(title || action) && (
         <div className="mb-2 flex h-6 items-center justify-between px-1">
           {title && (
@@ -37,21 +42,50 @@ interface SettingRowProps {
   control: (labelId: string) => ReactNode;
   /** Stack the control under the text (wide controls). */
   stacked?: boolean;
+  /**
+   * The stored setting this row edits: marks the row when it differs from the default,
+   * offers a reset, and is where the settings search lands.
+   */
+  setting?: SettingPath;
 }
 
 /** Label and description on the left, the control on the right. */
-export function SettingRow({ label, description, control, stacked }: SettingRowProps) {
+export function SettingRow({ label, description, control, stacked, setting }: SettingRowProps) {
   const labelId = useId();
+  const modified = useSettingsStore((s) => (setting ? isModified(s.settings, setting) : false));
   return (
     <div
+      data-setting={setting}
       className={cn(
-        "flex min-h-14 gap-6 px-4 py-3 first:rounded-t-lg last:rounded-b-lg",
+        "group/row flex min-h-14 gap-6 px-4 py-3 first:rounded-t-lg last:rounded-b-lg",
         stacked ? "flex-col items-stretch gap-3" : "items-center justify-between",
       )}
     >
       <div className="min-w-0">
-        <div id={labelId} className="text-ui text-fg">
-          {label}
+        <div className="flex items-center gap-1.5">
+          <div id={labelId} className="text-ui text-fg">
+            {label}
+          </div>
+          {modified && setting && (
+            <button
+              type="button"
+              title="Varsayılana döndür"
+              aria-label={`${label}: varsayılana döndür`}
+              onClick={() => useSettingsStore.getState().update(resetPatch(setting))}
+              className="group/reset inline-flex h-5 items-center gap-1 rounded-md px-1 text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+            >
+              <span
+                aria-hidden
+                className="size-1.5 rounded-full bg-fg-muted group-hover/reset:hidden"
+              />
+              <RotateCcw
+                size={11}
+                strokeWidth={2}
+                aria-hidden
+                className="hidden group-hover/reset:block"
+              />
+            </button>
+          )}
         </div>
         {description && <p className="mt-0.5 text-xs text-pretty text-fg-muted">{description}</p>}
       </div>

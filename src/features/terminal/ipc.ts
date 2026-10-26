@@ -21,7 +21,9 @@ export const terminalIpc = {
     cwd: string | null,
     onData: Channel<OutputMessage>,
     onExit: Channel<number | null>,
-  ) => invoke<SpawnInfo>("term_spawn", { cols, rows, cwd, onData, onExit }),
+    /** Settings > Terminal > Kabuk; the backend falls back to `auto` if it is missing. */
+    shell: string = "auto",
+  ) => invoke<SpawnInfo>("term_spawn", { cols, rows, cwd, shell, onData, onExit }),
   write: (id: number, data: string) => invoke<void>("term_write", { id, data }),
   resize: (id: number, cols: number, rows: number) =>
     invoke<void>("term_resize", { id, cols, rows }),

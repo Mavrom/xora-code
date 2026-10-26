@@ -6,6 +6,12 @@ export type ApprovalPolicy = "ask" | "autoEdits" | "full";
 export type Effort = "low" | "medium" | "high";
 export type ReducedMotion = "system" | "always" | "never";
 export type RenderWhitespace = "none" | "boundary" | "all";
+export type SendKey = "enter" | "ctrlEnter";
+export type AutoSave = "off" | "delay" | "focusChange";
+export type LineNumbers = "on" | "relative" | "off";
+export type CursorStyle = "line" | "block" | "underline";
+/** `auto`: PowerShell 7 when installed, else Windows PowerShell. */
+export type ShellKind = "auto" | "pwsh" | "powerShell" | "cmd" | "gitBash";
 
 export interface GeneralSettings {
   /** Reopen the last folder on start. */
@@ -15,6 +21,10 @@ export interface GeneralSettings {
   reducedMotion: ReducedMotion;
   /** Flash the taskbar when an agent finishes or asks for approval in the background. */
   notifyWhenDone: boolean;
+  /** Which key sends from the composer; the other adds a line. */
+  sendKey: SendKey;
+  /** Conversation text size, px. */
+  chatFontSize: number;
 }
 
 export interface AgentSettings {
@@ -39,6 +49,18 @@ export interface EditorSettings {
   ligatures: boolean;
   renderWhitespace: RenderWhitespace;
   formatOnSave: boolean;
+  autoSave: AutoSave;
+  lineNumbers: LineNumbers;
+  cursorStyle: CursorStyle;
+  /** Enclosing scopes stay pinned at the top while scrolling. */
+  stickyScroll: boolean;
+  /** Matching brackets coloured by depth. */
+  bracketColors: boolean;
+}
+
+export interface TerminalSettings {
+  shell: ShellKind;
+  fontSize: number;
 }
 
 /** How the new-chat background picture is redrawn. */
@@ -58,6 +80,8 @@ export interface AppearanceSettings {
   window: WindowLook;
   /** How dark the see-through window is tinted, 0-100. */
   tint: number;
+  /** Interface zoom, percent. */
+  uiScale: number;
 }
 
 export interface Settings {
@@ -65,6 +89,7 @@ export interface Settings {
   general: GeneralSettings;
   agent: AgentSettings;
   editor: EditorSettings;
+  terminal: TerminalSettings;
   appearance: AppearanceSettings;
 }
 
@@ -78,6 +103,8 @@ export const SETTINGS_VERSION = 1;
 export const FONT_SIZE_RANGE = { min: 10, max: 24 } as const;
 export const TAB_SIZE_RANGE = { min: 1, max: 8 } as const;
 export const DIM_RANGE = { min: 0, max: 100 } as const;
+export const CHAT_FONT_SIZE_RANGE = { min: 12, max: 18 } as const;
+export const UI_SCALE_RANGE = { min: 80, max: 150 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
   version: SETTINGS_VERSION,
@@ -86,6 +113,8 @@ export const DEFAULT_SETTINGS: Settings = {
     confirmDirtyClose: true,
     reducedMotion: "system",
     notifyWhenDone: true,
+    sendKey: "enter",
+    chatFontSize: 13,
   },
   agent: {
     defaultAgent: "claude",
@@ -104,7 +133,13 @@ export const DEFAULT_SETTINGS: Settings = {
     ligatures: true,
     renderWhitespace: "none",
     formatOnSave: false,
+    autoSave: "off",
+    lineNumbers: "on",
+    cursorStyle: "line",
+    stickyScroll: true,
+    bracketColors: true,
   },
+  terminal: { shell: "auto", fontSize: 13 },
   appearance: {
     picture: true,
     wallpaper: null,
@@ -112,5 +147,6 @@ export const DEFAULT_SETTINGS: Settings = {
     dim: 15,
     window: "frosted",
     tint: 72,
+    uiScale: 100,
   },
 };

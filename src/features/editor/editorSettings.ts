@@ -1,26 +1,11 @@
 // The editor reads every user preference through this file only (Settings > Editör and
 // Settings > Genel).
 import { useSettingsStore } from "@/features/settings/store";
+import { DEFAULT_SETTINGS, type EditorSettings } from "@/features/settings/types";
 
-export interface EditorSettings {
-  fontSize: number;
-  tabSize: number;
-  wordWrap: boolean;
-  minimap: boolean;
-  ligatures: boolean;
-  renderWhitespace: "none" | "boundary" | "all";
-  formatOnSave: boolean;
-}
+export type { EditorSettings };
 
-export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
-  fontSize: 13,
-  tabSize: 2,
-  wordWrap: false,
-  minimap: false,
-  ligatures: true,
-  renderWhitespace: "none",
-  formatOnSave: false,
-};
+export const DEFAULT_EDITOR_SETTINGS: EditorSettings = DEFAULT_SETTINGS.editor;
 
 /** Live editor preferences. */
 export function useEditorSettings(): EditorSettings {

@@ -3,7 +3,14 @@ import { Segmented } from "../controls/Segmented";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { Toggle } from "../controls/Toggle";
 import { useSettingsStore } from "../store";
-import { FONT_SIZE_RANGE, type EditorSettings, type RenderWhitespace } from "../types";
+import {
+  FONT_SIZE_RANGE,
+  type AutoSave,
+  type CursorStyle,
+  type EditorSettings,
+  type LineNumbers,
+  type RenderWhitespace,
+} from "../types";
 
 const TAB_SIZES = [
   { value: 2, label: "2" },
@@ -15,6 +22,24 @@ const WHITESPACE: { value: RenderWhitespace; label: string }[] = [
   { value: "none", label: "Yok" },
   { value: "boundary", label: "Sınırlar" },
   { value: "all", label: "Tümü" },
+];
+
+const LINE_NUMBERS: { value: LineNumbers; label: string }[] = [
+  { value: "on", label: "Açık" },
+  { value: "relative", label: "Göreli" },
+  { value: "off", label: "Kapalı" },
+];
+
+const CURSORS: { value: CursorStyle; label: string }[] = [
+  { value: "line", label: "Çizgi" },
+  { value: "block", label: "Blok" },
+  { value: "underline", label: "Alt çizgi" },
+];
+
+const AUTO_SAVE: { value: AutoSave; label: string }[] = [
+  { value: "off", label: "Kapalı" },
+  { value: "delay", label: "Yazınca" },
+  { value: "focusChange", label: "Odak değişince" },
 ];
 
 export function EditorSection() {
@@ -34,6 +59,7 @@ export function EditorSection() {
       <SettingGroup title="Yazı">
         <SettingRow
           label="Yazı boyutu"
+          setting="editor.fontSize"
           description="Editördeki kod yazısının boyutu."
           control={(id) => (
             <NumberInput
@@ -48,6 +74,7 @@ export function EditorSection() {
         />
         <SettingRow
           label="Ligatürler"
+          setting="editor.ligatures"
           description="=>, !== ve -> gibi işaretleri tek bir glif olarak çizer."
           control={(id) => (
             <Toggle
@@ -59,9 +86,62 @@ export function EditorSection() {
         />
       </SettingGroup>
 
+      <SettingGroup title="İmleç ve kenar">
+        <SettingRow
+          label="Satır numaraları"
+          setting="editor.lineNumbers"
+          description="Göreli, imlecin bulunduğu satıra olan uzaklığı gösterir."
+          control={(id) => (
+            <Segmented
+              labelledBy={id}
+              value={editor.lineNumbers}
+              options={LINE_NUMBERS}
+              onChange={(lineNumbers) => set({ lineNumbers })}
+            />
+          )}
+        />
+        <SettingRow
+          label="İmleç biçimi"
+          setting="editor.cursorStyle"
+          control={(id) => (
+            <Segmented
+              labelledBy={id}
+              value={editor.cursorStyle}
+              options={CURSORS}
+              onChange={(cursorStyle) => set({ cursorStyle })}
+            />
+          )}
+        />
+        <SettingRow
+          label="Yapışkan kaydırma"
+          setting="editor.stickyScroll"
+          description="Kaydırırken içinde bulunduğun sınıf ve fonksiyon başlıkları üstte kalır."
+          control={(id) => (
+            <Toggle
+              labelledBy={id}
+              checked={editor.stickyScroll}
+              onChange={(stickyScroll) => set({ stickyScroll })}
+            />
+          )}
+        />
+        <SettingRow
+          label="Parantez renkleri"
+          setting="editor.bracketColors"
+          description="Eşleşen parantezleri derinliğine göre renklendirir ve aktif çiftin kılavuzunu çizer."
+          control={(id) => (
+            <Toggle
+              labelledBy={id}
+              checked={editor.bracketColors}
+              onChange={(bracketColors) => set({ bracketColors })}
+            />
+          )}
+        />
+      </SettingGroup>
+
       <SettingGroup title="Düzen">
         <SettingRow
           label="Sekme genişliği"
+          setting="editor.tabSize"
           description="Bir girintinin kaç boşluk sayılacağı."
           control={(id) => (
             <Segmented
@@ -74,6 +154,7 @@ export function EditorSection() {
         />
         <SettingRow
           label="Satır kaydırma"
+          setting="editor.wordWrap"
           description="Uzun satırlar yatay kaydırma yerine alt satıra geçer."
           control={(id) => (
             <Toggle
@@ -85,6 +166,7 @@ export function EditorSection() {
         />
         <SettingRow
           label="Mini harita"
+          setting="editor.minimap"
           description="Sağ kenarda dosyanın küçük bir özetini gösterir."
           control={(id) => (
             <Toggle
@@ -96,6 +178,7 @@ export function EditorSection() {
         />
         <SettingRow
           label="Boşlukları göster"
+          setting="editor.renderWhitespace"
           description="Boşluk ve sekme karakterlerini soluk işaretlerle çizer."
           control={(id) => (
             <Segmented
@@ -110,7 +193,21 @@ export function EditorSection() {
 
       <SettingGroup title="Kaydetme">
         <SettingRow
+          label="Otomatik kaydet"
+          setting="editor.autoSave"
+          description="Yazınca: yazmayı bıraktıktan bir saniye sonra. Odak değişince: editörden ya da Xora'dan çıkınca. Diskte değişmiş dosyalar asla otomatik kaydedilmez."
+          control={(id) => (
+            <Segmented
+              labelledBy={id}
+              value={editor.autoSave}
+              options={AUTO_SAVE}
+              onChange={(autoSave) => set({ autoSave })}
+            />
+          )}
+        />
+        <SettingRow
           label="Kaydederken biçimlendir"
+          setting="editor.formatOnSave"
           description="Dosyanın dili için bir biçimlendirici varsa kaydetmeden önce çalıştırır."
           control={(id) => (
             <Toggle

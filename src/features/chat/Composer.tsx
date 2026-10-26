@@ -12,6 +12,7 @@ import { ArrowUp, FileText, Folder, Square, X } from "lucide-react";
 import type { TurnState } from "@/features/agents/reducer";
 import type { AcpCommand } from "@/features/agents/types";
 import { useAutoGrow } from "@/shared/lib/autoGrow";
+import { useSettingsStore } from "@/features/settings/store";
 import { cn } from "@/shared/ui/cn";
 import { dataUrl, type Attachment } from "./attachments";
 import { getComposerKeyAction } from "./composerKeys";
@@ -178,12 +179,17 @@ export function Composer({
         return;
       }
     }
-    const action = getComposerKeyAction({
-      key: event.key,
-      shiftKey: event.shiftKey,
-      isComposing: event.nativeEvent.isComposing,
-      keyCode: event.nativeEvent.keyCode,
-    });
+    const action = getComposerKeyAction(
+      {
+        key: event.key,
+        shiftKey: event.shiftKey,
+        ctrlKey: event.ctrlKey,
+        metaKey: event.metaKey,
+        isComposing: event.nativeEvent.isComposing,
+        keyCode: event.nativeEvent.keyCode,
+      },
+      useSettingsStore.getState().settings.general.sendKey,
+    );
     if (action === "submit") {
       event.preventDefault();
       submit();

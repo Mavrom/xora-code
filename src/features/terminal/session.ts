@@ -9,6 +9,7 @@ import { WebLinksAddon } from "@xterm/addon-web-links";
 import { Terminal } from "@xterm/xterm";
 import "@xterm/xterm/css/xterm.css";
 import "./terminal.css";
+import { useSettingsStore } from "@/features/settings/store";
 import { registerCloseGuard } from "@/app/closeGuards";
 import { terminalIpc, toBytes, type OutputMessage } from "./ipc";
 import { clipboardAction } from "./keys";
@@ -67,7 +68,7 @@ export class TerminalSession {
 
     this.term = new Terminal({
       fontFamily: FONT_FAMILY,
-      fontSize: FONT_SIZE,
+      fontSize: terminalFontSize(),
       lineHeight: 1.25,
       fontWeight: "400",
       fontWeightBold: "600",
@@ -135,6 +136,7 @@ export class TerminalSession {
         this.cwd,
         onData,
         onExit,
+        useSettingsStore.getState().settings.terminal.shell,
       );
       this.id = info.id;
       this.resolveReady(info.id);
@@ -182,6 +184,12 @@ export class TerminalSession {
     return true;
   };
 
+  setFontSize(size: number) {
+    if (this.disposed) return;
+    this.term.options.fontSize = size;
+    this.fit();
+  }
+
   /** Refits to the container; skipped while hidden (a zero-size fit would break the PTY). */
   fit() {
     if (this.disposed || !this.term.element) return;
@@ -218,6 +226,16 @@ export class TerminalSession {
 }
 
 const sessions = new Map<number, TerminalSession>();
+
+/** Settings > Terminal > Yazı boyutu. */
+const terminalFontSize = () => useSettingsStore.getState().settings.terminal.fontSize || FONT_SIZE;
+
+// A new font size applies to open terminals at once (the shell gets the new cols/rows).
+useSettingsStore.subscribe((state, prev) => {
+  const size = state.settings.terminal.fontSize;
+  if (size === prev.settings.terminal.fontSize) return;
+  for (const session of sessions.values()) session.setFontSize(size);
+});
 
 /** The session for a tab, created on first use. */
 export function sessionFor(key: number, cwd: string | null, events: SessionEvents) {

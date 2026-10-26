@@ -6,6 +6,7 @@ export const SETTINGS_SECTIONS = [
   "editor",
   "general",
   "appearance",
+  "terminal",
   "shortcuts",
   "about",
 ] as const;

@@ -84,6 +84,43 @@ pub fn resolve_shell(
     }
 }
 
+/// The shell picked in Settings > Terminal (`auto`, `pwsh`, `powerShell`, `cmd`, `gitBash`).
+/// A choice that is not installed falls back to [`resolve_shell`].
+pub fn shell_for(
+    kind: &str,
+    windows: bool,
+    env_shell: Option<&str>,
+    find: impl Fn(&str) -> Option<PathBuf>,
+    git_bash: impl Fn() -> Option<PathBuf>,
+) -> Shell {
+    let picked = match (windows, kind) {
+        (true, "pwsh") => find("pwsh.exe").map(|p| Shell::new(p, &["-NoLogo"])),
+        (true, "powerShell") => find("powershell.exe").map(|p| Shell::new(p, &["-NoLogo"])),
+        (true, "cmd") => Some(Shell::new(
+            find("cmd.exe").unwrap_or_else(|| "cmd.exe".into()),
+            &[],
+        )),
+        (true, "gitBash") => git_bash().map(|p| Shell::new(p, &["--login", "-i"])),
+        _ => None,
+    };
+    picked.unwrap_or_else(|| resolve_shell(windows, env_shell, find))
+}
+
+/// Git for Windows' bash: next to `git.exe` (`<git>\cmd\git.exe` -> `<git>\bin\bash.exe`),
+/// else the default install folder. Never `System32\bash.exe`, which is WSL.
+pub fn find_git_bash(path_var: &OsStr) -> Option<PathBuf> {
+    let from_git = find_in_path("git.exe", path_var).and_then(|git| {
+        let root = git.parent()?.parent()?;
+        Some(root.join("bin").join("bash.exe"))
+    });
+    let program_files = std::env::var_os("ProgramFiles")
+        .map(|p| PathBuf::from(p).join("Git").join("bin").join("bash.exe"));
+    [from_git, program_files]
+        .into_iter()
+        .flatten()
+        .find(|candidate| candidate.is_file())
+}
+
 /// Finds `name` as a file in one of the directories of a PATH-style list.
 pub fn find_in_path(name: &str, path_var: &OsStr) -> Option<PathBuf> {
     std::env::split_paths(path_var)
@@ -92,13 +129,17 @@ pub fn find_in_path(name: &str, path_var: &OsStr) -> Option<PathBuf> {
         .find(|candidate| candidate.is_file())
 }
 
-/// The shell for this machine, from the real environment.
-pub fn default_shell() -> Shell {
+/// The shell for `kind` (Settings > Terminal) on this machine, from the real environment.
+pub fn configured_shell(kind: &str) -> Shell {
     let path = std::env::var_os("PATH").unwrap_or_default();
     let env_shell = std::env::var("SHELL").ok();
-    resolve_shell(cfg!(windows), env_shell.as_deref(), |name| {
-        find_in_path(name, &path)
-    })
+    shell_for(
+        kind,
+        cfg!(windows),
+        env_shell.as_deref(),
+        |name| find_in_path(name, &path),
+        || find_git_bash(&path),
+    )
 }
 
 /// The requested working directory when it exists, else the home directory.
@@ -124,6 +165,33 @@ mod tests {
 
     fn none(_: &str) -> Option<PathBuf> {
         None
+    }
+
+    #[test]
+    fn a_picked_shell_is_used_when_installed() {
+        let all = |name: &str| Some(PathBuf::from(name));
+        let bash = || Some(PathBuf::from(r"C:\Git\bin\bash.exe"));
+        assert_eq!(
+            shell_for("cmd", true, None, all, bash),
+            Shell::new("cmd.exe", &[])
+        );
+        assert_eq!(
+            shell_for("gitBash", true, None, all, bash),
+            Shell::new(r"C:\Git\bin\bash.exe", &["--login", "-i"])
+        );
+        assert_eq!(
+            shell_for("powerShell", true, None, all, bash),
+            Shell::new("powershell.exe", &["-NoLogo"])
+        );
+    }
+
+    #[test]
+    fn a_missing_pick_falls_back_to_auto() {
+        let only_ps = |name: &str| (name == "powershell.exe").then(|| PathBuf::from(name));
+        let shell = shell_for("gitBash", true, None, only_ps, || None);
+        assert_eq!(shell, Shell::new("powershell.exe", &["-NoLogo"]));
+        let pwsh = shell_for("pwsh", true, None, only_ps, || None);
+        assert_eq!(pwsh, Shell::new("powershell.exe", &["-NoLogo"]));
     }
 
     #[test]

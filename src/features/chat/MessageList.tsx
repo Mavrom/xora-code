@@ -289,7 +289,7 @@ function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
         </div>
       )}
       {(text || files.length > 0) && (
-        <div className="max-w-[85%] rounded-2xl rounded-br-md border border-glass-border bg-glass-strong px-4 py-2.5 text-ui leading-[22px] whitespace-pre-wrap text-fg backdrop-blur-xl select-text [overflow-wrap:anywhere]">
+        <div className="max-w-[85%] rounded-2xl rounded-br-md border border-glass-border bg-glass-strong px-4 py-2.5 text-[length:var(--chat-text,13px)] leading-[1.7] whitespace-pre-wrap text-fg backdrop-blur-xl select-text [overflow-wrap:anywhere]">
           {text}
           {files.length > 0 && (
             <span className="mt-1.5 flex flex-wrap gap-1">

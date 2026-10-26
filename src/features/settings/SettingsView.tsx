@@ -1,5 +1,12 @@
 import { WindowControls } from "@/app/WindowControls";
-import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
+import {
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+} from "react";
 import {
   ArrowLeft,
   Bot,
@@ -7,8 +14,11 @@ import {
   Info,
   Keyboard,
   Palette,
+  Search,
   SlidersHorizontal,
   SquareCode,
+  SquareTerminal,
+  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
@@ -21,6 +31,8 @@ import { AppearanceSection } from "./sections/AppearanceSection";
 import { EditorSection } from "./sections/EditorSection";
 import { GeneralSection } from "./sections/GeneralSection";
 import { ShortcutsSection } from "./sections/ShortcutsSection";
+import { TerminalSection } from "./sections/TerminalSection";
+import { searchSettings, type SearchEntry } from "./searchIndex";
 import { isSidebarShortcut } from "./settingsKeys";
 import { useSettingsStore } from "./store";
 import { SETTINGS_SECTIONS, useSettingsView, type SettingsSection } from "./viewStore";
@@ -31,6 +43,7 @@ const NAV: Record<SettingsSection, { label: string; icon: LucideIcon; render: ()
   editor: { label: "Editör", icon: SquareCode, render: () => <EditorSection /> },
   general: { label: "Genel", icon: SlidersHorizontal, render: () => <GeneralSection /> },
   appearance: { label: "Görünüm", icon: Palette, render: () => <AppearanceSection /> },
+  terminal: { label: "Terminal", icon: SquareTerminal, render: () => <TerminalSection /> },
   shortcuts: { label: "Kısayollar", icon: Keyboard, render: () => <ShortcutsSection /> },
   about: { label: "Hakkında", icon: Info, render: () => <AboutSection /> },
 };
@@ -38,7 +51,7 @@ const NAV: Record<SettingsSection, { label: string; icon: LucideIcon; render: ()
 /** Groups in the left nav; a hairline separates them. */
 const NAV_GROUPS: SettingsSection[][] = [
   ["accounts", "agent"],
-  ["editor", "general", "appearance", "shortcuts"],
+  ["general", "appearance", "editor", "terminal", "shortcuts"],
   ["about"],
 ];
 
@@ -52,6 +65,29 @@ export default function SettingsView() {
   const close = useSettingsView((s) => s.closeSettings);
   const saveError = useSettingsStore((s) => (s.status === "ready" ? s.error : null));
   const root = useRef<HTMLDivElement>(null);
+  const [query, setQuery] = useState("");
+  const results = searchSettings(query);
+  const searching = query.trim().length > 0;
+
+  // A search result opens its section and lands on the row, briefly highlighted.
+  const [landing, setLanding] = useState<SearchEntry | null>(null);
+  const go = (entry: SearchEntry) => {
+    setQuery("");
+    setSection(entry.section);
+    setLanding(entry);
+  };
+  useEffect(() => {
+    if (!landing?.setting) return;
+    const id = requestAnimationFrame(() => {
+      const row = root.current?.querySelector<HTMLElement>(`[data-setting="${landing.setting}"]`);
+      if (!row) return;
+      row.scrollIntoView({ block: "center", behavior: "smooth" });
+      row.classList.remove("setting-flash");
+      void row.offsetWidth;
+      row.classList.add("setting-flash");
+    });
+    return () => cancelAnimationFrame(id);
+  }, [landing, section]);
 
   // Focus the active nav item on open; give focus back to where it was on close.
   useLayoutEffect(() => {
@@ -74,7 +110,9 @@ export default function SettingsView() {
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
     if (e.key === "Escape" && !e.defaultPrevented) {
       e.preventDefault();
-      close();
+      // Esc first clears a search, then closes.
+      if (searching) setQuery("");
+      else close();
     }
   };
 
@@ -96,12 +134,12 @@ export default function SettingsView() {
       aria-label="Ayarlar"
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-black/90 outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
+      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-black/75 outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
     >
       <nav
         aria-label="Ayar bölümleri"
         onKeyDown={onNavKeyDown}
-        className="relative flex min-h-0 flex-col border-r border-border bg-white/[0.02]"
+        className="relative flex min-h-0 flex-col border-r border-white/[0.06] bg-black/35"
       >
         <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center gap-1.5 px-3">
           <button
@@ -114,6 +152,35 @@ export default function SettingsView() {
             <ArrowLeft size={15} strokeWidth={1.75} aria-hidden />
           </button>
           <h1 className="text-ui font-semibold tracking-tight text-fg">Ayarlar</h1>
+        </div>
+        <div className="px-2.5 pb-2">
+          <label className="flex h-8 items-center gap-2 rounded-md border border-border bg-white/[0.03] px-2.5 text-fg-subtle transition-colors duration-fast focus-within:border-border-strong focus-within:text-fg-muted">
+            <Search size={14} strokeWidth={1.75} aria-hidden className="shrink-0" />
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && results[0]) {
+                  e.preventDefault();
+                  go(results[0]);
+                }
+              }}
+              placeholder="Ayarlarda ara"
+              aria-label="Ayarlarda ara"
+              className="min-w-0 flex-1 bg-transparent text-ui text-fg outline-none placeholder:text-fg-subtle [&::-webkit-search-cancel-button]:hidden"
+            />
+            {searching && (
+              <button
+                type="button"
+                aria-label="Aramayı temizle"
+                onClick={() => setQuery("")}
+                className="grid size-5 place-items-center rounded-sm hover:bg-hover hover:text-fg"
+              >
+                <X size={12} strokeWidth={2} aria-hidden />
+              </button>
+            )}
+          </label>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 pb-3">
           {NAV_GROUPS.map((group, gi) => (
@@ -179,7 +246,10 @@ export default function SettingsView() {
         </div>
 
         {/* Keyed so each section starts at the top and fades in. */}
-        <div key={section} className="h-full overflow-y-auto [scrollbar-gutter:stable]">
+        <div
+          key={searching ? "search" : section}
+          className="h-full overflow-y-auto [scrollbar-gutter:stable]"
+        >
           <div className="mx-auto w-full max-w-[680px] px-10 pt-12 pb-20 transition-[opacity,translate] duration-slow ease-out-quint starting:translate-y-1 starting:opacity-0">
             {saveError && (
               <p
@@ -189,10 +259,61 @@ export default function SettingsView() {
                 Ayarlar kaydedilemedi: {saveError}
               </p>
             )}
-            {NAV[section].render()}
+            {searching ? (
+              <SearchResults query={query} results={results} onPick={go} />
+            ) : (
+              NAV[section].render()
+            )}
           </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function SearchResults({
+  query,
+  results,
+  onPick,
+}: {
+  query: string;
+  results: SearchEntry[];
+  onPick: (entry: SearchEntry) => void;
+}) {
+  if (results.length === 0) {
+    return (
+      <p className="pt-10 text-center text-ui text-fg-muted">
+        &ldquo;{query.trim()}&rdquo; ile eşleşen bir ayar yok.
+      </p>
+    );
+  }
+  return (
+    <>
+      <h2 className="text-title font-semibold text-fg">Arama sonuçları</h2>
+      <p className="mt-1.5 text-ui text-fg-muted">{results.length} ayar · Enter ilkini açar</p>
+      <ul className="bg-surface mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border">
+        {results.map((entry) => {
+          const Icon = NAV[entry.section].icon;
+          return (
+            <li key={`${entry.section}:${entry.label}`}>
+              <button
+                type="button"
+                onClick={() => onPick(entry)}
+                className="flex h-12 w-full items-center gap-3 px-4 text-left transition-colors duration-fast hover:bg-hover/60 focus-visible:bg-hover/60 focus-visible:outline-none"
+              >
+                <Icon
+                  size={15}
+                  strokeWidth={1.75}
+                  aria-hidden
+                  className="shrink-0 text-fg-subtle"
+                />
+                <span className="min-w-0 flex-1 truncate text-ui text-fg">{entry.label}</span>
+                <span className="shrink-0 text-xs text-fg-subtle">{NAV[entry.section].label}</span>
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+    </>
   );
 }

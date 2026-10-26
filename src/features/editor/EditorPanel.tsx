@@ -17,6 +17,7 @@ import {
   type EditorSettings,
 } from "./editorSettings";
 import { XORA_THEME } from "./monaco/theme";
+import { saveOnFocusChange } from "./autoSave";
 import { saveActiveTab } from "./saveActiveTab";
 import { useEditorStore } from "./store";
 import { EditorStatusBar } from "./EditorStatusBar";
@@ -54,6 +55,11 @@ function optionsFor(s: EditorSettings): monaco.editor.IStandaloneEditorConstruct
     tabSize: s.tabSize,
     // Files keep their own indentation; the setting is the fallback for new lines.
     detectIndentation: true,
+    lineNumbers: s.lineNumbers,
+    cursorStyle: s.cursorStyle === "underline" ? "underline" : s.cursorStyle,
+    stickyScroll: { enabled: s.stickyScroll },
+    bracketPairColorization: { enabled: s.bracketColors },
+    guides: { bracketPairs: s.bracketColors ? "active" : false },
   };
 }
 
@@ -126,6 +132,8 @@ export function EditorPanel() {
     editor.onDidChangeCursorPosition(syncCursor);
     // Switching tabs swaps the model; its own saved cursor is restored, so read it again.
     editor.onDidChangeModel(syncCursor);
+    // Settings > Editör > Otomatik kaydet: "Odak değişince".
+    editor.onDidBlurEditorText(saveOnFocusChange);
     syncCursor();
     registerEditorFocus(() => editor.focus());
     // Monaco measures glyphs once; re-measure after the web font actually arrives.

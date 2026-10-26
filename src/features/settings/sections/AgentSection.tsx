@@ -63,6 +63,7 @@ export function AgentSection() {
       <SettingGroup title="Varsayılanlar">
         <SettingRow
           label="Varsayılan ajan"
+          setting="agent.defaultAgent"
           description="Yeni sohbetler bu ajanla başlar."
           control={(id) => (
             <Select
@@ -79,6 +80,7 @@ export function AgentSection() {
         />
         <SettingRow
           label="Varsayılan mod"
+          setting="agent.defaultMode"
           description="Ajan uygular, Plan önce bir plan çıkarır, Sohbet yalnızca yanıtlar."
           control={(id) => (
             <Segmented
@@ -91,6 +93,7 @@ export function AgentSection() {
         />
         <SettingRow
           label="Düşünme eforu"
+          setting="agent.defaultEffort"
           description="Destekleyen ajanlarda uygulanır. Yüksek efor daha yavaş ama daha titizdir."
           control={(id) => (
             <Segmented
@@ -108,7 +111,7 @@ export function AgentSection() {
         onChange={(hiddenModels) => update({ agent: { hiddenModels } })}
       />
 
-      <SettingGroup title="Onay politikası">
+      <SettingGroup title="Onay politikası" setting="agent.approvalPolicy">
         <PolicyPicker
           value={agent.approvalPolicy}
           onChange={(approvalPolicy) => update({ agent: { approvalPolicy } })}
@@ -118,6 +121,7 @@ export function AgentSection() {
       <SettingGroup title="Tanılama">
         <SettingRow
           label="Ayrıntılı ajan günlükleri"
+          setting="agent.debugLogs"
           description="Ajanla yapılan protokol trafiğini sorun gidermek için günlüğe yazar."
           control={(id) => (
             <Toggle
@@ -152,7 +156,7 @@ function ModelVisibility({
 
   if (agents.length === 0) {
     return (
-      <SettingGroup title="Görünen modeller">
+      <SettingGroup title="Görünen modeller" setting="agent.hiddenModels">
         <p className="px-4 py-3 text-xs text-fg-subtle">
           Bir ajanla ilk sohbeti başlattığınızda sunduğu modeller burada listelenir.
         </p>
@@ -162,8 +166,12 @@ function ModelVisibility({
 
   return (
     <>
-      {agents.map((provider) => (
-        <SettingGroup key={provider.id} title={`Görünen modeller · ${provider.name}`}>
+      {agents.map((provider, i) => (
+        <SettingGroup
+          key={provider.id}
+          title={`Görünen modeller · ${provider.name}`}
+          setting={i === 0 ? "agent.hiddenModels" : undefined}
+        >
           {catalog[provider.id]?.map((model) => {
             const key = modelKey(provider.id, model.value);
             return (
