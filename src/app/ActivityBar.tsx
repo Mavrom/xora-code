@@ -1,8 +1,9 @@
 import { useEffect } from "react";
-import { Files, Inbox, type LucideIcon } from "lucide-react";
+import { Files, Inbox, Settings, type LucideIcon } from "lucide-react";
 import { useInboxStore } from "@/features/inbox/store";
 import { openCount } from "@/features/inbox/sortNotes";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
+import { closeSettings, useSettingsView } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { useUiStore, type SidebarView } from "./uiStore";
 
@@ -21,8 +22,10 @@ export function ActivityBar() {
   const view = useUiStore((s) => s.sidebarView);
   const setView = useUiStore((s) => s.setSidebarView);
   const badge = useInboxStore((s) => openCount(s.notes));
+  const settingsOpen = useSettingsView((s) => s.open);
 
   const show = (next: SidebarView) => {
+    closeSettings();
     setView(next);
     if (next === "inbox") focusComposerSoon();
   };
@@ -54,21 +57,30 @@ export function ActivityBar() {
   return (
     <nav
       aria-label="Kenar çubuğu görünümü"
-      className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border bg-bg py-2"
+      className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border glass-bg py-2"
     >
       <ActivityItem
         icon={Files}
         label={`Gezgin (${SHORTCUTS.explorer.label})`}
-        active={view === "explorer"}
+        active={!settingsOpen && view === "explorer"}
         onClick={() => show("explorer")}
       />
       <ActivityItem
         icon={Inbox}
         label={`Inbox (${SHORTCUTS.inbox.label})`}
-        active={view === "inbox"}
+        active={!settingsOpen && view === "inbox"}
         badge={badge}
         onClick={() => show("inbox")}
       />
+      {/* Pinned to the bottom: accounts and preferences. */}
+      <div className="mt-auto">
+        <ActivityItem
+          icon={Settings}
+          label="Ayarlar (Ctrl+,)"
+          active={settingsOpen}
+          onClick={() => useSettingsView.getState().toggleSettings()}
+        />
+      </div>
     </nav>
   );
 }

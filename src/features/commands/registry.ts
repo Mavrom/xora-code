@@ -1,9 +1,12 @@
 import {
+  CircleUserRound,
   Files,
   FolderOpen,
   Inbox,
   PanelRight,
+  Palette,
   Save,
+  Settings,
   SquarePen,
   X,
   type LucideIcon,
@@ -13,6 +16,7 @@ import { closeActiveTab } from "@/features/editor/closeTab";
 import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
+import { openSettings } from "@/features/settings/viewStore";
 import { openFolder } from "@/features/workspace/openFolder";
 import { emitCommand, SAVE_ACTIVE_FILE, TOGGLE_EDITOR } from "./events";
 import type { Rankable } from "./results";
@@ -92,5 +96,27 @@ export const COMMANDS: Command[] = [
     // The composer is disabled until notes have loaded.
     when: () => useInboxStore.getState().status === "ready",
     run: showInbox,
+  },
+  {
+    id: "settings.open",
+    title: "Ayarlar",
+    group: "Tercihler",
+    shortcut: "mod+,",
+    icon: Settings,
+    run: () => openSettings(),
+  },
+  {
+    id: "settings.accounts",
+    title: "Hesapları yönet",
+    group: "Tercihler",
+    icon: CircleUserRound,
+    run: () => openSettings("accounts"),
+  },
+  {
+    id: "settings.appearance",
+    title: "Duvar kağıdı ve görünüm",
+    group: "Tercihler",
+    icon: Palette,
+    run: () => openSettings("appearance"),
   },
 ];
