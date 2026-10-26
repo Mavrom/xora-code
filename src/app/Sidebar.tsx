@@ -11,6 +11,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
+import { FrostedGround } from "@/features/backdrop/FrostedGround";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { ChipMenu } from "@/features/chat/ChipMenu";
 import { statusNote } from "@/features/chat/controlsView";
@@ -87,7 +88,8 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   }, []);
 
   return (
-    <div className="relative flex h-full flex-col bg-black/25 backdrop-blur-xl backdrop-saturate-150">
+    <div className="relative isolate flex h-full flex-col bg-black/25 backdrop-blur-xl backdrop-saturate-150">
+      <FrostedGround />
       {/* A breath of light along the top edge, so the column reads as a surface. */}
       <div
         aria-hidden
