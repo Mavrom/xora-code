@@ -67,7 +67,7 @@ function onMarkdownClick(event: MouseEvent<HTMLDivElement>) {
   if (copy) {
     const code = copy.closest(".md-code")?.querySelector("code")?.textContent ?? "";
     void navigator.clipboard.writeText(code).then(() => {
-      copy.textContent = "KopyalandÄ±";
+      copy.textContent = "Kopyalandı";
       copy.dataset.done = "";
       window.setTimeout(() => {
         copy.textContent = "Kopyala";

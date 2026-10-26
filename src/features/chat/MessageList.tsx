@@ -1,5 +1,5 @@
 import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, CircleAlert, FileText, Info, TriangleAlert } from "lucide-react";
+import { ArrowDown, Check, CircleAlert, Copy, FileText, Info, TriangleAlert } from "lucide-react";
 import type { ChatItem, SessionView } from "@/features/agents/reducer";
 import type { AcpContentBlock, AcpStopReason } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
@@ -186,10 +186,41 @@ function AgentMessage({
     [text, streaming, shown],
   );
   return (
-    <>
+    <div className="group/reply relative">
       <Markdown text={text} streaming={streaming} />
       {images.length > 0 && <ToolImages images={images} inset={false} />}
-    </>
+      {!streaming && <CopyReply text={text} />}
+    </div>
+  );
+}
+
+/** Copies a finished reply as markdown; shows on hover under the text, without moving it. */
+function CopyReply({ text }: { text: string }) {
+  const [copied, setCopied] = useState(false);
+  useEffect(() => {
+    if (!copied) return;
+    const timer = window.setTimeout(() => setCopied(false), 1500);
+    return () => window.clearTimeout(timer);
+  }, [copied]);
+  const Icon = copied ? Check : Copy;
+  return (
+    <button
+      type="button"
+      aria-label="Yanıtı kopyala"
+      title={copied ? "Kopyalandı" : "Yanıtı kopyala"}
+      onClick={() =>
+        void navigator.clipboard.writeText(text).then(
+          () => setCopied(true),
+          () => undefined,
+        )
+      }
+      className={cn(
+        "absolute -bottom-6 -left-1.5 grid size-6 place-items-center rounded-md text-fg-subtle transition-[opacity,color] duration-fast hover:bg-hover hover:text-fg focus-visible:opacity-100",
+        copied ? "opacity-100" : "opacity-0 group-hover/reply:opacity-100",
+      )}
+    >
+      <Icon size={13} strokeWidth={1.75} aria-hidden />
+    </button>
   );
 }
 

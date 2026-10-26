@@ -3,7 +3,7 @@ import { closeOpenFence, openFence, splitBlocks } from "./markdownBlocks";
 
 describe("splitBlocks", () => {
   it("splits paragraphs at blank lines and drops extra blank lines", () => {
-    expect(splitBlocks("Bir.\n\n\n\nÄ°ki\nÃ¼Ã§.")).toEqual(["Bir.", "Ä°ki\nÃ¼Ã§."]);
+    expect(splitBlocks("Bir.\n\n\n\nİki\nüç.")).toEqual(["Bir.", "İki\nüç."]);
   });
 
   it("returns nothing for empty or whitespace-only text", () => {
@@ -31,8 +31,8 @@ describe("splitBlocks", () => {
   });
 
   it("keeps a loose list together and indented continuations attached", () => {
-    const text = "- bir\n\n- iki\n\n  devamÄ±\n\nParagraf";
-    expect(splitBlocks(text)).toEqual(["- bir\n\n- iki\n\n  devamÄ±", "Paragraf"]);
+    const text = "- bir\n\n- iki\n\n  devamı\n\nParagraf";
+    expect(splitBlocks(text)).toEqual(["- bir\n\n- iki\n\n  devamı", "Paragraf"]);
   });
 
   it("keeps ordered loose lists together", () => {
