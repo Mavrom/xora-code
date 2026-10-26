@@ -1,5 +1,7 @@
 import {
   CircleUserRound,
+  Copy,
+  Download,
   Files,
   MessagesSquare,
   FileSearch,
@@ -24,6 +26,7 @@ import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
 import { requestRefresh } from "@/features/workspace/fsWatch";
 import { closeSettings, openSettings } from "@/features/settings/viewStore";
+import { canExportChat, copyChatMarkdown, exportChatMarkdown } from "@/features/chat/exportChat";
 import { useSettingsStore } from "@/features/settings/store";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
@@ -109,6 +112,22 @@ export const COMMANDS: Command[] = [
       closeSettings();
       emitCommand(NEW_CHAT);
     },
+  },
+  {
+    id: "chat.copyMarkdown",
+    title: "Sohbeti Markdown olarak kopyala",
+    group: "Sohbet",
+    icon: Copy,
+    when: canExportChat,
+    run: () => void copyChatMarkdown().catch(() => undefined),
+  },
+  {
+    id: "chat.export",
+    title: "Sohbeti dışa aktar…",
+    group: "Sohbet",
+    icon: Download,
+    when: canExportChat,
+    run: () => void exportChatMarkdown().catch((err: unknown) => console.error(err)),
   },
   {
     id: "view.toggleSidebar",
