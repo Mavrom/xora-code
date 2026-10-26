@@ -8,6 +8,7 @@ import {
   PanelRight,
   RotateCw,
   Palette,
+  Blend,
   Save,
   Settings,
   SquarePen,
@@ -22,6 +23,7 @@ import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
 import { requestRefresh } from "@/features/workspace/fsWatch";
 import { closeSettings, openSettings } from "@/features/settings/viewStore";
+import { useSettingsStore } from "@/features/settings/store";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import {
@@ -152,6 +154,18 @@ export const COMMANDS: Command[] = [
     shortcut: "ctrl+`",
     icon: SquareTerminal,
     run: () => emitCommand(TOGGLE_TERMINAL),
+  },
+  {
+    id: "view.windowLook",
+    title: "Pencere saydamlığını aç/kapat",
+    group: "Görünüm",
+    icon: Blend,
+    run: () => {
+      const { settings, update } = useSettingsStore.getState();
+      update({
+        appearance: { window: settings.appearance.window === "solid" ? "frosted" : "solid" },
+      });
+    },
   },
   {
     id: "settings.open",
