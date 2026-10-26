@@ -97,7 +97,13 @@ export function ChatPanel() {
   useWarmSession(session === null, agentId, cwd, agent.status);
 
   // An Inbox note sent to the chat lands in the composer, ready to edit and send.
-  useEffect(() => onChatDraft((text) => composerRef.current?.fill(text)), []);
+  useEffect(
+    () =>
+      onChatDraft((text, append) =>
+        append ? composerRef.current?.append(text) : composerRef.current?.fill(text),
+      ),
+    [],
+  );
 
   // "Yeni sohbet" from the sidebar, or Ctrl+N anywhere.
   useEffect(() => {

@@ -32,13 +32,22 @@ export function onCommand(name: CommandEvent, handler: () => void) {
 /** Asks the chat to put `text` in its composer (e.g. an Inbox note), ready to send. */
 export const CHAT_DRAFT = "xora:chat-draft";
 
-export function sendToChat(text: string) {
-  window.dispatchEvent(new CustomEvent<string>(CHAT_DRAFT, { detail: text }));
+interface ChatDraft {
+  text: string;
+  /** Add after what is already typed instead of replacing it. */
+  append: boolean;
+}
+
+export function sendToChat(text: string, { append = false } = {}) {
+  window.dispatchEvent(new CustomEvent<ChatDraft>(CHAT_DRAFT, { detail: { text, append } }));
 }
 
 /** Subscribes to chat drafts; returns the unsubscribe function (fits `useEffect`). */
-export function onChatDraft(handler: (text: string) => void) {
-  const listener = (e: Event) => handler((e as CustomEvent<string>).detail);
+export function onChatDraft(handler: (text: string, append: boolean) => void) {
+  const listener = (e: Event) => {
+    const { text, append } = (e as CustomEvent<ChatDraft>).detail;
+    handler(text, append);
+  };
   window.addEventListener(CHAT_DRAFT, listener);
   return () => window.removeEventListener(CHAT_DRAFT, listener);
 }

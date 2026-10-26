@@ -6,7 +6,9 @@ import { Editor, type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { FileCode } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { onCommand, SAVE_ACTIVE_FILE } from "@/features/commands/events";
+import { onCommand, SAVE_ACTIVE_FILE, sendToChat } from "@/features/commands/events";
+import { useWorkspaceStore } from "@/features/workspace/store";
+import { chatSnippet } from "./chatSnippet";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { registerEditorFocus } from "./editorFocus";
 import { isSaveShortcut } from "./editorKeys";
@@ -132,6 +134,41 @@ export function EditorPanel() {
     editor.onDidChangeCursorPosition(syncCursor);
     // Switching tabs swaps the model; its own saved cursor is restored, so read it again.
     editor.onDidChangeModel(syncCursor);
+    // Ctrl+L (also in the right-click menu): the selection, or the current line, goes to
+    // the chat composer with its place, ready for a question.
+    editor.addAction({
+      id: "xora.addToChat",
+      label: "Seçimi sohbete ekle",
+      keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.KeyL],
+      contextMenuGroupId: "navigation",
+      contextMenuOrder: 0,
+      run: (ed) => {
+        const model = ed.getModel();
+        const selection = ed.getSelection();
+        const path = useEditorStore.getState().activePath;
+        if (!model || !selection || !path) return;
+        const whole = selection.isEmpty();
+        const startLine = selection.startLineNumber;
+        // A selection ending at column 1 of a line does not include that line.
+        const endLine =
+          !whole && selection.endColumn === 1 && selection.endLineNumber > startLine
+            ? selection.endLineNumber - 1
+            : selection.endLineNumber;
+        const code = whole ? model.getLineContent(startLine) : model.getValueInRange(selection);
+        if (!code.trim()) return;
+        sendToChat(
+          chatSnippet({
+            path,
+            root: useWorkspaceStore.getState().root,
+            startLine,
+            endLine,
+            language: model.getLanguageId(),
+            code,
+          }),
+          { append: true },
+        );
+      },
+    });
     // Settings > Editör > Otomatik kaydet: "Odak değişince".
     editor.onDidBlurEditorText(saveOnFocusChange);
     syncCursor();

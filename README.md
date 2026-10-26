@@ -42,19 +42,20 @@ On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab a
 
 ### Global
 
-| Shortcut                  | Action                                     |
-| ------------------------- | ------------------------------------------ |
-| `Ctrl+K` / `Ctrl+Shift+P` | Toggle the command palette                 |
-| `Ctrl+P`                  | Go to a file of the folder by name         |
-| `Ctrl+N`                  | New chat                                   |
-| `Ctrl+B`                  | Show or hide the sidebar                   |
-| `Ctrl+Shift+H`            | Show the conversations                     |
-| `Ctrl+Shift+E`            | Pin or unpin the files drawer              |
-| `Ctrl+Shift+N`            | Show the Inbox and focus the note composer |
-| `Ctrl+S`                  | Save the active file                       |
-| `Ctrl+W`                  | Close the active tab                       |
-| `Ctrl+,`                  | Open or close the settings                 |
-| ``Ctrl+` ``               | Toggle the terminal                        |
+| Shortcut                  | Action                                         |
+| ------------------------- | ---------------------------------------------- |
+| `Ctrl+K` / `Ctrl+Shift+P` | Toggle the command palette                     |
+| `Ctrl+P`                  | Go to a file of the folder by name             |
+| `Ctrl+N`                  | New chat                                       |
+| `Ctrl+L` (editor)         | Send the selection to the chat, with its place |
+| `Ctrl+B`                  | Show or hide the sidebar                       |
+| `Ctrl+Shift+H`            | Show the conversations                         |
+| `Ctrl+Shift+E`            | Pin or unpin the files drawer                  |
+| `Ctrl+Shift+N`            | Show the Inbox and focus the note composer     |
+| `Ctrl+S`                  | Save the active file                           |
+| `Ctrl+W`                  | Close the active tab                           |
+| `Ctrl+,`                  | Open or close the settings                     |
+| ``Ctrl+` ``               | Toggle the terminal                            |
 
 ### Command palette
 

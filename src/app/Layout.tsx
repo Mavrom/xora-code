@@ -19,6 +19,7 @@ import { FilesDrawer } from "./FilesDrawer";
 import { MainBar } from "./MainBar";
 import { Sidebar } from "./Sidebar";
 import { cn } from "@/shared/ui/cn";
+import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { useSettingsView } from "@/features/settings/viewStore";
 
 /**
@@ -148,7 +149,9 @@ export function Layout() {
           maxSize="40%"
           onResize={(size) => setSidebarOpen(size.asPercentage > 0)}
         >
-          <Sidebar onCollapse={() => sidebarPanel.current?.collapse()} />
+          <ErrorBoundary area="Kenar çubuğu">
+            <Sidebar onCollapse={() => sidebarPanel.current?.collapse()} />
+          </ErrorBoundary>
         </Panel>
         <ResizeHandle label="Kenar çubuğunu yeniden boyutlandır" />
         <Panel id="main" defaultSize="82%" minSize="50%">
@@ -175,7 +178,9 @@ export function Layout() {
                     className="h-full"
                   >
                     <Panel id="chat" defaultSize="51%" minSize="30%">
-                      <ChatPanel />
+                      <ErrorBoundary area="Sohbet">
+                        <ChatPanel />
+                      </ErrorBoundary>
                     </Panel>
                     <ResizeHandle label="Editörü yeniden boyutlandır" quiet />
                     <Panel
@@ -199,7 +204,9 @@ export function Layout() {
                       {/* A card floating over the picture, not a slab cut out of it. */}
                       <div className="h-full pr-2 pb-2 pl-1">
                         <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[rgb(11_11_12/0.88)] shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)]">
-                          <EditorArea />
+                          <ErrorBoundary area="Editör">
+                            <EditorArea />
+                          </ErrorBoundary>
                         </div>
                       </div>
                     </Panel>
@@ -211,7 +218,9 @@ export function Layout() {
         </Panel>
       </Group>
       {/* Settings page: covers the whole window while open. */}
-      <SettingsHost />
+      <ErrorBoundary area="Ayarlar">
+        <SettingsHost />
+      </ErrorBoundary>
     </div>
   );
 }

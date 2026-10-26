@@ -35,6 +35,8 @@ import { MentionPopover } from "./MentionPopover";
 export interface ComposerHandle {
   /** Replaces the draft (e.g. from a suggestion) and focuses the field. */
   fill: (text: string) => void;
+  /** Adds a block after the draft (a blank line between) and focuses the field. */
+  append: (text: string) => void;
   focus: () => void;
 }
 
@@ -116,6 +118,10 @@ export function Composer({
 
   useImperativeHandle(ref, () => ({
     fill: replaceDraft,
+    append: (text: string) => {
+      const draft = fieldRef.current?.value ?? value;
+      replaceDraft(draft.trim() ? `${draft.replace(/\s+$/, "")}\n\n${text}\n` : `${text}\n`);
+    },
     focus: () => fieldRef.current?.focus(),
   }));
 
