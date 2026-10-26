@@ -99,6 +99,12 @@ impl TerminalManager {
             },
         );
 
+        // If a thread cannot start, the shell must not keep running unseen.
+        let fail = |err: std::io::Error| {
+            self.kill(id);
+            TerminalError::from(err)
+        };
+
         let reader_thread = thread::Builder::new()
             .name(format!("term-{id}-read"))
             .spawn(move || {
@@ -109,7 +115,8 @@ impl TerminalManager {
                         Ok(n) => on_data(buf[..n].to_vec()),
                     }
                 }
-            })?;
+            })
+            .map_err(fail)?;
 
         let manager = self.clone();
         thread::Builder::new()
@@ -120,7 +127,8 @@ impl TerminalManager {
                 drop(manager.remove(id));
                 let _ = reader_thread.join();
                 on_exit(code);
-            })?;
+            })
+            .map_err(fail)?;
 
         Ok(id)
     }
