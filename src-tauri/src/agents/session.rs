@@ -81,10 +81,6 @@ impl SessionRegistry {
             .map(|(id, _)| id.clone())
             .collect()
     }
-
-    pub fn all_ids(&self) -> Vec<String> {
-        self.lock().keys().cloned().collect()
-    }
 }
 
 #[cfg(test)]
@@ -122,6 +118,5 @@ mod tests {
         assert!(reg.get("a").unwrap().turn_active);
         assert_eq!(reg.ids_for(AgentId::Gemini), vec!["b".to_string()]);
         assert_eq!(reg.remove("a").map(|s| s.agent_id), Some(AgentId::Claude));
-        assert_eq!(reg.all_ids(), vec!["b".to_string()]);
     }
 }

@@ -57,6 +57,8 @@ pub fn run() {
             agents::commands::agent_set_model,
             agents::commands::agent_permission_respond,
             agents::commands::agent_review_revert,
+            agents::commands::agent_review_changes,
+            agents::commands::agent_review_accept,
             agents::commands::agents_shutdown,
         ])
         .run(tauri::generate_context!())

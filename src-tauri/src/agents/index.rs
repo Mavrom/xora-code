@@ -94,7 +94,10 @@ impl SessionIndex {
     }
 
     fn path(&self) -> Option<PathBuf> {
-        self.path.lock().unwrap_or_else(PoisonError::into_inner).clone()
+        self.path
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .clone()
     }
 
     /// Records activity on a session. IO errors are ignored: history is a convenience.
@@ -117,7 +120,9 @@ impl SessionIndex {
 
     /// Entries of one agent in one folder (case-insensitive path match on Windows).
     pub fn list(&self, agent_id: AgentId, cwd: &str) -> Vec<SessionEntry> {
-        let Some(path) = self.path() else { return Vec::new() };
+        let Some(path) = self.path() else {
+            return Vec::new();
+        };
         let key = normalize(cwd);
         load(&path)
             .into_iter()
@@ -188,7 +193,10 @@ mod tests {
     #[test]
     fn merge_prefers_agent_entries_and_sorts_newest_first() {
         let agent = vec![entry("a", None, "2025-01-02")];
-        let local = vec![entry("a", Some("from index"), "2025-01-01"), entry("b", None, "2025-01-03")];
+        let local = vec![
+            entry("a", Some("from index"), "2025-01-01"),
+            entry("b", None, "2025-01-03"),
+        ];
         let merged = merge(agent, local);
         assert_eq!(merged[0].session_id, "b");
         assert_eq!(merged[1].title.as_deref(), Some("from index"));

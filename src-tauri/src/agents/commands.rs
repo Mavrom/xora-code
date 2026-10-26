@@ -49,13 +49,20 @@ pub async fn agents_subscribe(
 }
 
 #[tauri::command]
-pub async fn agents_list(app: AppHandle, manager: State<'_, AgentManager>) -> CmdResult<Vec<AgentInfo>> {
+pub async fn agents_list(
+    app: AppHandle,
+    manager: State<'_, AgentManager>,
+) -> CmdResult<Vec<AgentInfo>> {
     configure(&app, &manager);
     Ok(manager.list().await)
 }
 
 #[tauri::command]
-pub async fn agent_install(app: AppHandle, manager: State<'_, AgentManager>, agent_id: AgentId) -> CmdResult<()> {
+pub async fn agent_install(
+    app: AppHandle,
+    manager: State<'_, AgentManager>,
+    agent_id: AgentId,
+) -> CmdResult<()> {
     configure(&app, &manager);
     manager.install(agent_id).map_err(ipc)
 }
@@ -69,7 +76,10 @@ pub async fn agent_authenticate(
 ) -> CmdResult<()> {
     configure(&app, &manager);
     let prefs = prefs(&app).await;
-    manager.authenticate(agent_id, &method_id, home_dir(&app), prefs).await.map_err(ipc)
+    manager
+        .authenticate(agent_id, &method_id, home_dir(&app), prefs)
+        .await
+        .map_err(ipc)
 }
 
 #[tauri::command]
@@ -81,7 +91,10 @@ pub async fn agent_auth_terminal(
 ) -> CmdResult<()> {
     configure(&app, &manager);
     let prefs = prefs(&app).await;
-    manager.auth_terminal(agent_id, &method_id, home_dir(&app), prefs).await.map_err(ipc)
+    manager
+        .auth_terminal(agent_id, &method_id, home_dir(&app), prefs)
+        .await
+        .map_err(ipc)
 }
 
 #[tauri::command]
@@ -106,7 +119,10 @@ pub async fn agent_session_load(
 ) -> CmdResult<SessionSetup> {
     configure(&app, &manager);
     let prefs = prefs(&app).await;
-    manager.session_open(agent_id, session_id, cwd, false, prefs).await.map_err(ipc)
+    manager
+        .session_open(agent_id, session_id, cwd, false, prefs)
+        .await
+        .map_err(ipc)
 }
 
 #[tauri::command]
@@ -119,11 +135,17 @@ pub async fn agent_session_resume(
 ) -> CmdResult<SessionSetup> {
     configure(&app, &manager);
     let prefs = prefs(&app).await;
-    manager.session_open(agent_id, session_id, cwd, true, prefs).await.map_err(ipc)
+    manager
+        .session_open(agent_id, session_id, cwd, true, prefs)
+        .await
+        .map_err(ipc)
 }
 
 #[tauri::command]
-pub async fn agent_session_close(manager: State<'_, AgentManager>, session_id: String) -> CmdResult<()> {
+pub async fn agent_session_close(
+    manager: State<'_, AgentManager>,
+    session_id: String,
+) -> CmdResult<()> {
     manager.session_close(&session_id).await.map_err(ipc)
 }
 
@@ -139,7 +161,11 @@ pub async fn agent_sessions_list(
 }
 
 #[tauri::command]
-pub async fn agent_prompt(manager: State<'_, AgentManager>, session_id: String, blocks: Value) -> CmdResult<()> {
+pub async fn agent_prompt(
+    manager: State<'_, AgentManager>,
+    session_id: String,
+    blocks: Value,
+) -> CmdResult<()> {
     manager.prompt(session_id, blocks).await.map_err(ipc)
 }
 
@@ -155,16 +181,27 @@ pub async fn agent_set_config_option(
     config_id: String,
     value: Value,
 ) -> CmdResult<Value> {
-    manager.set_config_option(&session_id, &config_id, value).await.map_err(ipc)
+    manager
+        .set_config_option(&session_id, &config_id, value)
+        .await
+        .map_err(ipc)
 }
 
 #[tauri::command]
-pub async fn agent_set_mode(manager: State<'_, AgentManager>, session_id: String, mode_id: String) -> CmdResult<()> {
+pub async fn agent_set_mode(
+    manager: State<'_, AgentManager>,
+    session_id: String,
+    mode_id: String,
+) -> CmdResult<()> {
     manager.set_mode(&session_id, &mode_id).await.map_err(ipc)
 }
 
 #[tauri::command]
-pub async fn agent_set_model(manager: State<'_, AgentManager>, session_id: String, model_id: String) -> CmdResult<()> {
+pub async fn agent_set_model(
+    manager: State<'_, AgentManager>,
+    session_id: String,
+    model_id: String,
+) -> CmdResult<()> {
     manager.set_model(&session_id, &model_id).await.map_err(ipc)
 }
 
@@ -185,6 +222,24 @@ pub async fn agent_review_revert(
     path: String,
 ) -> CmdResult<RevertOutcome> {
     manager.review_revert(&session_id, &path).await.map_err(ipc)
+}
+
+#[tauri::command]
+pub async fn agent_review_changes(
+    manager: State<'_, AgentManager>,
+    session_id: String,
+) -> CmdResult<Vec<super::review::ChangedFile>> {
+    Ok(manager.review_changes(&session_id))
+}
+
+#[tauri::command]
+pub async fn agent_review_accept(
+    manager: State<'_, AgentManager>,
+    session_id: String,
+    path: Option<String>,
+) -> CmdResult<()> {
+    manager.review_accept(&session_id, path.as_deref());
+    Ok(())
 }
 
 #[tauri::command]

@@ -32,7 +32,11 @@ pub struct OutputBuffer {
 
 impl OutputBuffer {
     pub fn new(limit: usize) -> Self {
-        Self { text: String::new(), limit, truncated: false }
+        Self {
+            text: String::new(),
+            limit,
+            truncated: false,
+        }
     }
 
     pub fn push(&mut self, chunk: &str) {
@@ -84,7 +88,9 @@ struct ExitInfo {
 
 impl ExitInfo {
     fn to_status(&self) -> TerminalExitStatus {
-        TerminalExitStatus::new().exit_code(self.code).signal(self.signal.clone())
+        TerminalExitStatus::new()
+            .exit_code(self.code)
+            .signal(self.signal.clone())
     }
 }
 
@@ -108,7 +114,10 @@ pub struct TerminalBridge {
 
 impl TerminalBridge {
     pub fn new(events: EventSink) -> Self {
-        Self { terminals: Arc::default(), events }
+        Self {
+            terminals: Arc::default(),
+            events,
+        }
     }
 
     /// `terminal/create`. `roots` are the session's canonical workspace roots.
@@ -178,7 +187,9 @@ impl TerminalBridge {
         let mut map = lock(&self.terminals);
         match map.get_mut(terminal_id) {
             Some(term) if term.session_id == session_id => Ok(f(term)),
-            _ => Err(RpcError::not_found(format!("unknown terminal {terminal_id}"))),
+            _ => Err(RpcError::not_found(format!(
+                "unknown terminal {terminal_id}"
+            ))),
         }
     }
 
@@ -395,7 +406,11 @@ impl LiveOutput {
     }
 }
 
-async fn pump<R: AsyncRead + Unpin>(mut reader: R, output: Arc<Mutex<OutputBuffer>>, live: LiveOutput) {
+async fn pump<R: AsyncRead + Unpin>(
+    mut reader: R,
+    output: Arc<Mutex<OutputBuffer>>,
+    live: LiveOutput,
+) {
     let mut buf = [0u8; 8192];
     let mut pending = Vec::new();
     loop {
@@ -437,7 +452,9 @@ async fn supervise(
         }
     };
     let info = ExitInfo {
-        code: status.and_then(|s| s.code()).and_then(|c| u32::try_from(c).ok()),
+        code: status
+            .and_then(|s| s.code())
+            .and_then(|c| u32::try_from(c).ok()),
         signal: exit_signal(status),
     };
     // Let the pumps drain the last bytes before the exit is announced.
@@ -517,7 +534,9 @@ mod tests {
         } else {
             ("/bin/sh", vec!["-c".into(), "echo hello; exit 3".into()])
         };
-        let id = bridge.create("s1", cmd, &args, &[], None, None, &roots).unwrap();
+        let id = bridge
+            .create("s1", cmd, &args, &[], None, None, &roots)
+            .unwrap();
         let status = bridge.wait_for_exit("s1", &id).await.unwrap();
         assert_eq!(status.exit_code, Some(3));
         let (text, truncated, exit) = bridge.output("s1", &id).unwrap();

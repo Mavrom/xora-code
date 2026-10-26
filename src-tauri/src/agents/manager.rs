@@ -91,7 +91,10 @@ struct Connection {
 
 impl Connection {
     fn capabilities(&self) -> Value {
-        self.init.get("agentCapabilities").cloned().unwrap_or(json!({}))
+        self.init
+            .get("agentCapabilities")
+            .cloned()
+            .unwrap_or(json!({}))
     }
 
     fn auth_methods(&self) -> Value {
@@ -160,14 +163,22 @@ impl AgentManager {
 
     fn set_status(&self, agent: AgentId, status: AgentStatus) {
         lock(&self.0.statuses).insert(agent, status.clone());
-        self.0.events.emit(AgentEvent::AgentStatus { agent_id: agent, status });
+        self.0.events.emit(AgentEvent::AgentStatus {
+            agent_id: agent,
+            status,
+        });
     }
 
     /// Static status for agents that are not running.
     fn idle_status(&self, spec: &AgentSpec, node: Option<&NodeRuntime>) -> AgentStatus {
         let dir = self.agents_dir().ok();
-        match dir.as_deref().and_then(|d| registry::missing_reason(spec, node, d)) {
-            Some(reason) => AgentStatus::NotInstalled { reason: reason.into() },
+        match dir
+            .as_deref()
+            .and_then(|d| registry::missing_reason(spec, node, d))
+        {
+            Some(reason) => AgentStatus::NotInstalled {
+                reason: reason.into(),
+            },
             None => lock(&self.0.statuses)
                 .get(&spec.id)
                 .cloned()
@@ -176,13 +187,19 @@ impl AgentManager {
     }
 
     pub async fn list(&self) -> Vec<AgentInfo> {
-        let node = tokio::task::spawn_blocking(registry::find_node).await.ok().flatten();
+        let node = tokio::task::spawn_blocking(registry::find_node)
+            .await
+            .ok()
+            .flatten();
         let conns = self.0.conns.lock().await;
         registry::SPECS
             .iter()
             .map(|spec| {
                 let status = if conns.contains_key(&spec.id) {
-                    lock(&self.0.statuses).get(&spec.id).cloned().unwrap_or(AgentStatus::Starting)
+                    lock(&self.0.statuses)
+                        .get(&spec.id)
+                        .cloned()
+                        .unwrap_or(AgentStatus::Starting)
                 } else {
                     self.idle_status(spec, node.as_ref())
                 };
@@ -203,7 +220,10 @@ impl AgentManager {
         tauri::async_runtime::spawn(async move {
             let spec = registry::spec(agent);
             this.set_status(agent, AgentStatus::Installing { progress: None });
-            let node = tokio::task::spawn_blocking(registry::find_node).await.ok().flatten();
+            let node = tokio::task::spawn_blocking(registry::find_node)
+                .await
+                .ok()
+                .flatten();
             let result = match &node {
                 Some(node) if node.major >= spec.min_node_major => {
                     super::install::install(spec, node, &agents_dir).await
@@ -220,7 +240,12 @@ impl AgentManager {
     }
 
     /// Returns the running connection, starting the adapter if needed.
-    async fn connection(&self, agent: AgentId, cwd: &Path, prefs: LaunchPrefs) -> Result<Arc<Connection>> {
+    async fn connection(
+        &self,
+        agent: AgentId,
+        cwd: &Path,
+        prefs: LaunchPrefs,
+    ) -> Result<Arc<Connection>> {
         let mut conns = self.0.conns.lock().await;
         if let Some(conn) = conns.get(&agent) {
             if !conn.peer.is_closed() {
@@ -233,12 +258,25 @@ impl AgentManager {
         Ok(conn)
     }
 
-    async fn start(&self, agent: AgentId, cwd: &Path, prefs: LaunchPrefs) -> Result<Arc<Connection>> {
+    async fn start(
+        &self,
+        agent: AgentId,
+        cwd: &Path,
+        prefs: LaunchPrefs,
+    ) -> Result<Arc<Connection>> {
         let spec = registry::spec(agent);
         let agents_dir = self.agents_dir()?;
-        let node = tokio::task::spawn_blocking(registry::find_node).await.ok().flatten();
+        let node = tokio::task::spawn_blocking(registry::find_node)
+            .await
+            .ok()
+            .flatten();
         if let Some(reason) = registry::missing_reason(spec, node.as_ref(), &agents_dir) {
-            self.set_status(agent, AgentStatus::NotInstalled { reason: reason.into() });
+            self.set_status(
+                agent,
+                AgentStatus::NotInstalled {
+                    reason: reason.into(),
+                },
+            );
             return Err(AgentError::Unavailable(reason.into()));
         }
         let (node, entry) = match (node, spec.entry(&agents_dir)) {
@@ -248,13 +286,21 @@ impl AgentManager {
         self.set_status(agent, AgentStatus::Starting);
 
         let launch = launch_spec(spec, &node.exe, &entry, cwd, prefs, &agents_dir);
-        let AgentProcess { child, job, stdin, stdout, stderr_tail: stderr } = process::spawn(&launch)
-            .map_err(|err| {
-                AgentError::Unavailable(format!("{} başlatılamadı: {err}", spec.display_name))
-            })?;
+        let AgentProcess {
+            child,
+            job,
+            stdin,
+            stdout,
+            stderr_tail: stderr,
+        } = process::spawn(&launch).map_err(|err| {
+            AgentError::Unavailable(format!("{} başlatılamadı: {err}", spec.display_name))
+        })?;
         let mut proc = ProcHandle { child, job };
 
-        let handler = Arc::new(ConnHandler { agent, manager: Arc::downgrade(&self.0) });
+        let handler = Arc::new(ConnHandler {
+            agent,
+            manager: Arc::downgrade(&self.0),
+        });
         let (peer, _reader) = transport::start(BufReader::new(stdout), stdin, handler);
 
         let init = peer.request("initialize", initialize_params()).await;
@@ -264,7 +310,10 @@ impl AgentManager {
                 let code = proc.child.try_wait().ok().flatten().and_then(|s| s.code());
                 self.set_status(
                     agent,
-                    AgentStatus::Crashed { code, stderr_tail: process::stderr_snapshot(&stderr) },
+                    AgentStatus::Crashed {
+                        code,
+                        stderr_tail: process::stderr_snapshot(&stderr),
+                    },
                 );
                 return Err(err.into());
             }
@@ -290,7 +339,11 @@ impl AgentManager {
     }
 
     async fn conn_for_session(&self, session_id: &str) -> Result<Arc<Connection>> {
-        let agent = self.0.sessions.agent_of(session_id).ok_or(AgentError::UnknownSession)?;
+        let agent = self
+            .0
+            .sessions
+            .agent_of(session_id)
+            .ok_or(AgentError::UnknownSession)?;
         self.0
             .conns
             .lock()
@@ -302,30 +355,59 @@ impl AgentManager {
 
     fn auth_required(&self, conn: &Connection, err: &RpcError) {
         if err.code == RpcError::AUTH_REQUIRED {
-            self.set_status(conn.agent, AgentStatus::AuthRequired { auth_methods: conn.auth_methods() });
+            self.set_status(
+                conn.agent,
+                AgentStatus::AuthRequired {
+                    auth_methods: conn.auth_methods(),
+                },
+            );
         }
     }
 
-    fn register(&self, conn: &Connection, cwd: &Path, result: &Value, session_id: String) -> SessionSetup {
+    fn register(
+        &self,
+        conn: &Connection,
+        cwd: &Path,
+        result: &Value,
+        session_id: String,
+    ) -> SessionSetup {
         let setup = SessionSetup {
             session_id: session_id.clone(),
             agent_id: conn.agent,
             modes: result.get("modes").cloned().filter(|v| !v.is_null()),
-            config_options: result.get("configOptions").cloned().filter(|v| !v.is_null()),
+            config_options: result
+                .get("configOptions")
+                .cloned()
+                .filter(|v| !v.is_null()),
             models: result.get("models").cloned().filter(|v| !v.is_null()),
             agent_capabilities: conn.capabilities(),
         };
-        self.0.sessions.insert(SessionState::new(conn.agent, cwd.to_path_buf(), setup.clone()));
-        self.0.index.touch(conn.agent, &session_id, &cwd.to_string_lossy(), None);
+        self.0.sessions.insert(SessionState::new(
+            conn.agent,
+            cwd.to_path_buf(),
+            setup.clone(),
+        ));
+        self.0
+            .index
+            .touch(conn.agent, &session_id, &cwd.to_string_lossy(), None);
         setup
     }
 
-    pub async fn session_new(&self, agent: AgentId, cwd: PathBuf, prefs: LaunchPrefs) -> Result<SessionSetup> {
+    pub async fn session_new(
+        &self,
+        agent: AgentId,
+        cwd: PathBuf,
+        prefs: LaunchPrefs,
+    ) -> Result<SessionSetup> {
         let conn = self.connection(agent, &cwd, prefs).await?;
         let params = json!({ "cwd": cwd, "mcpServers": [] });
-        let result = conn.peer.request("session/new", params).await.inspect_err(|err| {
-            self.auth_required(&conn, err);
-        })?;
+        let result = conn
+            .peer
+            .request("session/new", params)
+            .await
+            .inspect_err(|err| {
+                self.auth_required(&conn, err);
+            })?;
         let session_id = result
             .get("sessionId")
             .and_then(Value::as_str)
@@ -361,7 +443,9 @@ impl AgentManager {
             models: None,
             agent_capabilities: conn.capabilities(),
         };
-        self.0.sessions.insert(SessionState::new(agent, cwd.clone(), placeholder));
+        self.0
+            .sessions
+            .insert(SessionState::new(agent, cwd.clone(), placeholder));
         let params = json!({ "sessionId": session_id, "cwd": cwd, "mcpServers": [] });
         let result = conn.peer.request(method, params).await.inspect_err(|err| {
             self.0.sessions.remove(&session_id);
@@ -371,10 +455,13 @@ impl AgentManager {
     }
 
     pub async fn session_close(&self, session_id: &str) -> Result<()> {
-        if let Ok(conn) = self.conn_for_session(session_id).await {
-            if conn.supports("/sessionCapabilities/close") {
-                let _ = conn.peer.request("session/close", json!({ "sessionId": session_id })).await;
-            }
+        if let Ok(conn) = self.conn_for_session(session_id).await
+            && conn.supports("/sessionCapabilities/close")
+        {
+            let _ = conn
+                .peer
+                .request("session/close", json!({ "sessionId": session_id }))
+                .await;
         }
         self.cancel_permissions(session_id);
         self.0.bridges.session_closed(session_id).await;
@@ -386,10 +473,13 @@ impl AgentManager {
         let local = self.0.index.list(agent, &cwd.to_string_lossy());
         let conn = self.0.conns.lock().await.get(&agent).cloned();
         let mut remote = Vec::new();
-        if let Some(conn) = conn.filter(|c| c.supports("/sessionCapabilities/list")) {
-            if let Ok(result) = conn.peer.request("session/list", json!({ "cwd": cwd })).await {
-                remote = parse_session_list(agent, &cwd, &result);
-            }
+        if let Some(conn) = conn.filter(|c| c.supports("/sessionCapabilities/list"))
+            && let Ok(result) = conn
+                .peer
+                .request("session/list", json!({ "cwd": cwd }))
+                .await
+        {
+            remote = parse_session_list(agent, &cwd, &result);
         }
         index::merge(remote, local)
     }
@@ -397,12 +487,16 @@ impl AgentManager {
     pub async fn prompt(&self, session_id: String, blocks: Value) -> Result<()> {
         let conn = self.conn_for_session(&session_id).await?;
         self.0.bridges.turn_started(&session_id);
-        self.0.sessions.update(&session_id, |s| s.turn_active = true);
+        self.0
+            .sessions
+            .update(&session_id, |s| s.turn_active = true);
         let this = self.clone();
         tauri::async_runtime::spawn(async move {
             let params = json!({ "sessionId": session_id, "prompt": blocks });
             let result = conn.peer.request("session/prompt", params).await;
-            this.0.sessions.update(&session_id, |s| s.turn_active = false);
+            this.0
+                .sessions
+                .update(&session_id, |s| s.turn_active = false);
             match result {
                 Ok(value) => {
                     let stop_reason = value
@@ -411,9 +505,17 @@ impl AgentManager {
                         .unwrap_or("end_turn")
                         .to_owned();
                     if let Some(state) = this.0.sessions.get(&session_id) {
-                        this.0.index.touch(state.agent_id, &session_id, &state.cwd.to_string_lossy(), None);
+                        this.0.index.touch(
+                            state.agent_id,
+                            &session_id,
+                            &state.cwd.to_string_lossy(),
+                            None,
+                        );
                     }
-                    this.0.events.emit(AgentEvent::TurnEnded { session_id, stop_reason });
+                    this.0.events.emit(AgentEvent::TurnEnded {
+                        session_id,
+                        stop_reason,
+                    });
                 }
                 Err(err) => {
                     this.auth_required(&conn, &err);
@@ -430,31 +532,48 @@ impl AgentManager {
 
     fn cancel_permissions(&self, session_id: &str) {
         for request_id in self.0.broker.cancel_session(session_id) {
-            self.0.events.emit(AgentEvent::PermissionResolved { request_id, option_id: None });
+            self.0.events.emit(AgentEvent::PermissionResolved {
+                request_id,
+                option_id: None,
+            });
         }
     }
 
     pub async fn cancel(&self, session_id: &str) -> Result<()> {
         self.cancel_permissions(session_id);
         let conn = self.conn_for_session(session_id).await?;
-        conn.peer.notify("session/cancel", json!({ "sessionId": session_id }))?;
+        conn.peer
+            .notify("session/cancel", json!({ "sessionId": session_id }))?;
         Ok(())
     }
 
-    pub async fn set_config_option(&self, session_id: &str, config_id: &str, value: Value) -> Result<Value> {
+    pub async fn set_config_option(
+        &self,
+        session_id: &str,
+        config_id: &str,
+        value: Value,
+    ) -> Result<Value> {
         let conn = self.conn_for_session(session_id).await?;
         let params = json!({ "sessionId": session_id, "configId": config_id, "value": value });
-        let result = conn.peer.request("session/set_config_option", params).await?;
+        let result = conn
+            .peer
+            .request("session/set_config_option", params)
+            .await?;
         let options = result.get("configOptions").cloned().unwrap_or(json!([]));
         let stored = options.clone();
-        self.0.sessions.update(session_id, |s| s.setup.config_options = Some(stored));
+        self.0
+            .sessions
+            .update(session_id, |s| s.setup.config_options = Some(stored));
         Ok(options)
     }
 
     pub async fn set_mode(&self, session_id: &str, mode_id: &str) -> Result<()> {
         let conn = self.conn_for_session(session_id).await?;
         conn.peer
-            .request("session/set_mode", json!({ "sessionId": session_id, "modeId": mode_id }))
+            .request(
+                "session/set_mode",
+                json!({ "sessionId": session_id, "modeId": mode_id }),
+            )
             .await?;
         Ok(())
     }
@@ -463,7 +582,10 @@ impl AgentManager {
     pub async fn set_model(&self, session_id: &str, model_id: &str) -> Result<()> {
         let conn = self.conn_for_session(session_id).await?;
         conn.peer
-            .request("session/set_model", json!({ "sessionId": session_id, "modelId": model_id }))
+            .request(
+                "session/set_model",
+                json!({ "sessionId": session_id, "modelId": model_id }),
+            )
             .await?;
         Ok(())
     }
@@ -477,14 +599,34 @@ impl AgentManager {
         }
     }
 
-    pub async fn review_revert(&self, session_id: &str, path: &str) -> Result<super::acp::RevertOutcome> {
+    pub async fn review_revert(
+        &self,
+        session_id: &str,
+        path: &str,
+    ) -> Result<super::acp::RevertOutcome> {
         Ok(self.0.bridges.review_revert(session_id, path).await?)
     }
 
+    pub fn review_changes(&self, session_id: &str) -> Vec<super::review::ChangedFile> {
+        self.0.bridges.changed_files(session_id)
+    }
+
+    pub fn review_accept(&self, session_id: &str, path: Option<&str>) {
+        self.0.bridges.accept(session_id, path);
+    }
+
     /// `authenticate` for agent-type methods (Codex `chat-gpt`, Gemini `oauth-personal`).
-    pub async fn authenticate(&self, agent: AgentId, method_id: &str, cwd: PathBuf, prefs: LaunchPrefs) -> Result<()> {
+    pub async fn authenticate(
+        &self,
+        agent: AgentId,
+        method_id: &str,
+        cwd: PathBuf,
+        prefs: LaunchPrefs,
+    ) -> Result<()> {
         let conn = self.connection(agent, &cwd, prefs).await?;
-        conn.peer.request("authenticate", json!({ "methodId": method_id })).await?;
+        conn.peer
+            .request("authenticate", json!({ "methodId": method_id }))
+            .await?;
         self.set_status(
             agent,
             AgentStatus::Ready {
@@ -498,17 +640,30 @@ impl AgentManager {
 
     /// Terminal-type auth (Claude `claude-ai-login`): runs the adapter with the
     /// method's `args` in a visible console so the user can finish the login.
-    pub async fn auth_terminal(&self, agent: AgentId, method_id: &str, cwd: PathBuf, prefs: LaunchPrefs) -> Result<()> {
+    pub async fn auth_terminal(
+        &self,
+        agent: AgentId,
+        method_id: &str,
+        cwd: PathBuf,
+        prefs: LaunchPrefs,
+    ) -> Result<()> {
         let conn = self.connection(agent, &cwd, prefs).await?;
         let methods = conn.auth_methods();
         let method = methods
             .as_array()
-            .and_then(|list| list.iter().find(|m| m.get("id").and_then(Value::as_str) == Some(method_id)))
+            .and_then(|list| {
+                list.iter()
+                    .find(|m| m.get("id").and_then(Value::as_str) == Some(method_id))
+            })
             .ok_or_else(|| RpcError::invalid_params(format!("unknown auth method {method_id}")))?;
         let args: Vec<String> = method
             .get("args")
             .and_then(Value::as_array)
-            .map(|a| a.iter().filter_map(|v| v.as_str().map(str::to_owned)).collect())
+            .map(|a| {
+                a.iter()
+                    .filter_map(|v| v.as_str().map(str::to_owned))
+                    .collect()
+            })
             .unwrap_or_default();
         let env: Vec<(String, String)> = method
             .get("env")
@@ -527,10 +682,14 @@ impl AgentManager {
     pub async fn shutdown(&self) {
         self.0.shutting_down.store(true, Ordering::Release);
         for request_id in self.0.broker.cancel_all() {
-            self.0.events.emit(AgentEvent::PermissionResolved { request_id, option_id: None });
+            self.0.events.emit(AgentEvent::PermissionResolved {
+                request_id,
+                option_id: None,
+            });
         }
         self.0.bridges.terminals().release_all();
-        let conns: Vec<Arc<Connection>> = self.0.conns.lock().await.drain().map(|(_, c)| c).collect();
+        let conns: Vec<Arc<Connection>> =
+            self.0.conns.lock().await.drain().map(|(_, c)| c).collect();
         for conn in conns {
             if let Some(mut proc) = lock(&conn.process).take() {
                 if let Some(job) = proc.job.take() {
@@ -550,13 +709,19 @@ impl AgentManager {
             if let Some(conn) = &conn {
                 let proc = lock(&conn.process).take();
                 if let Some(mut proc) = proc {
-                    let waited = tokio::time::timeout(std::time::Duration::from_secs(2), proc.child.wait()).await;
-                    code = waited.ok().and_then(Result::ok).and_then(|s| s.code());
+                    let waited =
+                        tokio::time::timeout(std::time::Duration::from_secs(2), proc.child.wait())
+                            .await;
+                    code = waited.ok().and_then(|r| r.ok()).and_then(|s| s.code());
                 }
             }
             for session_id in this.0.sessions.ids_for(agent) {
                 this.cancel_permissions(&session_id);
-                let was_active = this.0.sessions.get(&session_id).is_some_and(|s| s.turn_active);
+                let was_active = this
+                    .0
+                    .sessions
+                    .get(&session_id)
+                    .is_some_and(|s| s.turn_active);
                 if was_active {
                     this.0.events.emit(AgentEvent::TurnFailed {
                         session_id: session_id.clone(),
@@ -597,16 +762,25 @@ impl ConnHandler {
 
 impl IncomingHandler for ConnHandler {
     fn on_notification(&self, method: &str, params: Value) {
-        let Some(manager) = self.manager() else { return };
+        let Some(manager) = self.manager() else {
+            return;
+        };
         if method != "session/update" {
             return; // `_auth/status_update` and other extensions are ignored for now.
         }
-        let Some(session_id) = params.get("sessionId").and_then(Value::as_str).map(str::to_owned) else {
+        let Some(session_id) = params
+            .get("sessionId")
+            .and_then(Value::as_str)
+            .map(str::to_owned)
+        else {
             return;
         };
         let update = params.get("update").cloned().unwrap_or(Value::Null);
         observe_update(&manager, self.agent, &session_id, &update);
-        manager.0.events.emit(AgentEvent::SessionUpdate { session_id, update });
+        manager
+            .0
+            .events
+            .emit(AgentEvent::SessionUpdate { session_id, update });
     }
 
     fn on_request(&self, method: String, params: Value, responder: Responder) {
@@ -635,7 +809,12 @@ fn observe_update(manager: &AgentManager, agent: AgentId, session_id: &str, upda
                 update.get("title").and_then(Value::as_str),
                 manager.0.sessions.get(session_id),
             ) {
-                manager.0.index.touch(agent, session_id, &state.cwd.to_string_lossy(), Some(title.to_owned()));
+                manager.0.index.touch(
+                    agent,
+                    session_id,
+                    &state.cwd.to_string_lossy(),
+                    Some(title.to_owned()),
+                );
             }
         }
         Some("tool_call" | "tool_call_update") => {
@@ -652,7 +831,10 @@ fn observe_update(manager: &AgentManager, agent: AgentId, session_id: &str, upda
                     continue;
                 };
                 let old_text = item.get("oldText").and_then(Value::as_str);
-                manager.0.bridges.record_diff(session_id, path, old_text, new_text);
+                manager
+                    .0
+                    .bridges
+                    .record_diff(session_id, path, old_text, new_text);
             }
         }
         _ => {}
@@ -667,7 +849,11 @@ fn to_value<T: Serialize>(value: T) -> std::result::Result<Value, RpcError> {
     serde_json::to_value(value).map_err(|err| RpcError::internal(err.to_string()))
 }
 
-async fn handle_request(manager: &AgentManager, method: &str, params: Value) -> std::result::Result<Value, RpcError> {
+async fn handle_request(
+    manager: &AgentManager,
+    method: &str,
+    params: Value,
+) -> std::result::Result<Value, RpcError> {
     let bridges = &manager.0.bridges;
     match method {
         "fs/read_text_file" => to_value(bridges.read_text_file(parse(params)?).await?),
@@ -732,10 +918,14 @@ pub fn launch_spec(
         ..LaunchSpec::default()
     };
     if spec.id == AgentId::Claude {
-        launch.env_set.push(("CLAUDE_AGENT_ACP_PROTOCOL".into(), "v1".into()));
+        launch
+            .env_set
+            .push(("CLAUDE_AGENT_ACP_PROTOCOL".into(), "v1".into()));
         if prefs.claude_ignore_api_key {
             // The SDK always prefers an API key when present: bill the subscription instead.
-            launch.env_remove.extend(["ANTHROPIC_API_KEY".into(), "ANTHROPIC_AUTH_TOKEN".into()]);
+            launch
+                .env_remove
+                .extend(["ANTHROPIC_API_KEY".into(), "ANTHROPIC_AUTH_TOKEN".into()]);
         }
     }
     if prefs.debug_logs {
@@ -764,20 +954,32 @@ fn parse_session_list(agent: AgentId, cwd: &Path, result: &Value) -> Vec<Session
                     .and_then(Value::as_str)
                     .map_or_else(|| cwd.to_string_lossy().into_owned(), str::to_owned),
                 title: s.get("title").and_then(Value::as_str).map(str::to_owned),
-                updated_at: s.get("updatedAt").and_then(Value::as_str).map(str::to_owned),
+                updated_at: s
+                    .get("updatedAt")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
             })
         })
         .collect()
 }
 
 /// Opens a visible console running `node <entry> <args>` (login flows).
-fn open_console(node: &Path, entry: &Path, args: &[String], env: &[(String, String)], cwd: &Path) -> std::io::Result<()> {
+fn open_console(
+    node: &Path,
+    entry: &Path,
+    args: &[String],
+    env: &[(String, String)],
+    cwd: &Path,
+) -> std::io::Result<()> {
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NEW_CONSOLE: u32 = 0x0000_0010;
         let mut cmd = std::process::Command::new(node);
-        cmd.arg(entry).args(args).current_dir(cwd).creation_flags(CREATE_NEW_CONSOLE);
+        cmd.arg(entry)
+            .args(args)
+            .current_dir(cwd)
+            .creation_flags(CREATE_NEW_CONSOLE);
         for (k, v) in env {
             cmd.env(k, v);
         }
@@ -809,10 +1011,24 @@ mod tests {
     #[test]
     fn claude_launch_strips_api_keys_and_pins_protocol() {
         let spec = registry::spec(AgentId::Claude);
-        let prefs = LaunchPrefs { claude_ignore_api_key: true, debug_logs: false };
-        let launch = launch_spec(spec, Path::new("node"), Path::new("entry.js"), Path::new("."), prefs, Path::new("."));
+        let prefs = LaunchPrefs {
+            claude_ignore_api_key: true,
+            debug_logs: false,
+        };
+        let launch = launch_spec(
+            spec,
+            Path::new("node"),
+            Path::new("entry.js"),
+            Path::new("."),
+            prefs,
+            Path::new("."),
+        );
         assert!(launch.env_remove.contains(&"ANTHROPIC_API_KEY".to_owned()));
-        assert!(launch.env_set.contains(&("CLAUDE_AGENT_ACP_PROTOCOL".into(), "v1".into())));
+        assert!(
+            launch
+                .env_set
+                .contains(&("CLAUDE_AGENT_ACP_PROTOCOL".into(), "v1".into()))
+        );
         let gemini = launch_spec(
             registry::spec(AgentId::Gemini),
             Path::new("node"),
@@ -821,7 +1037,10 @@ mod tests {
             prefs,
             Path::new("."),
         );
-        assert_eq!(gemini.args.last().map(|a| a.to_string_lossy().into_owned()), Some("--acp".into()));
+        assert_eq!(
+            gemini.args.last().map(|a| a.to_string_lossy().into_owned()),
+            Some("--acp".into())
+        );
         assert!(gemini.env_remove.is_empty());
     }
 

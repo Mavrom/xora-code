@@ -24,7 +24,11 @@ pub fn npm_args(spec: &AgentSpec, prefix: &Path) -> Vec<String> {
 }
 
 /// Installs the pinned version. Returns the last lines of npm's output on failure.
-pub async fn install(spec: &AgentSpec, node: &NodeRuntime, agents_dir: &Path) -> Result<(), String> {
+pub async fn install(
+    spec: &AgentSpec,
+    node: &NodeRuntime,
+    agents_dir: &Path,
+) -> Result<(), String> {
     let npm_cli = node
         .npm_cli
         .as_ref()
@@ -43,7 +47,9 @@ pub async fn install(spec: &AgentSpec, node: &NodeRuntime, agents_dir: &Path) ->
         .stderr(Stdio::piped())
         .kill_on_drop(true);
     hide_console(&mut cmd);
-    let mut child = cmd.spawn().map_err(|err| format!("npm başlatılamadı: {err}"))?;
+    let mut child = cmd
+        .spawn()
+        .map_err(|err| format!("npm başlatılamadı: {err}"))?;
 
     let mut tail: Vec<String> = Vec::new();
     if let Some(stderr) = child.stderr.take() {

@@ -215,7 +215,7 @@ mod tests {
     fn setup() -> (tempfile::TempDir, PathBuf, Vec<PathBuf>) {
         let dir = tempfile::tempdir().unwrap();
         let root = dunce::canonicalize(dir.path()).unwrap();
-        let roots = fs_bridge::canonical_roots(&[root.clone()]);
+        let roots = fs_bridge::canonical_roots(std::slice::from_ref(&root));
         (dir, root, roots)
     }
 
@@ -321,7 +321,9 @@ mod tests {
 
         // A diff path reported by the agent outside the workspace is never written.
         let other = tempfile::tempdir().unwrap();
-        let outside = dunce::canonicalize(other.path()).unwrap().join("victim.txt");
+        let outside = dunce::canonicalize(other.path())
+            .unwrap()
+            .join("victim.txt");
         fs::write(&outside, "keep").unwrap();
         store.record_diff("s1", &outside, Some("before"), "keep");
         assert!(matches!(
@@ -343,7 +345,11 @@ mod tests {
         assert_eq!(store.changed_files("s1").len(), 1);
         store.begin_turn("s1");
         assert!(store.changed_files("s1").is_empty());
-        assert_eq!(store.changed_files("s2").len(), 1, "other sessions untouched");
+        assert_eq!(
+            store.changed_files("s2").len(),
+            1,
+            "other sessions untouched"
+        );
         store.accept("s2", None);
         assert!(store.changed_files("s2").is_empty());
     }

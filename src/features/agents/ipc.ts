@@ -90,3 +90,17 @@ export function stripAuthPrefix(message: string): string {
     ? message.slice(AUTH_REQUIRED_PREFIX.length).trimStart()
     : message;
 }
+
+/** A file the agent changed in the current turn. */
+export interface ChangedFile {
+  path: string;
+  /** The file did not exist before the turn ("Geri al" deletes it). */
+  created: boolean;
+}
+
+/** Turn review helpers (outside `AgentIpc`: only the changes bar needs them). */
+export const agentReviewIpc = {
+  changes: (sessionId: string) => invoke<ChangedFile[]>("agent_review_changes", { sessionId }),
+  accept: (sessionId: string, path: string | null = null) =>
+    invoke<void>("agent_review_accept", { sessionId, path }),
+};

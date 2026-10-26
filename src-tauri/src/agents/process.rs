@@ -187,7 +187,9 @@ impl StderrTail {
 pub type SharedStderrTail = Arc<Mutex<StderrTail>>;
 
 pub fn stderr_snapshot(tail: &SharedStderrTail) -> Vec<String> {
-    tail.lock().unwrap_or_else(PoisonError::into_inner).snapshot()
+    tail.lock()
+        .unwrap_or_else(PoisonError::into_inner)
+        .snapshot()
 }
 
 /// What to run. `env_remove` wins over the inherited environment.
@@ -236,12 +238,27 @@ pub fn spawn(spec: &LaunchSpec) -> io::Result<AgentProcess> {
         // Best effort: if the child is already in a non-nestable job we still run.
         let _ = job.assign(&child);
     }
-    let stdin = child.stdin.take().ok_or_else(|| io::Error::other("no stdin pipe"))?;
-    let stdout = child.stdout.take().ok_or_else(|| io::Error::other("no stdout pipe"))?;
-    let stderr = child.stderr.take().ok_or_else(|| io::Error::other("no stderr pipe"))?;
+    let stdin = child
+        .stdin
+        .take()
+        .ok_or_else(|| io::Error::other("no stdin pipe"))?;
+    let stdout = child
+        .stdout
+        .take()
+        .ok_or_else(|| io::Error::other("no stdout pipe"))?;
+    let stderr = child
+        .stderr
+        .take()
+        .ok_or_else(|| io::Error::other("no stderr pipe"))?;
     let stderr_tail = SharedStderrTail::default();
     tokio::spawn(drain_stderr(stderr, Arc::clone(&stderr_tail)));
-    Ok(AgentProcess { child, job, stdin, stdout, stderr_tail })
+    Ok(AgentProcess {
+        child,
+        job,
+        stdin,
+        stdout,
+        stderr_tail,
+    })
 }
 
 async fn drain_stderr(stderr: ChildStderr, tail: SharedStderrTail) {
@@ -253,7 +270,9 @@ async fn drain_stderr(stderr: ChildStderr, tail: SharedStderrTail) {
             Ok(0) | Err(_) => break,
             Ok(_) => {
                 let line = String::from_utf8_lossy(&buf);
-                tail.lock().unwrap_or_else(PoisonError::into_inner).push(&line);
+                tail.lock()
+                    .unwrap_or_else(PoisonError::into_inner)
+                    .push(&line);
             }
         }
     }
@@ -266,9 +285,18 @@ mod tests {
     #[test]
     fn masks_common_token_shapes() {
         assert_eq!(mask_secrets("key sk-ant-abc123 rest"), "key sk-*** rest");
-        assert_eq!(mask_secrets("Authorization: Bearer abc.def"), "Authorization: Bearer ***");
-        assert_eq!(mask_secrets("ANTHROPIC_API_KEY=xyz other"), "ANTHROPIC_API_KEY=*** other");
-        assert_eq!(mask_secrets(r#"{"access_token": "tok"}"#), r#"{"access_token": "***"}"#);
+        assert_eq!(
+            mask_secrets("Authorization: Bearer abc.def"),
+            "Authorization: Bearer ***"
+        );
+        assert_eq!(
+            mask_secrets("ANTHROPIC_API_KEY=xyz other"),
+            "ANTHROPIC_API_KEY=*** other"
+        );
+        assert_eq!(
+            mask_secrets(r#"{"access_token": "tok"}"#),
+            r#"{"access_token": "***"}"#
+        );
         assert_eq!(mask_secrets("plain line ünicode"), "plain line ünicode");
         assert_eq!(mask_secrets("run task-list now"), "run task-list now");
     }
@@ -282,7 +310,10 @@ mod tests {
         let snap = tail.snapshot();
         assert_eq!(snap.len(), STDERR_TAIL_LINES);
         assert_eq!(snap[0], "line 5");
-        assert_eq!(snap.last().unwrap(), &format!("line {}", STDERR_TAIL_LINES + 4));
+        assert_eq!(
+            snap.last().unwrap(),
+            &format!("line {}", STDERR_TAIL_LINES + 4)
+        );
     }
 
     #[test]
@@ -302,7 +333,10 @@ mod tests {
         };
         let spec = LaunchSpec {
             program: node,
-            args: vec!["-e".into(), "console.error('hello err'); process.exit(3)".into()],
+            args: vec![
+                "-e".into(),
+                "console.error('hello err'); process.exit(3)".into(),
+            ],
             ..LaunchSpec::default()
         };
         let mut proc = spawn(&spec).unwrap();
@@ -315,7 +349,10 @@ mod tests {
             }
             tokio::time::sleep(std::time::Duration::from_millis(10)).await;
         }
-        assert_eq!(stderr_snapshot(&proc.stderr_tail), vec!["hello err".to_string()]);
+        assert_eq!(
+            stderr_snapshot(&proc.stderr_tail),
+            vec!["hello err".to_string()]
+        );
     }
 
     fn which_node() -> Option<PathBuf> {

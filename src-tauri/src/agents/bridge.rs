@@ -4,7 +4,7 @@
 use super::acp::{BoxFuture, ClientHandlers, RevertOutcome, RpcError};
 use super::events::{AgentEvent, EventSink};
 use super::fs_bridge::{self, FsBridgeError};
-use super::review::{ReviewError, ReviewStore};
+use super::review::{ChangedFile, ReviewError, ReviewStore};
 use super::session::SessionRegistry;
 use super::terminal_bridge::TerminalBridge;
 use agent_client_protocol_schema::v1::{
@@ -38,10 +38,27 @@ impl Bridges {
         &self.terminals
     }
 
+    /// Files changed in the session's current turn (for the changes bar).
+    pub fn changed_files(&self, session_id: &str) -> Vec<ChangedFile> {
+        self.review.changed_files(session_id)
+    }
+
+    /// "Kabul et": forget one file's snapshot, or all of the session's.
+    pub fn accept(&self, session_id: &str, path: Option<&str>) {
+        self.review.accept(session_id, path.map(Path::new));
+    }
+
     /// Agents that write files themselves (Codex) report the change as ACP
     /// `diff` content; record it so "Geri al" works for them too.
-    pub fn record_diff(&self, session_id: &str, path: &str, old_text: Option<&str>, new_text: &str) {
-        self.review.record_diff(session_id, Path::new(path), old_text, new_text);
+    pub fn record_diff(
+        &self,
+        session_id: &str,
+        path: &str,
+        old_text: Option<&str>,
+        new_text: &str,
+    ) {
+        self.review
+            .record_diff(session_id, Path::new(path), old_text, new_text);
     }
 
     /// The session's canonical roots, or an error the agent understands.
@@ -52,7 +69,9 @@ impl Bridges {
             .ok_or_else(|| RpcError::invalid_params("unknown session"))?;
         let canonical = fs_bridge::canonical_roots(&roots);
         if canonical.is_empty() {
-            return Err(RpcError::invalid_params("session workspace is not available"));
+            return Err(RpcError::invalid_params(
+                "session workspace is not available",
+            ));
         }
         Ok(canonical)
     }
@@ -119,8 +138,11 @@ impl ClientHandlers for Bridges {
         Box::pin(async move {
             let session_id = req.session_id.0.to_string();
             let roots = self.roots(&session_id)?;
-            let env: Vec<(String, String)> =
-                req.env.iter().map(|v| (v.name.clone(), v.value.clone())).collect();
+            let env: Vec<(String, String)> = req
+                .env
+                .iter()
+                .map(|v| (v.name.clone(), v.value.clone()))
+                .collect();
             let id = self.terminals.create(
                 &session_id,
                 &req.command,
@@ -139,8 +161,9 @@ impl ClientHandlers for Bridges {
         req: TerminalOutputRequest,
     ) -> BoxFuture<'_, Result<TerminalOutputResponse, RpcError>> {
         Box::pin(async move {
-            let (text, truncated, exit) =
-                self.terminals.output(&req.session_id.0, &req.terminal_id.0)?;
+            let (text, truncated, exit) = self
+                .terminals
+                .output(&req.session_id.0, &req.terminal_id.0)?;
             Ok(TerminalOutputResponse::new(text, truncated).exit_status(exit))
         })
     }
@@ -173,7 +196,8 @@ impl ClientHandlers for Bridges {
         req: ReleaseTerminalRequest,
     ) -> BoxFuture<'_, Result<ReleaseTerminalResponse, RpcError>> {
         Box::pin(async move {
-            self.terminals.release(&req.session_id.0, &req.terminal_id.0)?;
+            self.terminals
+                .release(&req.session_id.0, &req.terminal_id.0)?;
             Ok(ReleaseTerminalResponse::new())
         })
     }
@@ -200,14 +224,16 @@ impl ClientHandlers for Bridges {
         Box::pin(async move {
             let roots = self.roots(&session_id)?;
             let review = Arc::clone(&self.review);
-            tokio::task::spawn_blocking(move || review.revert(&session_id, Path::new(&path), &roots))
-                .await
-                .map_err(|err| RpcError::internal(err.to_string()))?
-                .map_err(|err| match err {
-                    ReviewError::NotTracked => RpcError::not_found(err.to_string()),
-                    ReviewError::Sandbox(_) => RpcError::invalid_params(err.to_string()),
-                    ReviewError::Io(_) => RpcError::internal(err.to_string()),
-                })
+            tokio::task::spawn_blocking(move || {
+                review.revert(&session_id, Path::new(&path), &roots)
+            })
+            .await
+            .map_err(|err| RpcError::internal(err.to_string()))?
+            .map_err(|err| match err {
+                ReviewError::NotTracked => RpcError::not_found(err.to_string()),
+                ReviewError::Sandbox(_) => RpcError::invalid_params(err.to_string()),
+                ReviewError::Io(_) => RpcError::internal(err.to_string()),
+            })
         })
     }
 }

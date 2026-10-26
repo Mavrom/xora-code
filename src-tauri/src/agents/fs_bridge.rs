@@ -218,8 +218,6 @@ pub enum FsBridgeError {
     TooLarge,
     #[error("file is not valid UTF-8 text")]
     NotUtf8,
-    #[error("unknown session")]
-    UnknownSession,
     #[error(transparent)]
     Io(#[from] io::Error),
 }
@@ -228,7 +226,7 @@ impl FsBridgeError {
     /// JSON-RPC error code for the agent.
     pub fn rpc_code(&self) -> i32 {
         match self {
-            Self::Sandbox(_) | Self::TooLarge | Self::UnknownSession => INVALID_PARAMS,
+            Self::Sandbox(_) | Self::TooLarge => INVALID_PARAMS,
             Self::NotFound => RESOURCE_NOT_FOUND,
             Self::Io(err) if err.kind() == io::ErrorKind::NotFound => RESOURCE_NOT_FOUND,
             Self::NotUtf8 | Self::Io(_) => INTERNAL_ERROR,
@@ -358,7 +356,7 @@ mod tests {
     }
 
     fn roots(ws: &Ws) -> Vec<PathBuf> {
-        canonical_roots(&[ws.root.clone()])
+        canonical_roots(std::slice::from_ref(&ws.root))
     }
 
     #[test]

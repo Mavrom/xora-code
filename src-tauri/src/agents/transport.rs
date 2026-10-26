@@ -62,10 +62,10 @@ impl RpcPeer {
         let (tx, rx) = oneshot::channel();
         lock(&self.pending).insert(id, tx);
         let msg = json!({ "jsonrpc": "2.0", "id": id, "method": method, "params": params });
-        if let Err(err) = self.send_line(&msg) {
-            if let Some(tx) = lock(&self.pending).remove(&id) {
-                let _ = tx.send(Err(err));
-            }
+        if let Err(err) = self.send_line(&msg)
+            && let Some(tx) = lock(&self.pending).remove(&id)
+        {
+            let _ = tx.send(Err(err));
         }
         (id, rx)
     }
@@ -78,11 +78,6 @@ impl RpcPeer {
 
     pub fn notify(&self, method: &str, params: Value) -> Result<(), RpcError> {
         self.send_line(&json!({ "jsonrpc": "2.0", "method": method, "params": params }))
-    }
-
-    /// Asks the agent to abandon request `id` (ACP `$/cancel_request`).
-    pub fn cancel_request(&self, id: u64) {
-        let _ = self.notify("$/cancel_request", json!({ "requestId": id }));
     }
 
     pub fn is_closed(&self) -> bool {
@@ -189,7 +184,12 @@ async fn read_loop<R: AsyncBufRead + Unpin>(
 
 /// Classifies one line and dispatches it. Malformed lines are ignored:
 /// adapters occasionally print stray text on stdout.
-fn route(line: &[u8], out: &mpsc::UnboundedSender<String>, pending: &Pending, handler: &dyn IncomingHandler) {
+fn route(
+    line: &[u8],
+    out: &mpsc::UnboundedSender<String>,
+    pending: &Pending,
+    handler: &dyn IncomingHandler,
+) {
     let Ok(Value::Object(mut msg)) = serde_json::from_slice::<Value>(line) else {
         return;
     };
@@ -201,12 +201,21 @@ fn route(line: &[u8], out: &mpsc::UnboundedSender<String>, pending: &Pending, ha
     let params = msg.remove("params").unwrap_or(Value::Null);
     match (method, id) {
         (Some(method), Some(id)) => {
-            handler.on_request(method, params, Responder { id: Some(id), out: out.clone() });
+            handler.on_request(
+                method,
+                params,
+                Responder {
+                    id: Some(id),
+                    out: out.clone(),
+                },
+            );
         }
         (Some(method), None) => handler.on_notification(&method, params),
         (None, Some(id)) => {
             let Some(id) = id_as_u64(&id) else { return };
-            let Some(tx) = lock(pending).remove(&id) else { return };
+            let Some(tx) = lock(pending).remove(&id) else {
+                return;
+            };
             let result = match msg.remove("error") {
                 Some(err) => Err(parse_error(&err)),
                 None => Ok(msg.remove("result").unwrap_or(Value::Null)),
@@ -227,7 +236,10 @@ fn id_as_u64(id: &Value) -> Option<u64> {
 
 fn parse_error(err: &Value) -> RpcError {
     let code = err.get("code").and_then(Value::as_i64).unwrap_or(-32603);
-    let message = err.get("message").and_then(Value::as_str).unwrap_or("unknown error");
+    let message = err
+        .get("message")
+        .and_then(Value::as_str)
+        .unwrap_or("unknown error");
     RpcError::new(i32::try_from(code).unwrap_or(-32603), message)
 }
 
@@ -303,7 +315,10 @@ mod tests {
         let mut buf = Vec::new();
         let mut lines = Vec::new();
         loop {
-            match read_line_bounded(&mut reader, &mut buf, 1024).await.unwrap() {
+            match read_line_bounded(&mut reader, &mut buf, 1024)
+                .await
+                .unwrap()
+            {
                 LineRead::Line => lines.push(String::from_utf8(buf.clone()).unwrap()),
                 LineRead::TooLong => lines.push("<too long>".into()),
                 LineRead::Eof => break,
@@ -318,17 +333,29 @@ mod tests {
         data.extend_from_slice(b"\nok\n");
         let mut reader = BufReader::with_capacity(8, data.as_slice());
         let mut buf = Vec::new();
-        assert_eq!(read_line_bounded(&mut reader, &mut buf, 10).await.unwrap(), LineRead::TooLong);
-        assert_eq!(read_line_bounded(&mut reader, &mut buf, 10).await.unwrap(), LineRead::Line);
+        assert_eq!(
+            read_line_bounded(&mut reader, &mut buf, 10).await.unwrap(),
+            LineRead::TooLong
+        );
+        assert_eq!(
+            read_line_bounded(&mut reader, &mut buf, 10).await.unwrap(),
+            LineRead::Line
+        );
         assert_eq!(buf, b"ok");
-        assert_eq!(read_line_bounded(&mut reader, &mut buf, 10).await.unwrap(), LineRead::Eof);
+        assert_eq!(
+            read_line_bounded(&mut reader, &mut buf, 10).await.unwrap(),
+            LineRead::Eof
+        );
     }
 
     #[tokio::test]
     async fn line_exactly_at_limit_is_accepted() {
         let mut reader = BufReader::new(&b"12345\n"[..]);
         let mut buf = Vec::new();
-        assert_eq!(read_line_bounded(&mut reader, &mut buf, 5).await.unwrap(), LineRead::Line);
+        assert_eq!(
+            read_line_bounded(&mut reader, &mut buf, 5).await.unwrap(),
+            LineRead::Line
+        );
         assert_eq!(buf, b"12345");
     }
 
@@ -355,22 +382,32 @@ mod tests {
     }
 
     /// Wires a peer to an in-memory "agent" whose stdin/stdout we drive by hand.
-    fn harness() -> (
+    type Harness = (
         Arc<RpcPeer>,
         Arc<Recorder>,
         JoinHandle<()>,
         tokio::io::Lines<BufReader<tokio::io::DuplexStream>>,
         tokio::io::DuplexStream,
-    ) {
+    );
+
+    fn harness() -> Harness {
         let (client_out, agent_in) = duplex(1 << 16);
         let (agent_out, client_in) = duplex(1 << 16);
         let rec = Arc::new(Recorder::default());
         let (peer, reader) = start(BufReader::new(client_in), client_out, rec.clone());
-        (peer, rec, reader, BufReader::new(agent_in).lines(), agent_out)
+        (
+            peer,
+            rec,
+            reader,
+            BufReader::new(agent_in).lines(),
+            agent_out,
+        )
     }
 
     async fn agent_send(out: &mut tokio::io::DuplexStream, msg: Value) {
-        out.write_all(format!("{msg}\r\n").as_bytes()).await.unwrap();
+        out.write_all(format!("{msg}\r\n").as_bytes())
+            .await
+            .unwrap();
     }
 
     #[tokio::test]
@@ -383,36 +420,68 @@ mod tests {
 
         let mut ids = HashMap::new();
         for _ in 0..2 {
-            let line: Value = serde_json::from_str(&agent_in.next_line().await.unwrap().unwrap()).unwrap();
+            let line: Value =
+                serde_json::from_str(&agent_in.next_line().await.unwrap().unwrap()).unwrap();
             assert_eq!(line["jsonrpc"], "2.0");
-            ids.insert(line["method"].as_str().unwrap().to_string(), line["id"].clone());
+            ids.insert(
+                line["method"].as_str().unwrap().to_string(),
+                line["id"].clone(),
+            );
         }
         // Answer "b" first, as a string id, and "a" with an error.
-        agent_send(&mut agent_out, json!({"jsonrpc":"2.0","id": ids["b"].to_string(),"result":{"ok":"b"}})).await;
-        agent_send(&mut agent_out, json!({"jsonrpc":"2.0","id": ids["a"],"error":{"code":-32000,"message":"auth"}})).await;
+        agent_send(
+            &mut agent_out,
+            json!({"jsonrpc":"2.0","id": ids["b"].to_string(),"result":{"ok":"b"}}),
+        )
+        .await;
+        agent_send(
+            &mut agent_out,
+            json!({"jsonrpc":"2.0","id": ids["a"],"error":{"code":-32000,"message":"auth"}}),
+        )
+        .await;
 
         assert_eq!(second.await.unwrap().unwrap(), json!({"ok":"b"}));
-        assert_eq!(first.await.unwrap().unwrap_err(), RpcError::new(-32000, "auth"));
+        assert_eq!(
+            first.await.unwrap().unwrap_err(),
+            RpcError::new(-32000, "auth")
+        );
     }
 
     #[tokio::test]
     async fn notifications_keep_order_and_requests_get_answers() {
         let (_peer, rec, _reader, mut agent_in, mut agent_out) = harness();
         for i in 0..20 {
-            agent_send(&mut agent_out, json!({"jsonrpc":"2.0","method":"session/update","params":{"i":i}})).await;
+            agent_send(
+                &mut agent_out,
+                json!({"jsonrpc":"2.0","method":"session/update","params":{"i":i}}),
+            )
+            .await;
         }
-        agent_send(&mut agent_out, json!({"jsonrpc":"2.0","id":"r1","method":"echo","params":{"x":1}})).await;
-        agent_send(&mut agent_out, json!({"jsonrpc":"2.0","id":7,"method":"nope","params":{}})).await;
+        agent_send(
+            &mut agent_out,
+            json!({"jsonrpc":"2.0","id":"r1","method":"echo","params":{"x":1}}),
+        )
+        .await;
+        agent_send(
+            &mut agent_out,
+            json!({"jsonrpc":"2.0","id":7,"method":"nope","params":{}}),
+        )
+        .await;
         agent_out.write_all(b"not json at all\n").await.unwrap();
 
-        let r1: Value = serde_json::from_str(&agent_in.next_line().await.unwrap().unwrap()).unwrap();
+        let r1: Value =
+            serde_json::from_str(&agent_in.next_line().await.unwrap().unwrap()).unwrap();
         assert_eq!(r1, json!({"jsonrpc":"2.0","id":"r1","result":{"x":1}}));
-        let r2: Value = serde_json::from_str(&agent_in.next_line().await.unwrap().unwrap()).unwrap();
+        let r2: Value =
+            serde_json::from_str(&agent_in.next_line().await.unwrap().unwrap()).unwrap();
         assert_eq!(r2["id"], 7);
         assert_eq!(r2["error"]["code"], -32601);
 
         let notes = lock(&rec.notes);
-        let order: Vec<i64> = notes.iter().map(|(_, p)| p["i"].as_i64().unwrap()).collect();
+        let order: Vec<i64> = notes
+            .iter()
+            .map(|(_, p)| p["i"].as_i64().unwrap())
+            .collect();
         assert_eq!(order, (0..20).collect::<Vec<_>>());
     }
 
@@ -427,13 +496,19 @@ mod tests {
         assert_eq!(waiting.await.unwrap().unwrap_err(), closed_error());
         assert!(rec.closed.load(Ordering::SeqCst));
         assert!(peer.is_closed());
-        assert_eq!(peer.request("late", Value::Null).await.unwrap_err(), closed_error());
+        assert_eq!(
+            peer.request("late", Value::Null).await.unwrap_err(),
+            closed_error()
+        );
     }
 
     #[tokio::test]
     async fn dropped_responder_answers_internal_error() {
         let (out, mut rx) = mpsc::unbounded_channel();
-        drop(Responder { id: Some(json!(5)), out });
+        drop(Responder {
+            id: Some(json!(5)),
+            out,
+        });
         let line: Value = serde_json::from_str(&rx.recv().await.unwrap()).unwrap();
         assert_eq!(line["id"], 5);
         assert_eq!(line["error"]["code"], -32603);

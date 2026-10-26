@@ -24,7 +24,13 @@ impl PermissionBroker {
     pub fn open(&self, session_id: &str) -> (String, oneshot::Receiver<Option<String>>) {
         let id = format!("perm_{}", uuid::Uuid::new_v4().simple());
         let (tx, rx) = oneshot::channel();
-        self.lock().insert(id.clone(), Pending { session_id: session_id.to_owned(), tx });
+        self.lock().insert(
+            id.clone(),
+            Pending {
+                session_id: session_id.to_owned(),
+                tx,
+            },
+        );
         (id, rx)
     }
 

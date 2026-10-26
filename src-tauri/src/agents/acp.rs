@@ -69,7 +69,6 @@ pub enum RevertOutcome {
 
 /// Client-side ACP methods (fs + terminal) plus the lifecycle hooks the core
 /// calls so the bridges can keep review snapshots and terminals per session.
-/// Implemented by package B; `NullHandlers` is the stand-in until then.
 ///
 /// Every request carries its `session_id`; look up the workspace roots with
 /// `SessionRegistry::roots`. Handlers run on their own task and may await.
@@ -119,59 +118,5 @@ pub trait ClientHandlers: Send + Sync + 'static {
         _path: &str,
     ) -> BoxFuture<'_, Result<RevertOutcome, RpcError>> {
         Box::pin(async { Err(RpcError::method_not_found("review/revert")) })
-    }
-}
-
-/// Answers every client method with `-32601`, so agents fall back to their
-/// own fs/terminal. Used until package B's bridges are wired in.
-#[derive(Debug, Default, Clone, Copy)]
-pub struct NullHandlers;
-
-fn unsupported<T: Send + 'static>(method: &'static str) -> BoxFuture<'static, Result<T, RpcError>> {
-    Box::pin(async move { Err(RpcError::method_not_found(method)) })
-}
-
-impl ClientHandlers for NullHandlers {
-    fn read_text_file(
-        &self,
-        _: ReadTextFileRequest,
-    ) -> BoxFuture<'_, Result<ReadTextFileResponse, RpcError>> {
-        unsupported("fs/read_text_file")
-    }
-    fn write_text_file(
-        &self,
-        _: WriteTextFileRequest,
-    ) -> BoxFuture<'_, Result<WriteTextFileResponse, RpcError>> {
-        unsupported("fs/write_text_file")
-    }
-    fn terminal_create(
-        &self,
-        _: CreateTerminalRequest,
-    ) -> BoxFuture<'_, Result<CreateTerminalResponse, RpcError>> {
-        unsupported("terminal/create")
-    }
-    fn terminal_output(
-        &self,
-        _: TerminalOutputRequest,
-    ) -> BoxFuture<'_, Result<TerminalOutputResponse, RpcError>> {
-        unsupported("terminal/output")
-    }
-    fn terminal_wait_for_exit(
-        &self,
-        _: WaitForTerminalExitRequest,
-    ) -> BoxFuture<'_, Result<WaitForTerminalExitResponse, RpcError>> {
-        unsupported("terminal/wait_for_exit")
-    }
-    fn terminal_kill(
-        &self,
-        _: KillTerminalRequest,
-    ) -> BoxFuture<'_, Result<KillTerminalResponse, RpcError>> {
-        unsupported("terminal/kill")
-    }
-    fn terminal_release(
-        &self,
-        _: ReleaseTerminalRequest,
-    ) -> BoxFuture<'_, Result<ReleaseTerminalResponse, RpcError>> {
-        unsupported("terminal/release")
     }
 }

@@ -61,7 +61,10 @@ pub const SPECS: [AgentSpec; 3] = [
 ];
 
 pub fn spec(id: AgentId) -> &'static AgentSpec {
-    SPECS.iter().find(|s| s.id == id).expect("every AgentId has a spec")
+    SPECS
+        .iter()
+        .find(|s| s.id == id)
+        .expect("every AgentId has a spec")
 }
 
 impl AgentSpec {
@@ -116,7 +119,13 @@ pub struct NodeRuntime {
 
 /// Extracts the major version from `node --version` output (`v22.11.0`).
 pub fn node_major(version: &str) -> Option<u32> {
-    version.trim().trim_start_matches('v').split('.').next()?.parse().ok()
+    version
+        .trim()
+        .trim_start_matches('v')
+        .split('.')
+        .next()?
+        .parse()
+        .ok()
 }
 
 /// Where Node.js usually lives when a GUI app did not inherit the user's PATH.
@@ -149,7 +158,11 @@ pub fn find_node() -> Option<NodeRuntime> {
     let version = node_version(&exe)?;
     let major = node_major(&version)?;
     let npm_cli = npm_cli_for(&exe);
-    Some(NodeRuntime { exe, major, npm_cli })
+    Some(NodeRuntime {
+        exe,
+        major,
+        npm_cli,
+    })
 }
 
 fn node_version(exe: &Path) -> Option<String> {
@@ -186,14 +199,26 @@ fn node_version(exe: &Path) -> Option<String> {
 pub fn npm_cli_for(node_exe: &Path) -> Option<PathBuf> {
     let dir = node_exe.parent()?;
     let candidates = [
-        dir.join("node_modules").join("npm").join("bin").join("npm-cli.js"),
-        dir.join("..").join("lib").join("node_modules").join("npm").join("bin").join("npm-cli.js"),
+        dir.join("node_modules")
+            .join("npm")
+            .join("bin")
+            .join("npm-cli.js"),
+        dir.join("..")
+            .join("lib")
+            .join("node_modules")
+            .join("npm")
+            .join("bin")
+            .join("npm-cli.js"),
     ];
     candidates.into_iter().find(|p| p.is_file())
 }
 
 /// Why an agent cannot start yet (`AgentStatus::NotInstalled.reason`).
-pub fn missing_reason(spec: &AgentSpec, node: Option<&NodeRuntime>, agents_dir: &Path) -> Option<&'static str> {
+pub fn missing_reason(
+    spec: &AgentSpec,
+    node: Option<&NodeRuntime>,
+    agents_dir: &Path,
+) -> Option<&'static str> {
     match node {
         None => Some("node-missing"),
         Some(node) if node.major < spec.min_node_major => Some("node-too-old"),
@@ -244,10 +269,20 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let spec = spec(AgentId::Claude);
         assert_eq!(missing_reason(spec, None, dir.path()), Some("node-missing"));
-        let old = NodeRuntime { exe: "node".into(), major: 20, npm_cli: None };
-        assert_eq!(missing_reason(spec, Some(&old), dir.path()), Some("node-too-old"));
+        let old = NodeRuntime {
+            exe: "node".into(),
+            major: 20,
+            npm_cli: None,
+        };
+        assert_eq!(
+            missing_reason(spec, Some(&old), dir.path()),
+            Some("node-too-old")
+        );
         let ok = NodeRuntime { major: 22, ..old };
-        assert_eq!(missing_reason(spec, Some(&ok), dir.path()), Some("package-missing"));
+        assert_eq!(
+            missing_reason(spec, Some(&ok), dir.path()),
+            Some("package-missing")
+        );
     }
 
     #[test]
