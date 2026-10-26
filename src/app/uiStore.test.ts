@@ -26,8 +26,8 @@ describe("ui store", () => {
     vi.stubGlobal("localStorage", storage);
     const store = await loadStore();
     expect(store.getState().sidebarView).toBe("inbox");
-    store.getState().setSidebarView("explorer");
-    expect(storage.data.get("xora.sidebarView")).toBe("explorer");
+    store.getState().setSidebarView("sessions");
+    expect(storage.data.get("xora.sidebarView")).toBe("sessions");
   });
 
   it("ignores unknown stored values", async () => {

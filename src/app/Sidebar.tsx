@@ -2,7 +2,6 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
-  Files,
   Inbox,
   MessagesSquare,
   PanelLeft,
@@ -18,22 +17,19 @@ import { statusNote } from "@/features/chat/controlsView";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
 import { SessionList } from "@/features/chat/SessionList";
 import { emitCommand, NEW_CHAT, OPEN_PALETTE } from "@/features/commands/events";
-import { FileTree } from "@/features/files/FileTree";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { openCount } from "@/features/inbox/sortNotes";
 import { useInboxStore } from "@/features/inbox/store";
 import { closeSettings, openSettings, useSettingsView } from "@/features/settings/viewStore";
-import { openFolder } from "@/features/workspace/openFolder";
 import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
-import { useUiStore, type SidebarView } from "./uiStore";
+import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
 
 /** Ctrl+Shift+<code> per view. Avoids WebView2's Ctrl+Shift+I/J (devtools). */
 const SHORTCUTS: Record<SidebarView, { code: string; label: string }> = {
   sessions: { code: "KeyH", label: "Ctrl+Shift+H" },
-  explorer: { code: "KeyE", label: "Ctrl+Shift+E" },
   inbox: { code: "KeyN", label: "Ctrl+Shift+N" },
 };
 
@@ -50,7 +46,7 @@ function showView(next: SidebarView) {
 
 /**
  * The left column. Top: window controls and history arrows (also the drag handle), then
- * the two everyday actions (new chat, search) and the three views. Middle: the current
+ * the two everyday actions (new chat, search) and the two views. Middle: the current
  * view. Bottom: this computer and the agent's state, with settings beside it.
  */
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
@@ -70,6 +66,11 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented) return;
       if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey || e.repeat) return;
+      if (e.code === "KeyE") {
+        e.preventDefault();
+        toggleFiles();
+        return;
+      }
       const match = (Object.keys(SHORTCUTS) as SidebarView[]).find(
         (v) => SHORTCUTS[v].code === e.code,
       );
@@ -145,13 +146,6 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           onClick={() => showView("sessions")}
         />
         <NavItem
-          icon={Files}
-          label="Gezgin"
-          shortcut={SHORTCUTS.explorer.label}
-          active={active === "explorer"}
-          onClick={() => showView("explorer")}
-        />
-        <NavItem
           icon={Inbox}
           label="Inbox"
           shortcut={SHORTCUTS.inbox.label}
@@ -169,16 +163,13 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
 
       <div aria-hidden className="mx-4 mt-3 h-px bg-white/[0.05]" />
 
-      {/* All stay mounted so switching views keeps tree expansion and drafts. */}
+      {/* Both stay mounted so switching views keeps drafts. */}
       <div className="relative mt-1 min-h-0 flex-1">
         <div className="flex h-full flex-col" hidden={view !== "sessions"}>
           <ProjectPicker />
           <div className="min-h-0 flex-1">
             <SessionList />
           </div>
-        </div>
-        <div className="h-full" hidden={view !== "explorer"}>
-          <FileTree onOpenFolder={openFolder} />
         </div>
         <div className="h-full" hidden={view !== "inbox"}>
           <InboxPanel />

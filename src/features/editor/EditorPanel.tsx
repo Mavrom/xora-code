@@ -130,7 +130,11 @@ export function EditorPanel() {
 
   if (!active) {
     return (
-      <EmptyState icon={FileCode} title="Açık dosya yok" description="Gezgin'den bir dosya seç." />
+      <EmptyState
+        icon={FileCode}
+        title="Açık dosya yok"
+        description="Dosyalar panelinden bir dosya seç."
+      />
     );
   }
 

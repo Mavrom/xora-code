@@ -17,7 +17,7 @@ export function EditorArea() {
 
   if (!hasTabs) {
     // Focusable (not tabbable) so closing the last tab can park focus here. The empty
-    // strip where tabs would be keeps the well level with the Gezgin's (same 36px header).
+    // strip where tabs would be keeps the well level with the files column (same 40px header).
     return (
       <div
         id={EDITOR_EMPTY_ID}
@@ -27,12 +27,12 @@ export function EditorArea() {
         data-editor-area
         className="flex h-full flex-col outline-none"
       >
-        <div aria-hidden className="h-9 shrink-0" />
+        <div aria-hidden className="h-10 shrink-0" />
         <div className="min-h-0 flex-1">
           <EmptyState
             icon={FileCode}
             title="Açık dosya yok"
-            description="Gezgin'den bir dosya seç."
+            description="Dosyalar panelinden bir dosya seç."
           />
         </div>
       </div>

@@ -14,24 +14,25 @@ Xora Code puts an AI agent conversation at the center of the window. Your conver
 
 What works today:
 
-| Area            | What you get                                                                                                                                                                                        |
-| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Agent chat      | Claude Code, Codex and Gemini CLI over the [Agent Client Protocol](https://agentclientprotocol.com/). Streaming answers, thinking blocks, tool-call cards, plans, slash commands, stop.             |
-| Model and mode  | Model, mode and effort pickers filled from what each agent reports (Gemini has no effort setting over ACP, so it is hidden there).                                                                  |
-| Attachments     | Files, folders and pictures (also pasted screenshots) ride along as cards above the field; pictures go to the agent as images.                                                                      |
-| Worktrees       | Run a chat in its own git worktree on an `xora/<name>` branch, then take its work into your branch (fast-forward only) or throw it away.                                                            |
-| Permissions     | Agent edits and commands ask first, with a diff preview. A changes bar lists the files a turn touched; accept or revert each one.                                                                   |
-| Sandbox         | Agent file and terminal access is limited to the open folder (symlinks, `..` and junctions are resolved before the check).                                                                          |
-| Sessions        | Conversations under day headings in the sidebar, filterable by project, reopened with the agent's own history (`session/load` / `resume`). Archive or delete from the row or its right-click menu.  |
-| Settings        | Accounts (detects each CLI, sign-in state, sign in / install), agent defaults, editor, general, shortcuts, about. `Ctrl+,`.                                                                         |
-| Look            | Onyx / AMOLED black, frameless window. Optional new-chat picture with dither, ASCII, halftone or scanline effect and adjustable dim.                                                                |
-| Terminal        | Integrated PowerShell / shell tabs under the chat and editor (``Ctrl+` ``).                                                                                                                         |
-| Layout          | Chat-first: the editor stays closed until a file opens. Resizable panels, sizes remembered between sessions.                                                                                        |
-| Sidebar         | New chat (`Ctrl+N`), search, and **Conversations**, **Explorer** and **Inbox** (with an open-note count); a footer card shows this computer and the agent's state.                                  |
-| Explorer        | Virtualised folder tree with live refresh from a file watcher, recent folders, last folder reopened on start. Full keyboard navigation: roving tabindex, arrow keys, Home/End, type-ahead.          |
-| Editor          | Monaco, bundled locally (works offline) and lazy-loaded only when the first file opens. Custom `xora-onyx` theme, tabs, unsaved-change (dirty) tracking, save and close shortcuts.                  |
-| Inbox           | Quick-capture notes: add, edit inline, pin, mark done, delete with undo. Saved to disk atomically by the Rust `notes` module, with debounced writes, automatic retry, and a final flush on close.   |
-| Command palette | `Ctrl+K` or `Ctrl+Shift+P`. Also jumps to the open folder's conversations and recent folders. Fuzzy search that is Turkish-aware (`klasor ac` finds `Klasör aç`), grouped commands, shortcut hints. |
+| Area            | What you get                                                                                                                                                                                                                                         |
+| --------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Agent chat      | Claude Code, Codex and Gemini CLI over the [Agent Client Protocol](https://agentclientprotocol.com/). Streaming answers, thinking blocks, tool-call cards, plans, slash commands, stop.                                                              |
+| Model and mode  | Model, mode and effort pickers filled from what each agent reports (Gemini has no effort setting over ACP, so it is hidden there).                                                                                                                   |
+| Model list      | Settings > Agent lists every model each agent has offered; switch off the ones you never use and they leave the picker.                                                                                                                              |
+| Attachments     | Files, folders and pictures (also pasted screenshots) ride along as cards above the field; pictures go to the agent as images.                                                                                                                       |
+| Worktrees       | Run a chat in its own git worktree on an `xora/<name>` branch, then take its work into your branch (fast-forward only) or throw it away.                                                                                                             |
+| Permissions     | Agent edits and commands ask first, with a diff preview. A changes bar lists the files a turn touched; accept or revert each one.                                                                                                                    |
+| Sandbox         | Agent file and terminal access is limited to the open folder (symlinks, `..` and junctions are resolved before the check).                                                                                                                           |
+| Sessions        | Conversations under day headings in the sidebar, filterable by project, reopened with the agent's own history (`session/load` / `resume`). Archive or delete from the row or its right-click menu.                                                   |
+| Settings        | Accounts (detects each CLI, sign-in state, sign in / install), agent defaults, editor, general, shortcuts, about. `Ctrl+,`.                                                                                                                          |
+| Look            | Onyx / AMOLED black, frameless window. Optional new-chat picture with dither, ASCII, halftone or scanline effect and adjustable dim.                                                                                                                 |
+| Terminal        | Integrated PowerShell / shell tabs under the chat and editor (``Ctrl+` ``).                                                                                                                                                                          |
+| Layout          | Chat-first: the editor stays closed until a file opens. Resizable panels, sizes remembered between sessions.                                                                                                                                         |
+| Sidebar         | New chat (`Ctrl+N`), search, and **Conversations** and **Inbox** (with an open-note count); a footer card shows this computer and the agent's state.                                                                                                 |
+| Files           | A column on the right (title bar button, `Ctrl+Shift+E`): virtualised folder tree with live refresh from a file watcher, recent folders, last folder reopened on start. Full keyboard navigation: roving tabindex, arrow keys, Home/End, type-ahead. |
+| Editor          | Monaco, bundled locally (works offline) and lazy-loaded only when the first file opens. Custom `xora-onyx` theme, tabs, unsaved-change (dirty) tracking, save and close shortcuts.                                                                   |
+| Inbox           | Quick-capture notes: add, edit inline, pin, mark done, delete with undo. Saved to disk atomically by the Rust `notes` module, with debounced writes, automatic retry, and a final flush on close.                                                    |
+| Command palette | `Ctrl+K` or `Ctrl+Shift+P`. Also jumps to the open folder's conversations and recent folders. Fuzzy search that is Turkish-aware (`klasor ac` finds `Klasör aç`), grouped commands, shortcut hints.                                                  |
 
 ## Keyboard shortcuts
 
@@ -43,7 +44,7 @@ On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab a
 | ------------------------- | ------------------------------------------ |
 | `Ctrl+K` / `Ctrl+Shift+P` | Toggle the command palette                 |
 | `Ctrl+Shift+H`            | Show the conversations                     |
-| `Ctrl+Shift+E`            | Show the Explorer                          |
+| `Ctrl+Shift+E`            | Show or hide the files column              |
 | `Ctrl+Shift+N`            | Show the Inbox and focus the note composer |
 | `Ctrl+S`                  | Save the active file                       |
 | `Ctrl+W`                  | Close the active tab                       |

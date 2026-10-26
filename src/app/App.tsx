@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useAgentEvents } from "@/features/agents/useAgentEvents";
 import { CommandPalette } from "@/features/commands/CommandPalette";
 import { onCommand, OPEN_PALETTE } from "@/features/commands/events";
+import { installModelCatalog } from "@/features/agents/modelCatalog";
 import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
@@ -13,6 +14,7 @@ import { Layout } from "./Layout";
 installPaletteGuard();
 installNavHistory();
 installSessionReaper();
+installModelCatalog();
 installContextMenuGuard();
 
 export default function App() {

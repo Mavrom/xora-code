@@ -1,10 +1,11 @@
-import { PanelLeft, PanelRight, SquarePen } from "lucide-react";
+import { Files, PanelLeft, PanelRight, SquarePen } from "lucide-react";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { isDocked, sessionTitle } from "@/features/chat/sessionTitle";
 import { useEditorStore } from "@/features/editor/store";
 import { cn } from "@/shared/ui/cn";
 import { IconButton } from "@/shared/ui/IconButton";
+import { toggleFiles, useUiStore } from "./uiStore";
 import { WindowControls } from "./WindowControls";
 
 interface MainBarProps {
@@ -24,6 +25,7 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
   const docked = isDocked(session);
   const title = docked ? sessionTitle(session) : null;
   const hasFiles = useEditorStore((s) => s.tabs.length > 0);
+  const filesOpen = useUiStore((s) => s.filesOpen);
 
   return (
     <header
@@ -54,17 +56,23 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
         )}
       </div>
       <div className="flex h-full shrink-0 items-center">
-        {/* Only once there is a file to show; a new chat stays bare like the window frame. */}
-        {hasFiles && (
-          <div className="pr-1">
+        <div className="flex items-center gap-0.5 pr-1">
+          {/* Only once there is a file to show; a new chat stays bare like the window frame. */}
+          {hasFiles && (
             <IconButton
               icon={PanelRight}
               label={editorOpen ? "Editörü gizle" : "Editörü göster"}
               active={editorOpen}
               onClick={onToggleEditor}
             />
-          </div>
-        )}
+          )}
+          <IconButton
+            icon={Files}
+            label={filesOpen ? "Dosyaları gizle (Ctrl+Shift+E)" : "Dosyaları göster (Ctrl+Shift+E)"}
+            active={filesOpen}
+            onClick={toggleFiles}
+          />
+        </div>
         <WindowControls />
       </div>
     </header>

@@ -123,7 +123,7 @@ export function EditorTabs() {
         if (e.deltaY !== 0 && e.deltaX === 0) e.currentTarget.scrollLeft += e.deltaY;
       }}
       style={{ maskImage: mask, WebkitMaskImage: mask }}
-      className="relative flex h-9 shrink-0 overflow-x-auto overflow-y-hidden bg-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="relative flex h-10 shrink-0 items-center gap-0.5 overflow-x-auto overflow-y-hidden border-b border-white/[0.05] px-1.5 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((tab) => (
         <EditorTab
@@ -138,8 +138,6 @@ export function EditorTabs() {
           }}
         />
       ))}
-      {/* Filler carries the strip's bottom border; the active tab stays open to the editor. */}
-      <div className="min-w-4 flex-1 border-b border-border" aria-hidden />
     </div>
   );
 }
@@ -168,11 +166,10 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         if (e.button === 1) void requestCloseTab(tab);
       }}
       className={cn(
-        "group relative flex h-full max-w-56 shrink-0 items-center border-r border-b transition-colors duration-150",
-        "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-accent before:transition-opacity before:duration-150",
+        "group relative flex h-7 max-w-56 shrink-0 items-center rounded-md transition-colors duration-150",
         active
-          ? "border-r-border border-b-transparent bg-bg text-fg before:opacity-100"
-          : "border-border text-fg-muted before:opacity-0 hover:bg-hover hover:text-fg",
+          ? "bg-white/[0.07] text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.05)]"
+          : "text-fg-muted hover:bg-white/[0.035] hover:text-fg",
       )}
     >
       <button
@@ -183,7 +180,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         title={tab.diskChanged ? `${tab.path}\nDiskte değişti` : tab.path}
         aria-keyshortcuts="Delete Control+W"
         onClick={onSelect}
-        className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3 text-xs outline-none focus-visible:bg-hover"
+        className="flex h-full min-w-0 items-center gap-2 rounded-md pr-1 pl-2.5 text-xs outline-none focus-visible:bg-hover"
       >
         <FileIcon name={tab.name} />
         <span className="truncate">{tab.name}</span>
@@ -198,7 +195,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         title="Kapat (Ctrl+W)"
         onClick={() => void requestCloseTab(tab)}
         className={cn(
-          "group/close mr-1.5 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-150 hover:bg-elevated hover:text-fg",
+          "group/close mr-1 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-150 hover:bg-elevated hover:text-fg",
           !marked && !active && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
         )}
       >

@@ -10,7 +10,7 @@ import { useWorkspaceStore } from "./store";
 const openLastFolderOnStart = () => true;
 
 /**
- * App-lifetime workspace duties, mounted once by the always-present Gezgin panel: reopen the
+ * App-lifetime workspace duties, mounted once by the always-present file tree: reopen the
  * last folder and its tabs, remember tabs from now on, and keep a file watcher on the root.
  */
 export function useWorkspaceLifecycle() {

@@ -74,7 +74,7 @@ export function FileTree({ onOpenFolder }: FileTreeProps) {
   return (
     <div ref={panel} className="flex h-full flex-col">
       <PanelHeader
-        title={root ? basename(root) : "Gezgin"}
+        title={root ? basename(root) : "Dosyalar"}
         actions={
           root ? (
             <IconButton icon={RotateCw} size="sm" label="Yenile" onClick={() => requestRefresh()} />
@@ -92,18 +92,17 @@ export function FileTree({ onOpenFolder }: FileTreeProps) {
 }
 
 /**
- * Switching the sidebar to the Gezgin (activity bar, Ctrl+Shift+E, palette) hides whatever
- * had focus before, e.g. the inbox composer, which drops focus to <body>. Land on the tree's
- * tab stop (or the empty state's first control) instead; never steal focus from a visible
- * element such as the activity bar button that was just clicked.
+ * Showing the files column (title bar button, Ctrl+Shift+E, palette) lands on the tree's
+ * tab stop (or the empty state's first control) when focus has nowhere visible to be;
+ * never steals focus from a visible element such as the button that was just clicked.
  */
 function useFocusOnShow(panel: RefObject<HTMLDivElement | null>) {
-  const view = useUiStore((s) => s.sidebarView);
-  const previous = useRef(view);
+  const open = useUiStore((s) => s.filesOpen);
+  const previous = useRef(open);
   useEffect(() => {
     const was = previous.current;
-    previous.current = view;
-    if (view !== "explorer" || was === "explorer") return;
+    previous.current = open;
+    if (!open || was) return;
     const id = requestAnimationFrame(() => {
       const current = document.activeElement;
       if (current && current !== document.body && isShown(current)) return;
@@ -113,7 +112,7 @@ function useFocusOnShow(panel: RefObject<HTMLDivElement | null>) {
       target?.focus({ preventScroll: true });
     });
     return () => cancelAnimationFrame(id);
-  }, [view, panel]);
+  }, [open, panel]);
 }
 
 /** "Klasör açılmadı" plus the recently opened folders, newest first. */

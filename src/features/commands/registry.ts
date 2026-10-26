@@ -14,7 +14,7 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
-import { useUiStore } from "@/app/uiStore";
+import { toggleFiles, useUiStore } from "@/app/uiStore";
 import { closeActiveTab } from "@/features/editor/closeTab";
 import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
@@ -54,7 +54,7 @@ export const COMMANDS: Command[] = [
   },
   {
     id: "workspace.refresh",
-    title: "Gezgini yenile",
+    title: "Dosya ağacını yenile",
     group: "Dosya",
     icon: RotateCw,
     when: () => useWorkspaceStore.getState().root !== null,
@@ -95,11 +95,11 @@ export const COMMANDS: Command[] = [
   },
   {
     id: "view.explorer",
-    title: "Gezgin'e geç",
+    title: "Dosyaları göster/gizle",
     group: "Görünüm",
     shortcut: "ctrl+shift+e",
     icon: Files,
-    run: () => useUiStore.getState().setSidebarView("explorer"),
+    run: toggleFiles,
   },
   {
     id: "view.inbox",

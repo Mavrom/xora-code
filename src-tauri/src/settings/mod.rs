@@ -73,6 +73,8 @@ pub struct Agent {
     pub claude_ignore_api_key: bool,
     /// Write agent protocol traffic to the log for troubleshooting.
     pub debug_logs: bool,
+    /// Models left out of the composer's picker, as `"<agent>:<model id>"`.
+    pub hidden_models: Vec<String>,
 }
 
 impl Default for Agent {
@@ -84,6 +86,7 @@ impl Default for Agent {
             default_effort: Effort::default(),
             claude_ignore_api_key: true,
             debug_logs: false,
+            hidden_models: Vec::new(),
         }
     }
 }
@@ -414,6 +417,17 @@ mod tests {
         assert!(settings.editor.minimap);
         assert_eq!(settings.agent.default_effort, Effort::Medium);
         assert_eq!(settings.agent.default_agent, AgentId::Codex);
+    }
+
+    #[test]
+    fn from_value_keeps_hidden_models() {
+        let value = json!({ "agent": { "hiddenModels": ["claude:haiku", "codex:gpt-5"] } });
+        assert_eq!(
+            from_value(&value).agent.hidden_models,
+            ["claude:haiku", "codex:gpt-5"]
+        );
+        let bad = json!({ "agent": { "hiddenModels": "claude:haiku" } });
+        assert!(from_value(&bad).agent.hidden_models.is_empty());
     }
 
     #[test]

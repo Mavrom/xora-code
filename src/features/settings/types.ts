@@ -25,6 +25,8 @@ export interface AgentSettings {
   claudeIgnoreApiKey: boolean;
   /** Log agent protocol traffic for troubleshooting. */
   debugLogs: boolean;
+  /** Models left out of the composer's picker, as "<agent>:<model id>". */
+  hiddenModels: string[];
 }
 
 export interface EditorSettings {
@@ -79,6 +81,7 @@ export const DEFAULT_SETTINGS: Settings = {
     defaultEffort: "medium",
     claudeIgnoreApiKey: true,
     debugLogs: false,
+    hiddenModels: [],
   },
   editor: {
     fontSize: 13,

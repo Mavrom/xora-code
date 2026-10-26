@@ -10,8 +10,11 @@ import {
   Paperclip,
 } from "lucide-react";
 import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
+import { visibleModels } from "@/features/agents/modelCatalog";
 import { AGENT_IDS } from "@/features/agents/reducer";
 import type { AgentId, AgentInfo } from "@/features/agents/types";
+import { useSettingsStore } from "@/features/settings/store";
+import { openSettings } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import type { MenuEntry } from "@/shared/ui/menuModel";
@@ -99,6 +102,7 @@ export function ModelPicker({
 }: ModelPickerProps) {
   const agent = agents[agentId];
   const summary = pickerSummary(agent.displayName, controls?.model, controls?.effort);
+  const hiddenModels = useSettingsStore((s) => s.settings.agent.hiddenModels);
 
   const sections: ChipSection[] = [
     {
@@ -114,7 +118,11 @@ export function ModelPicker({
       })),
     },
   ];
-  if (controls?.model) sections.push(selectSection("model", "Model", controls.model, onSetControl));
+  if (controls?.model) {
+    const model = controls.model;
+    const options = toOptions({ ...model, options: visibleModels(agentId, model, hiddenModels) });
+    sections.push(selectSection("model", "Model", model, onSetControl, options));
+  }
   if (controls?.effort) {
     const effort = controls.effort;
     sections.push(
@@ -132,6 +140,16 @@ export function ModelPicker({
   }
   for (const control of controls?.extra ?? []) {
     if (!HIDDEN_EXTRAS.has(control.key)) sections.push(extraSection(control, onSetControl));
+  }
+  if (controls?.model) {
+    // Never checked: a link to the list of models the picker shows.
+    sections.push({
+      key: "models",
+      label: "Liste",
+      value: "",
+      options: [{ value: "edit", name: "Görünen modelleri seç…" }],
+      onSelect: () => openSettings("agent"),
+    });
   }
 
   // The mark already names the agent: show model and effort, like "Opus 5.5 Orta".

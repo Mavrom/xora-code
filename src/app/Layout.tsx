@@ -11,19 +11,29 @@ import { onCommand, TOGGLE_EDITOR } from "@/features/commands/events";
 import { HeroBackdrop } from "@/features/backdrop/HeroBackdrop";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
+import { FileTree } from "@/features/files/FileTree";
+import { openFolder } from "@/features/workspace/openFolder";
 import { moveFocusOutOfEditor } from "@/features/editor/editorFocus";
 import { useEditorStore } from "@/features/editor/store";
 import { TerminalDock } from "@/features/terminal/TerminalDock";
 import { SettingsHost } from "@/features/settings/SettingsHost";
 import { MainBar } from "./MainBar";
 import { Sidebar } from "./Sidebar";
+import { cn } from "@/shared/ui/cn";
+import { useUiStore } from "./uiStore";
 
-/** 1px divider; the library widens the actual hit target around it. */
-function ResizeHandle({ label }: { label: string }) {
+/**
+ * 1px divider; the library widens the actual hit target around it. `quiet` ones (beside the
+ * floating editor card) only show while hovered or dragged.
+ */
+function ResizeHandle({ label, quiet }: { label: string; quiet?: boolean }) {
   return (
     <Separator
       aria-label={label}
-      className="w-px bg-border transition-colors duration-150 data-[separator=active]:bg-fg-muted data-[separator=focus]:bg-fg-subtle data-[separator=hover]:bg-fg-subtle"
+      className={cn(
+        "w-px transition-colors duration-150 data-[separator=active]:bg-fg-muted data-[separator=focus]:bg-fg-subtle data-[separator=hover]:bg-fg-subtle",
+        quiet ? "bg-transparent" : "bg-border",
+      )}
     />
   );
 }
@@ -47,6 +57,7 @@ export function Layout() {
   const editorPanel = usePanelRef();
   const [sidebarOpen, setSidebarOpen] = useState(true);
   const [editorOpen, setEditorOpen] = useState(true);
+  const filesOpen = useUiStore((s) => s.filesOpen);
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-shell" });
   const center = useDefaultLayout({ id: "xora-center" });
 
@@ -126,42 +137,54 @@ export function Layout() {
               onToggleEditor={toggleEditor}
             />
             {/* The terminal docks under chat + editor; the sidebar keeps its full height. */}
-            <div className="relative min-h-0 flex-1">
-              <TerminalDock>
-                <Group
-                  id="xora-center"
-                  orientation="horizontal"
-                  defaultLayout={center.defaultLayout}
-                  onLayoutChanged={center.onLayoutChanged}
-                  className="h-full"
-                >
-                  <Panel id="chat" defaultSize="51%" minSize="30%">
-                    <ChatPanel />
-                  </Panel>
-                  <ResizeHandle label="Editörü yeniden boyutlandır" />
-                  <Panel
-                    id="editor"
-                    panelRef={editorPanel}
-                    collapsible
-                    defaultSize="49%"
-                    minSize="24%"
-                    onResize={(size) => {
-                      const open = size.asPercentage > 0;
-                      // Nothing to show: an editor dragged open without a file folds back.
-                      if (open && useEditorStore.getState().tabs.length === 0) {
-                        editorPanel.current?.collapse();
-                        return;
-                      }
-                      // Dragged shut: same focus rescue as the toggle.
-                      if (!open) moveFocusOutOfEditor();
-                      setEditorOpen(open);
-                    }}
-                    className="bg-bg"
+            <div className="relative flex min-h-0 flex-1">
+              <div className="relative min-w-0 flex-1">
+                <TerminalDock>
+                  <Group
+                    id="xora-center"
+                    orientation="horizontal"
+                    defaultLayout={center.defaultLayout}
+                    onLayoutChanged={center.onLayoutChanged}
+                    className="h-full"
                   >
-                    <EditorArea />
-                  </Panel>
-                </Group>
-              </TerminalDock>
+                    <Panel id="chat" defaultSize="51%" minSize="30%">
+                      <ChatPanel />
+                    </Panel>
+                    <ResizeHandle label="Editörü yeniden boyutlandır" quiet />
+                    <Panel
+                      id="editor"
+                      panelRef={editorPanel}
+                      collapsible
+                      defaultSize="49%"
+                      minSize="24%"
+                      onResize={(size) => {
+                        const open = size.asPercentage > 0;
+                        // Nothing to show: an editor dragged open without a file folds back.
+                        if (open && useEditorStore.getState().tabs.length === 0) {
+                          editorPanel.current?.collapse();
+                          return;
+                        }
+                        // Dragged shut: same focus rescue as the toggle.
+                        if (!open) moveFocusOutOfEditor();
+                        setEditorOpen(open);
+                      }}
+                    >
+                      {/* A card floating over the picture, not a slab cut out of it. */}
+                      <div className="h-full pr-2 pb-2 pl-1">
+                        <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#0b0b0c]/95 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-xl">
+                          <EditorArea />
+                        </div>
+                      </div>
+                    </Panel>
+                  </Group>
+                </TerminalDock>
+              </div>
+              {/* Files column. Always mounted: the tree also runs the workspace lifecycle. */}
+              <aside aria-label="Dosyalar" hidden={!filesOpen} className="w-64 shrink-0 pr-2 pb-2">
+                <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#0b0b0c]/95 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-xl">
+                  <FileTree onOpenFolder={openFolder} />
+                </div>
+              </aside>
             </div>
           </div>
         </Panel>

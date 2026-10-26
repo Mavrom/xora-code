@@ -23,7 +23,7 @@ const shown = (el: Element | null): el is HTMLElement =>
 /**
  * The editor panel is about to collapse (or just did): if focus is inside it, typing would
  * go into an invisible file and Ctrl+S would save it. Move focus to a visible place first:
- * the chat composer, else the Gezgin tree / Inbox composer, else just blur.
+ * the chat composer, else the file tree / Inbox composer, else just blur.
  */
 export function moveFocusOutOfEditor() {
   const current = document.activeElement;

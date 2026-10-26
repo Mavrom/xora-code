@@ -1,5 +1,6 @@
 import { useId, type KeyboardEvent } from "react";
 import { Hand, PencilLine, Zap, type LucideIcon } from "lucide-react";
+import { modelKey, useModelCatalog } from "@/features/agents/modelCatalog";
 import { cn } from "@/shared/ui/cn";
 import { useAccountsStore } from "../accountsStore";
 import { stepIndex } from "../controls/keyboard";
@@ -102,6 +103,11 @@ export function AgentSection() {
         />
       </SettingGroup>
 
+      <ModelVisibility
+        hidden={agent.hiddenModels}
+        onChange={(hiddenModels) => update({ agent: { hiddenModels } })}
+      />
+
       <SettingGroup title="Onay politikası">
         <PolicyPicker
           value={agent.approvalPolicy}
@@ -122,6 +128,61 @@ export function AgentSection() {
           )}
         />
       </SettingGroup>
+    </>
+  );
+}
+
+/**
+ * One switch per model each agent has offered, so rarely used ones leave the composer's
+ * picker. The lists come from the agents themselves: an agent shows up here after its
+ * first chat.
+ */
+function ModelVisibility({
+  hidden,
+  onChange,
+}: {
+  hidden: string[];
+  onChange: (hidden: string[]) => void;
+}) {
+  const catalog = useModelCatalog((s) => s.models);
+  const agents = PROVIDERS.filter((p) => (catalog[p.id]?.length ?? 0) > 0);
+
+  const set = (key: string, visible: boolean) =>
+    onChange(visible ? hidden.filter((k) => k !== key) : [...hidden, key]);
+
+  if (agents.length === 0) {
+    return (
+      <SettingGroup title="Görünen modeller">
+        <p className="px-4 py-3 text-xs text-fg-subtle">
+          Bir ajanla ilk sohbeti başlattığınızda sunduğu modeller burada listelenir.
+        </p>
+      </SettingGroup>
+    );
+  }
+
+  return (
+    <>
+      {agents.map((provider) => (
+        <SettingGroup key={provider.id} title={`Görünen modeller · ${provider.name}`}>
+          {catalog[provider.id]?.map((model) => {
+            const key = modelKey(provider.id, model.value);
+            return (
+              <SettingRow
+                key={key}
+                label={model.name}
+                description={model.description}
+                control={(id) => (
+                  <Toggle
+                    labelledBy={id}
+                    checked={!hidden.includes(key)}
+                    onChange={(visible) => set(key, visible)}
+                  />
+                )}
+              />
+            );
+          })}
+        </SettingGroup>
+      ))}
     </>
   );
 }
