@@ -1,17 +1,12 @@
+import { isImeComposing, type ImeKeyLike } from "@/shared/lib/ime";
+
+export { isImeComposing };
+
 export type ComposerKeyAction = "submit" | "newline" | "none";
 
-interface KeyLike {
+interface KeyLike extends ImeKeyLike {
   key: string;
   shiftKey: boolean;
-  /** True while an IME composition is active (e.g. accented or CJK input). */
-  isComposing?: boolean;
-  /** Legacy `keyCode`; WebKit reports 229 for the Enter that commits an IME candidate. */
-  keyCode?: number;
-}
-
-/** IME composition in progress, including WebKit's `keyCode` 229 while `isComposing` is false. */
-export function isImeComposing(event: Pick<KeyLike, "isComposing" | "keyCode">): boolean {
-  return event.isComposing === true || event.keyCode === 229;
 }
 
 /** Enter sends, Shift+Enter breaks the line; Enter that confirms an IME candidate is left alone. */

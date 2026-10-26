@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
 import { Check, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
 import type { Note } from "@/shared/lib/ipc";
+import { isImeComposing } from "@/shared/lib/ime";
 import { IconButton } from "@/shared/ui/IconButton";
 import { cn } from "@/shared/ui/cn";
 import { relativeTime } from "./relativeTime";
@@ -83,6 +84,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
       role="listitem"
       tabIndex={0}
       aria-keyshortcuts="Enter P E Delete"
+      aria-label={noteLabel(note)}
       data-note-row
       data-note-id={note.id}
       onKeyDown={onRowKeyDown}
@@ -104,7 +106,8 @@ export function NoteItem({ note, now }: NoteItemProps) {
           className={cn(
             "pr-1 text-[13px] leading-5 break-words whitespace-pre-wrap transition-colors duration-200",
             !expanded && "line-clamp-6",
-            note.done ? "text-fg-subtle line-through decoration-fg-subtle" : "text-fg",
+            // Done reads as quieter, not struck through (a strike-through halves legibility).
+            note.done ? "text-fg-subtle" : "text-fg",
           )}
         >
           {note.text}
@@ -180,6 +183,14 @@ export function NoteItem({ note, now }: NoteItemProps) {
   );
 }
 
+/** Accessible name of a focusable note row: its first line plus its state. */
+function noteLabel(note: Note): string {
+  const first = note.text.split("\n", 1)[0];
+  const text = first.length > 80 ? `${first.slice(0, 80)}…` : first;
+  const state = [note.pinned && !note.done && "sabit", note.done && "tamamlandı"].filter(Boolean);
+  return state.length ? `${text} (${state.join(", ")})` : text;
+}
+
 interface EditAreaProps {
   initial: string;
   /** `null` text means cancelled; `refocus` returns focus to the row. */
@@ -200,7 +211,7 @@ function EditArea({ initial, onDone }: EditAreaProps) {
     if (e.key === "Escape") {
       e.preventDefault();
       finish(null, true);
-    } else if (e.key === "Enter" && !e.shiftKey && !e.nativeEvent.isComposing) {
+    } else if (e.key === "Enter" && !e.shiftKey && !isImeComposing(e.nativeEvent)) {
       e.preventDefault();
       finish(draft, true);
     }

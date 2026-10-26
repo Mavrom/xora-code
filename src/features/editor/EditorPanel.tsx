@@ -1,29 +1,29 @@
 // Side effect: local Monaco workers + xora-onyx theme. This module is lazy-loaded, so Monaco
 // stays out of the startup bundle.
 import "./monaco/setup";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Editor, type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { FileCode } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { onCommand, SAVE_ACTIVE_FILE } from "@/features/commands/events";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
+import { registerEditorFocus } from "./editorFocus";
 import { isSaveShortcut } from "./editorKeys";
+import { lineHeightFor, useEditorSettings, type EditorSettings } from "./editorSettings";
 import { XORA_THEME } from "./monaco/theme";
 import { saveActiveTab } from "./saveActiveTab";
 import { useEditorStore } from "./store";
 import { EditorStatusBar } from "./EditorStatusBar";
 import { EditorTabs } from "./EditorTabs";
 
+/** A failed save stays in the status bar this long (or until the next save). */
 const ERROR_MS = 4000;
 const FONT = "JetBrains Mono Variable";
 
-const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
-  minimap: { enabled: false },
+/** Fixed chrome options; the user-tunable ones come from {@link optionsFor}. */
+const BASE_OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   fontFamily: `"${FONT}", ui-monospace, monospace`,
-  fontSize: 13,
-  lineHeight: 20,
-  fontLigatures: true,
   automaticLayout: true,
   scrollBeyondLastLine: false,
   smoothScrolling: true,
@@ -35,6 +35,21 @@ const OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   scrollbar: { useShadows: false, verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
 };
 
+function optionsFor(s: EditorSettings): monaco.editor.IStandaloneEditorConstructionOptions {
+  return {
+    ...BASE_OPTIONS,
+    fontSize: s.fontSize,
+    lineHeight: lineHeightFor(s.fontSize),
+    fontLigatures: s.ligatures,
+    minimap: { enabled: s.minimap },
+    wordWrap: s.wordWrap ? "on" : "off",
+    renderWhitespace: s.renderWhitespace,
+    tabSize: s.tabSize,
+    // Files keep their own indentation; the setting is the fallback for new lines.
+    detectIndentation: true,
+  };
+}
+
 /** Model URI for a file path; a proper file URI keeps Windows drive letters intact. */
 const modelPath = (path: string) => monaco.Uri.file(path).toString();
 
@@ -43,42 +58,34 @@ type Cursor = { line: number; column: number };
 export function EditorPanel() {
   const tabs = useEditorStore((s) => s.tabs);
   const active = useEditorStore((s) => s.tabs.find((t) => t.path === s.activePath) ?? null);
+  const saveError = useEditorStore((s) => s.saveError);
   const updateContent = useEditorStore((s) => s.updateContent);
-  const [error, setError] = useState<string | null>(null);
   const [cursor, setCursor] = useState<Cursor | null>(null);
-  const errorTimer = useRef<number | undefined>(undefined);
-  const mounted = useRef(false);
+  const settings = useEditorSettings();
+  const options = useMemo(() => optionsFor(settings), [settings]);
 
-  const save = useCallback(async () => {
-    const result = await saveActiveTab();
-    // The panel may unmount while the write is in flight (e.g. last tab closed).
-    if (!mounted.current) return;
-    window.clearTimeout(errorTimer.current);
-    if (result.ok) {
-      setError(null);
-      return;
-    }
-    setError(`Kaydedilemedi: ${result.error}`);
-    errorTimer.current = window.setTimeout(() => setError(null), ERROR_MS);
-  }, []);
+  const save = useCallback(() => void saveActiveTab(), []);
 
+  // A failed save is shown for a while, then the status bar returns to the path.
   useEffect(() => {
-    mounted.current = true;
-    return () => {
-      mounted.current = false;
-      window.clearTimeout(errorTimer.current);
-    };
-  }, []);
+    if (!saveError) return;
+    const timer = window.setTimeout(() => {
+      if (useEditorStore.getState().saveError === saveError) {
+        useEditorStore.getState().setSaveError(null);
+      }
+    }, ERROR_MS);
+    return () => window.clearTimeout(timer);
+  }, [saveError]);
 
-  // "Aktif dosyayı kaydet" from the command palette; shares the inline error handling.
-  useEffect(() => onCommand(SAVE_ACTIVE_FILE, () => void save()), [save]);
+  // "Aktif dosyayı kaydet" from the command palette.
+  useEffect(() => onCommand(SAVE_ACTIVE_FILE, save), [save]);
 
   // Ctrl+S also works while focus is outside Monaco (tab strip, status bar).
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       if (e.defaultPrevented || isPaletteOpen() || !isSaveShortcut(e)) return;
       e.preventDefault();
-      void save();
+      save();
     };
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
@@ -92,13 +99,19 @@ export function EditorPanel() {
     }
   }, [tabs]);
 
+  useEffect(() => () => registerEditorFocus(null), []);
+
   const onMount: OnMount = (editor, m) => {
-    editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.KeyS, () => void save());
-    editor.onDidChangeCursorPosition(({ position }) =>
-      setCursor({ line: position.lineNumber, column: position.column }),
-    );
-    const position = editor.getPosition();
-    if (position) setCursor({ line: position.lineNumber, column: position.column });
+    editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.KeyS, save);
+    const syncCursor = () => {
+      const position = editor.getPosition();
+      setCursor(position ? { line: position.lineNumber, column: position.column } : null);
+    };
+    editor.onDidChangeCursorPosition(syncCursor);
+    // Switching tabs swaps the model; its own saved cursor is restored, so read it again.
+    editor.onDidChangeModel(syncCursor);
+    syncCursor();
+    registerEditorFocus(() => editor.focus());
     // Monaco measures glyphs once; re-measure after the web font actually arrives.
     void document.fonts.load(`13px "${FONT}"`).then(() => m.editor.remeasureFonts());
     editor.focus();
@@ -115,11 +128,7 @@ export function EditorPanel() {
 
   if (!active) {
     return (
-      <EmptyState
-        icon={FileCode}
-        title="Açık dosya yok"
-        description="Explorer'dan bir dosya seç."
-      />
+      <EmptyState icon={FileCode} title="Açık dosya yok" description="Gezgin'den bir dosya seç." />
     );
   }
 
@@ -133,11 +142,16 @@ export function EditorPanel() {
           value={active.content}
           onChange={onChange}
           onMount={onMount}
-          options={OPTIONS}
+          options={options}
           loading={null}
         />
       </div>
-      <EditorStatusBar path={active.path} error={error} cursor={cursor} />
+      <EditorStatusBar
+        path={active.path}
+        error={saveError?.path === active.path ? saveError.message : null}
+        cursor={cursor}
+        diskChanged={!!active.diskChanged}
+      />
     </div>
   );
 }

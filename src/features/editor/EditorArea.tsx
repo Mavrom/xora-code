@@ -1,6 +1,7 @@
 import { lazy, Suspense } from "react";
 import { FileCode } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import { useDiskSync } from "./diskSync";
 import { EDITOR_EMPTY_ID } from "./editorKeys";
 import { EditorStatusBar } from "./EditorStatusBar";
 import { EditorTabs } from "./EditorTabs";
@@ -12,30 +13,38 @@ const EditorPanel = lazy(() => import("./EditorPanel").then((m) => ({ default: m
 /** Editor slot: a light empty state until a tab exists, then the lazy Monaco panel. */
 export function EditorArea() {
   const hasTabs = useEditorStore((s) => s.tabs.length > 0);
+  useDiskSync();
 
   if (!hasTabs) {
-    // Focusable (not tabbable) so closing the last tab can park focus here.
+    // Focusable (not tabbable) so closing the last tab can park focus here. The empty
+    // strip where tabs would be keeps the well level with the Gezgin's (same 36px header).
     return (
       <div
         id={EDITOR_EMPTY_ID}
         tabIndex={-1}
         role="region"
         aria-label="Editör"
-        className="h-full outline-none"
+        data-editor-area
+        className="flex h-full flex-col outline-none"
       >
-        <EmptyState
-          icon={FileCode}
-          title="Açık dosya yok"
-          description="Explorer'dan bir dosya seç."
-        />
+        <div aria-hidden className="h-9 shrink-0" />
+        <div className="min-h-0 flex-1">
+          <EmptyState
+            icon={FileCode}
+            title="Açık dosya yok"
+            description="Gezgin'den bir dosya seç."
+          />
+        </div>
       </div>
     );
   }
 
   return (
-    <Suspense fallback={<EditorShell />}>
-      <EditorPanel />
-    </Suspense>
+    <div data-editor-area className="h-full">
+      <Suspense fallback={<EditorShell />}>
+        <EditorPanel />
+      </Suspense>
+    </div>
   );
 }
 

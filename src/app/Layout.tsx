@@ -14,22 +14,31 @@ import { onCommand, TOGGLE_EDITOR } from "@/features/commands/events";
 import { FileTree } from "@/features/files/FileTree";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
+import { moveFocusOutOfEditor } from "@/features/editor/editorFocus";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { TopBar } from "./TopBar";
 import { ActivityBar } from "./ActivityBar";
 import { useUiStore } from "./uiStore";
 
 /** 1px divider; the library widens the actual hit target around it. */
-function ResizeHandle() {
+function ResizeHandle({ label }: { label: string }) {
   return (
-    <Separator className="w-px bg-border transition-colors duration-150 data-[separator=active]:bg-fg-muted data-[separator=focus]:bg-fg-subtle data-[separator=hover]:bg-fg-subtle" />
+    <Separator
+      aria-label={label}
+      className="w-px bg-border transition-colors duration-150 data-[separator=active]:bg-fg-muted data-[separator=focus]:bg-fg-subtle data-[separator=hover]:bg-fg-subtle"
+    />
   );
 }
 
 function togglePanel(panel: PanelImperativeHandle | null) {
   if (!panel) return;
-  if (panel.isCollapsed()) panel.expand();
-  else panel.collapse();
+  if (panel.isCollapsed()) {
+    panel.expand();
+    return;
+  }
+  // Focus must not stay in a panel that is about to vanish (typing into a hidden file).
+  moveFocusOutOfEditor();
+  panel.collapse();
 }
 
 export function Layout() {
@@ -70,18 +79,23 @@ export function Layout() {
             <InboxPanel />
           </div>
         </Panel>
-        <ResizeHandle />
+        <ResizeHandle label="Kenar çubuğunu yeniden boyutlandır" />
         <Panel id="chat" defaultSize="42%" minSize="25%" className="bg-bg">
           <ChatPanel />
         </Panel>
-        <ResizeHandle />
+        <ResizeHandle label="Editörü yeniden boyutlandır" />
         <Panel
           id="editor"
           panelRef={editorPanel}
           collapsible
           defaultSize="40%"
           minSize="20%"
-          onResize={(size) => setEditorOpen(size.asPercentage > 0)}
+          onResize={(size) => {
+            const open = size.asPercentage > 0;
+            // Dragged shut: same focus rescue as the toggle.
+            if (!open) moveFocusOutOfEditor();
+            setEditorOpen(open);
+          }}
           className="bg-surface"
         >
           <EditorArea />

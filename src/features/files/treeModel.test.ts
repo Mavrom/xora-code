@@ -1,11 +1,16 @@
 import { describe, expect, it } from "vitest";
 import type { DirEntry } from "@/shared/lib/ipc";
 import {
+  activeGuideDepth,
+  affectedDirs,
+  buildTreeRows,
   findByPrefix,
   flattenVisible,
   keyAction,
+  parentDir,
   resolveTabStop,
   type DirListing,
+  type TreeRow,
   type VisibleNode,
 } from "./treeModel";
 
@@ -137,6 +142,108 @@ describe("findByPrefix", () => {
     expect(findByPrefix(nodes, 4, "s")).toBe("/r/src");
     expect(findByPrefix(nodes, 0, "RE")).toBe("/r/README.md");
     expect(findByPrefix(nodes, 0, "zzz")).toBeNull();
+  });
+});
+
+describe("findByPrefix diacritics", () => {
+  it("folds Turkish letters like the palette", () => {
+    const named = flattenVisible(
+      "/q",
+      new Map([["/q", ok(file("/q/apple.ts"), file("/q/Ünicode-dosya.md"), file("/q/Şema.json"))]]),
+      new Set(),
+    );
+    expect(findByPrefix(named, 0, "u")).toBe("/q/Ünicode-dosya.md");
+    expect(findByPrefix(named, 0, "sem")).toBe("/q/Şema.json");
+    expect(findByPrefix(named, 0, "ÜNİ")).toBe("/q/Ünicode-dosya.md");
+  });
+});
+
+describe("buildTreeRows", () => {
+  const kinds = (rows: TreeRow[]) =>
+    rows.map((r) => (r.kind === "node" ? r.node.entry.path : `${r.kind}:${r.key}`));
+
+  it("matches flattenVisible for nodes and adds the status lines", () => {
+    const rows = buildTreeRows("/r", listings, expanded, new Map());
+    expect(rows.filter((r) => r.kind === "node").map((r) => r.key)).toEqual(paths(nodes));
+    expect(kinds(rows)).toEqual([
+      "/r/src",
+      "/r/src/lib",
+      "/r/src/lib/path.ts",
+      "/r/src/main.ts",
+      "/r/docs",
+      "/r/empty",
+      "status:/r/empty::empty",
+      "/r/README.md",
+    ]);
+  });
+
+  it("records ancestors and node metadata like flattenVisible", () => {
+    const rows = buildTreeRows("/r", listings, expanded, new Map());
+    const pathRow = rows.find((r) => r.key === "/r/src/lib/path.ts");
+    expect(pathRow?.ancestors).toEqual(["/r/src", "/r/src/lib"]);
+    expect(pathRow?.kind === "node" && pathRow.node).toMatchObject({
+      depth: 2,
+      parentPath: "/r/src/lib",
+    });
+  });
+
+  it("adds loading, folder error and file read error rows", () => {
+    const l = new Map(listings);
+    l.set("/r/src/lib", { entries: null, error: null, loading: true });
+    l.set("/r/empty", { entries: null, error: "denied", loading: false });
+    const rows = buildTreeRows("/r", l, expanded, new Map([["/r/README.md", "gone"]]));
+    expect(kinds(rows)).toEqual([
+      "/r/src",
+      "/r/src/lib",
+      "loading:/r/src/lib::loading",
+      "/r/src/main.ts",
+      "/r/docs",
+      "/r/empty",
+      "status:/r/empty::error",
+      "/r/README.md",
+      "status:/r/README.md::read-error",
+    ]);
+    const readError = rows[rows.length - 1];
+    expect(readError).toMatchObject({ tone: "danger", text: "gone", underName: true, depth: 0 });
+  });
+
+  it("leaves the root's own error and loading state to the caller", () => {
+    const failed = new Map([["/r", { entries: null, error: "denied", loading: false }]]);
+    expect(buildTreeRows("/r", failed, new Set(), new Map())).toEqual([]);
+    const loading = new Map([["/r", { entries: null, error: null, loading: true }]]);
+    expect(kinds(buildTreeRows("/r", loading, new Set(), new Map()))).toEqual([
+      "loading:/r::loading",
+    ]);
+  });
+});
+
+describe("parentDir / affectedDirs", () => {
+  it("finds the parent folder with either separator", () => {
+    expect(parentDir("/r/src/a.ts")).toBe("/r/src");
+    expect(parentDir("C:\\p\\a.ts")).toBe("C:\\p");
+    expect(parentDir("C:\\a.ts")).toBe("C:\\");
+    expect(parentDir("/a")).toBeNull();
+  });
+
+  it("maps changed paths to the listed folders that must re-list", () => {
+    const listed = ["/r", "/r/src", "/r/docs"];
+    expect(affectedDirs(["/r/src/new.ts"], listed, false)).toEqual(["/r/src"]);
+    expect(affectedDirs(["/r/docs"], listed, false).sort()).toEqual(["/r", "/r/docs"]);
+    expect(affectedDirs(["/r/elsewhere/x.ts"], listed, false)).toEqual([]);
+    expect(affectedDirs([], listed, true)).toEqual(listed);
+  });
+
+  it("matches across separator style and case", () => {
+    expect(affectedDirs(["c:/P/Src/a.ts"], ["C:\\p\\src"], false)).toEqual(["C:\\p\\src"]);
+  });
+});
+
+describe("activeGuideDepth", () => {
+  it("counts the ancestors that contain the active file", () => {
+    expect(activeGuideDepth(["/r/src", "/r/src/lib"], "/r/src/lib/path.ts")).toBe(2);
+    expect(activeGuideDepth(["/r/src", "/r/src/lib"], "/r/src/main.ts")).toBe(1);
+    expect(activeGuideDepth(["/r/src"], "/r/srcx/a.ts")).toBe(0);
+    expect(activeGuideDepth(["/r/src"], null)).toBe(0);
   });
 });
 

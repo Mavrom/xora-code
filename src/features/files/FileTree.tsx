@@ -3,30 +3,42 @@ import {
   useCallback,
   useEffect,
   useId,
+  useLayoutEffect,
   useMemo,
   useRef,
   useState,
   type KeyboardEvent,
-  type ReactNode,
+  type RefObject,
 } from "react";
-import { ChevronRight, FolderOpen, FolderSearch } from "lucide-react";
+import { ChevronRight, Folder, FolderOpen, FolderSearch, RotateCw } from "lucide-react";
 import type { DirEntry } from "@/shared/lib/ipc";
 import { basename } from "@/shared/lib/path";
-import { useWorkspaceStore } from "@/features/workspace/store";
+import { useUiStore } from "@/app/uiStore";
 import { useEditorStore } from "@/features/editor/store";
+import { isShown } from "@/features/editor/editorKeys";
+import { requestRefresh } from "@/features/workspace/fsWatch";
+import { openRecent } from "@/features/workspace/openFolder";
+import { parentLabel } from "@/features/workspace/recents";
+import { useWorkspaceStore } from "@/features/workspace/store";
+import { useWorkspaceLifecycle } from "@/features/workspace/useWorkspaceLifecycle";
+import { Button } from "@/shared/ui/Button";
 import { EmptyState } from "@/shared/ui/EmptyState";
+import { IconButton } from "@/shared/ui/IconButton";
 import { PanelHeader } from "@/shared/ui/PanelHeader";
 import { cn } from "@/shared/ui/cn";
 import { FileIcon } from "./FileIcon";
 import {
+  activeGuideDepth,
+  buildTreeRows,
   findByPrefix,
-  flattenVisible,
   keyAction,
   resolveTabStop,
-  type DirListing,
+  type TreeRow,
+  type VisibleNode,
 } from "./treeModel";
 import { useFileOpener } from "./useFileOpener";
 import { useTreeState } from "./useTreeState";
+import { scrollToReveal, visibleRange } from "./virtualRange";
 
 const ROW_PADDING = 8;
 const INDENT = 14;
@@ -34,6 +46,12 @@ const INDENT = 14;
 const SLOT = 14;
 /** Slot plus the gap before the name, so status text lines up with names. */
 const NAME_OFFSET = SLOT + 6;
+/** Every tree line is exactly this tall, which is what makes windowing cheap. */
+const ROW_HEIGHT = 24;
+/** Rows rendered above and below the viewport so fast scrolling never shows a gap. */
+const OVERSCAN = 12;
+/** Space under the last row (matches the old `pb-3`). */
+const LIST_PADDING_BOTTOM = 12;
 /** Loading placeholders appear only if a listing takes longer than this. */
 const SHIMMER_DELAY_MS = 150;
 const TYPEAHEAD_RESET_MS = 600;
@@ -43,35 +61,127 @@ const NOISY = new Set(["node_modules", "dist", "target", ".claude"]);
 
 const indentOf = (depth: number) => ROW_PADDING + depth * INDENT;
 
-/** True when `path` lies inside folder `dir` (either separator). */
-const isInside = (path: string | null, dir: string) =>
-  path !== null &&
-  path.length > dir.length &&
-  path.startsWith(dir) &&
-  (path[dir.length] === "/" || path[dir.length] === "\\");
-
 interface FileTreeProps {
   onOpenFolder: () => void;
 }
 
 export function FileTree({ onOpenFolder }: FileTreeProps) {
   const root = useWorkspaceStore((s) => s.root);
+  const panel = useRef<HTMLDivElement>(null);
+  useWorkspaceLifecycle();
+  useFocusOnShow(panel);
 
   return (
-    <div className="flex h-full flex-col">
-      <PanelHeader title={root ? basename(root) : "Explorer"} />
+    <div ref={panel} className="flex h-full flex-col">
+      <PanelHeader
+        title={root ? basename(root) : "Gezgin"}
+        actions={
+          root ? (
+            <IconButton icon={RotateCw} size="sm" label="Yenile" onClick={() => requestRefresh()} />
+          ) : undefined
+        }
+      />
       {root ? (
         // Re-mount on root change so expanded state never leaks between folders.
         <TreeRoot key={root} root={root} />
       ) : (
-        <EmptyState
-          icon={FolderSearch}
-          title="Klasör açılmadı"
-          description="Başlamak için üst bardan bir klasör aç."
-          action={{ label: "Klasör aç", onClick: onOpenFolder, icon: FolderOpen }}
-        />
+        <ExplorerEmpty onOpenFolder={onOpenFolder} />
       )}
     </div>
+  );
+}
+
+/**
+ * Switching the sidebar to the Gezgin (activity bar, Ctrl+Shift+E, palette) hides whatever
+ * had focus before, e.g. the inbox composer, which drops focus to <body>. Land on the tree's
+ * tab stop (or the empty state's first control) instead; never steal focus from a visible
+ * element such as the activity bar button that was just clicked.
+ */
+function useFocusOnShow(panel: RefObject<HTMLDivElement | null>) {
+  const view = useUiStore((s) => s.sidebarView);
+  const previous = useRef(view);
+  useEffect(() => {
+    const was = previous.current;
+    previous.current = view;
+    if (view !== "explorer" || was === "explorer") return;
+    const id = requestAnimationFrame(() => {
+      const current = document.activeElement;
+      if (current && current !== document.body && isShown(current)) return;
+      const target =
+        panel.current?.querySelector<HTMLElement>('[role="treeitem"][tabindex="0"]') ??
+        panel.current?.querySelector<HTMLElement>("button:not([disabled])");
+      target?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(id);
+  }, [view, panel]);
+}
+
+/** "Klasör açılmadı" plus the recently opened folders, newest first. */
+function ExplorerEmpty({ onOpenFolder }: { onOpenFolder: () => void }) {
+  const recents = useWorkspaceStore((s) => s.recents);
+  const [gone, setGone] = useState<string | null>(null);
+  const headingId = useId();
+
+  const reopen = async (path: string) => {
+    setGone(null);
+    if (!(await openRecent(path))) setGone(basename(path));
+  };
+
+  return (
+    <EmptyState
+      icon={FolderSearch}
+      title="Klasör açılmadı"
+      description={
+        recents.length > 0
+          ? "Bir klasör aç ya da kaldığın yerden devam et."
+          : "Başlamak için bir klasör aç."
+      }
+      action={
+        <>
+          <Button icon={FolderOpen} onClick={onOpenFolder}>
+            Klasör aç
+          </Button>
+          {recents.length > 0 && (
+            <section aria-labelledby={headingId} className="mt-7 w-full max-w-64 text-left">
+              <h3
+                id={headingId}
+                className="px-2 pb-1.5 text-2xs font-medium tracking-wide text-fg-subtle uppercase"
+              >
+                Son açılanlar
+              </h3>
+              <ul className="flex flex-col">
+                {recents.map((path) => (
+                  <li key={path}>
+                    <button
+                      type="button"
+                      title={path}
+                      onClick={() => void reopen(path)}
+                      className="group flex h-7 w-full min-w-0 items-center gap-2 rounded-sm px-2 text-xs transition-colors duration-fast hover:bg-hover"
+                    >
+                      <Folder
+                        size={13}
+                        strokeWidth={1.75}
+                        aria-hidden
+                        className="shrink-0 text-fg-subtle"
+                      />
+                      <span className="shrink-0 truncate text-fg-muted group-hover:text-fg">
+                        {basename(path)}
+                      </span>
+                      <span className="min-w-0 truncate text-2xs text-fg-subtle">
+                        {parentLabel(path)}
+                      </span>
+                    </button>
+                  </li>
+                ))}
+              </ul>
+              <p role="status" className="min-h-5 px-2 pt-1 text-2xs text-fg-subtle">
+                {gone && `“${gone}” bulunamadı; listeden çıkarıldı.`}
+              </p>
+            </section>
+          )}
+        </>
+      }
+    />
   );
 }
 
@@ -82,33 +192,54 @@ interface RowActions {
   registerRow: (path: string, el: HTMLElement | null) => void;
 }
 
-/**
- * What a listing needs to render its rows. `tabStop` and `activePath` are scoped to the
- * subtree being rendered (null when they lie outside it), so a folder's props only change
- * when something inside it does.
- */
-interface TreeView {
-  listings: ReadonlyMap<string, DirListing>;
-  expanded: ReadonlySet<string>;
-  readErrors: ReadonlyMap<string, string>;
-  tabStop: string | null;
-  activePath: string | null;
-}
-
-/** `path` when it is `dir` itself or lies inside it, otherwise null. */
-const scopeTo = (path: string | null, dir: string) =>
-  path === dir || isInside(path, dir) ? path : null;
+const isNode = (row: TreeRow): row is Extract<TreeRow, { kind: "node" }> => row.kind === "node";
 
 function TreeRoot({ root }: { root: string }) {
   const { listings, expanded, setOpen } = useTreeState(root);
-  const { open, errors: readErrors } = useFileOpener();
+  const { open, errors: readErrors, notice } = useFileOpener();
   const activePath = useEditorStore((s) => s.activePath);
   const [focusedPath, setFocusedPath] = useState<string | null>(null);
-  const rows = useRef(new Map<string, HTMLElement>());
+  const rowEls = useRef(new Map<string, HTMLElement>());
+  const scroller = useRef<HTMLDivElement>(null);
+  const pendingFocus = useRef<string | null>(null);
   const typeAhead = useRef({ query: "", at: 0 });
+  const [viewport, setViewport] = useState({ top: 0, height: 0 });
+  const baseId = useId();
 
-  const nodes = useMemo(() => flattenVisible(root, listings, expanded), [root, listings, expanded]);
+  const rows = useMemo(
+    () => buildTreeRows(root, listings, expanded, readErrors),
+    [root, listings, expanded, readErrors],
+  );
+  const nodes = useMemo<VisibleNode[]>(() => rows.filter(isNode).map((r) => r.node), [rows]);
+  const indexOf = useMemo(() => new Map(rows.map((r, i) => [r.key, i])), [rows]);
   const tabStop = resolveTabStop(nodes, focusedPath, activePath);
+
+  // Track the scroll position and height; scroll events are coalesced per frame.
+  useLayoutEffect(() => {
+    const el = scroller.current;
+    if (!el) return;
+    let frame = 0;
+    const read = () => {
+      frame = 0;
+      setViewport((prev) =>
+        prev.top === el.scrollTop && prev.height === el.clientHeight
+          ? prev
+          : { top: el.scrollTop, height: el.clientHeight },
+      );
+    };
+    read();
+    const onScroll = () => {
+      if (!frame) frame = requestAnimationFrame(read);
+    };
+    const observer = new ResizeObserver(read);
+    observer.observe(el);
+    el.addEventListener("scroll", onScroll, { passive: true });
+    return () => {
+      cancelAnimationFrame(frame);
+      observer.disconnect();
+      el.removeEventListener("scroll", onScroll);
+    };
+  }, []);
 
   // Read through a ref so `activate` (and with it every row) stays stable across expands.
   const expandedRef = useRef(expanded);
@@ -124,12 +255,22 @@ function TreeRoot({ root }: { root: string }) {
       },
       onRowFocus: setFocusedPath,
       registerRow: (path, el) => {
-        if (el) rows.current.set(path, el);
-        else rows.current.delete(path);
+        if (el) rowEls.current.set(path, el);
+        else rowEls.current.delete(path);
       },
     }),
     [open, setOpen],
   );
+
+  // Keyboard focus may target a row that is only rendered after the next commit.
+  useLayoutEffect(() => {
+    const path = pendingFocus.current;
+    if (path === null) return;
+    const el = rowEls.current.get(path);
+    if (!el) return;
+    pendingFocus.current = null;
+    el.focus({ preventScroll: true });
+  });
 
   // A re-list can remove the focused row, which drops DOM focus to <body>. Hand it to the
   // resolved tab stop, but only when focus was really lost (never steal it from elsewhere).
@@ -137,12 +278,20 @@ function TreeRoot({ root }: { root: string }) {
     if (focusedPath === null || nodes.some((n) => n.entry.path === focusedPath)) return;
     const current = document.activeElement;
     if (current && current !== document.body) return;
-    if (tabStop) rows.current.get(tabStop)?.focus();
+    if (tabStop) rowEls.current.get(tabStop)?.focus({ preventScroll: true });
   }, [nodes, focusedPath, tabStop]);
 
   const focusRow = (path: string) => {
+    const el = scroller.current;
+    const index = indexOf.get(path);
+    if (el && index !== undefined) {
+      const next = scrollToReveal(index, el.scrollTop, el.clientHeight, ROW_HEIGHT);
+      if (next !== null) el.scrollTop = next;
+    }
     setFocusedPath(path);
-    rows.current.get(path)?.focus();
+    const row = rowEls.current.get(path);
+    if (row) row.focus({ preventScroll: true });
+    else pendingFocus.current = path;
   };
 
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
@@ -173,8 +322,19 @@ function TreeRoot({ root }: { root: string }) {
     else open(action.path);
   };
 
-  const view: TreeView = { listings, expanded, readErrors, tabStop, activePath };
   const rootListing = listings.get(root);
+
+  // Rows on screen, plus the focused row and the tab stop wherever they are: the first
+  // must keep DOM focus while scrolled away, the second lets Tab enter the tree.
+  const range = visibleRange(viewport.top, viewport.height, ROW_HEIGHT, rows.length, OVERSCAN);
+  const rendered: number[] = [];
+  for (let i = range.start; i < range.end; i++) rendered.push(i);
+  for (const path of [focusedPath, tabStop]) {
+    const i = path === null ? undefined : indexOf.get(path);
+    if (i !== undefined && (i < range.start || i >= range.end) && !rendered.includes(i)) {
+      rendered.push(i);
+    }
+  }
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -186,115 +346,128 @@ function TreeRoot({ root }: { root: string }) {
           {rootListing.error}
         </div>
       )}
+      <p role="status" className={cn("px-4 text-2xs text-fg-subtle", notice && "pb-1.5")}>
+        {notice}
+      </p>
       <div
+        ref={scroller}
         role="tree"
         aria-label={basename(root)}
         aria-busy={rootListing?.loading && !rootListing.entries ? true : undefined}
         onKeyDown={onKeyDown}
-        className="min-h-0 flex-1 overflow-y-auto px-1.5 pb-3"
+        className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1.5"
       >
-        <Children view={view} actions={actions} path={root} depth={0} dimmed={false} />
+        <div
+          className="relative"
+          style={{ height: rows.length * ROW_HEIGHT + LIST_PADDING_BOTTOM }}
+        >
+          {rendered.map((i) => {
+            const row = rows[i];
+            const top = i * ROW_HEIGHT;
+            const guides = activeGuideDepth(row.ancestors, activePath);
+            const dimmed = isDimmed(row);
+            if (row.kind === "node") {
+              const { entry } = row.node;
+              const listing = entry.isDir ? listings.get(entry.path) : undefined;
+              const next = rows[i + 1];
+              const hasError =
+                next?.kind === "status" && next.tone === "danger" && next.about === entry.path;
+              return (
+                <TreeItem
+                  key={row.key}
+                  node={row.node}
+                  top={top}
+                  depth={row.ancestors.length}
+                  brightGuides={guides}
+                  dimmed={dimmed}
+                  actions={actions}
+                  isTabStop={tabStop === entry.path}
+                  isActive={activePath === entry.path}
+                  isExpanded={entry.isDir && expanded.has(entry.path)}
+                  isLoading={!!listing?.loading && !listing.entries}
+                  errorId={hasError ? `${baseId}-row-${i + 1}` : undefined}
+                />
+              );
+            }
+            if (row.kind === "loading") {
+              return <LoadingRow key={row.key} top={top} depth={row.depth} brightGuides={guides} />;
+            }
+            return (
+              <StatusRow
+                key={row.key}
+                id={`${baseId}-row-${i}`}
+                top={top}
+                depth={row.depth}
+                brightGuides={guides}
+                inset={indentOf(row.depth) + (row.underName ? NAME_OFFSET : 0)}
+                tone={row.tone}
+                text={row.text}
+              />
+            );
+          })}
+        </div>
       </div>
     </div>
   );
 }
 
-/**
- * Rows (or the loading / empty placeholder) for the listing of `path`. Errors render
- * elsewhere. Not memoised itself: it only turns `view` into primitive per-row props.
- */
-function Children({
-  view,
-  actions,
-  path,
-  depth,
-  dimmed,
-}: {
-  view: TreeView;
-  actions: RowActions;
-  path: string;
-  depth: number;
-  dimmed: boolean;
-}) {
-  const listing = view.listings.get(path);
-  if (!listing || listing.error) return null;
-  const { entries } = listing;
-  if (!entries) return listing.loading ? <LoadingRows depth={depth} /> : null;
-  if (entries.length === 0) {
-    return <StatusRow inset={indentOf(depth)}>Boş klasör</StatusRow>;
-  }
-  return entries.map((entry, i) => {
-    const open = entry.isDir && view.expanded.has(entry.path);
-    return (
-      <TreeNode
-        key={entry.path}
-        entry={entry}
-        depth={depth}
-        setSize={entries.length}
-        posInSet={i + 1}
-        dimmed={dimmed || NOISY.has(entry.name)}
-        actions={actions}
-        isTabStop={view.tabStop === entry.path}
-        isActive={view.activePath === entry.path}
-        readError={entry.isDir ? null : (view.readErrors.get(entry.path) ?? null)}
-        // Only open folders render descendants, so only they receive the shared maps.
-        listings={open ? view.listings : undefined}
-        expanded={open ? view.expanded : undefined}
-        readErrors={open ? view.readErrors : undefined}
-        tabStopInside={open ? scopeTo(view.tabStop, entry.path) : null}
-        activeInside={open ? scopeTo(view.activePath, entry.path) : null}
-      />
-    );
-  });
+/** Rows inside (or naming) a noisy folder such as node_modules are drawn dimmed. */
+function isDimmed(row: TreeRow): boolean {
+  if (row.ancestors.some((a) => NOISY.has(basename(a)))) return true;
+  return row.kind === "node" && NOISY.has(row.node.entry.name);
 }
 
-interface TreeNodeProps {
-  entry: DirEntry;
+/** Vertical indent guides under each ancestor's chevron; brighter on the active file's chain. */
+function Guides({ depth, bright }: { depth: number; bright: number }) {
+  if (depth === 0) return null;
+  return Array.from({ length: depth }, (_, level) => (
+    <span
+      key={level}
+      aria-hidden
+      style={{ left: indentOf(level) + SLOT / 2 }}
+      className={cn(
+        "pointer-events-none absolute inset-y-0 w-px",
+        level < bright ? "bg-border-strong" : "bg-border",
+      )}
+    />
+  ));
+}
+
+interface TreeItemProps {
+  node: VisibleNode;
+  top: number;
   depth: number;
-  setSize: number;
-  posInSet: number;
+  brightGuides: number;
   dimmed: boolean;
   actions: RowActions;
   isTabStop: boolean;
   isActive: boolean;
-  /** Read failure of this file; always null for folders. */
-  readError: string | null;
-  /** Set only while this folder is expanded (their presence means "open"). */
-  listings?: ReadonlyMap<string, DirListing>;
-  expanded?: ReadonlySet<string>;
-  readErrors?: ReadonlyMap<string, string>;
-  /** Tab stop / active file when inside this open folder, otherwise null. */
-  tabStopInside: string | null;
-  activeInside: string | null;
+  isExpanded: boolean;
+  isLoading: boolean;
+  /** Id of the error line under this row, if any. */
+  errorId?: string;
 }
 
 /**
- * One treeitem. Memoised: every prop is a primitive or a reference that only changes
- * when this row (or, for an open folder, its subtree) is affected, so moving focus
- * re-renders just the rows that gain or lose the tab stop and their ancestors.
+ * One treeitem (flat APG tree: level, set size and position carry the structure).
+ * Memoised on primitives, so moving focus re-renders just the two rows involved.
  */
-const TreeNode = memo(function TreeNode({
-  entry,
+const TreeItem = memo(function TreeItem({
+  node,
+  top,
   depth,
-  setSize,
-  posInSet,
+  brightGuides,
   dimmed,
   actions,
   isTabStop,
   isActive,
-  readError,
-  listings,
-  expanded: expandedSet,
-  readErrors,
-  tabStopInside,
-  activeInside,
-}: TreeNodeProps) {
-  const errorId = useId();
+  isExpanded,
+  isLoading,
+  errorId,
+}: TreeItemProps) {
+  const { entry, setSize, posInSet } = node;
   const { path, isDir } = entry;
   const { registerRow, onRowFocus, activate } = actions;
-  const expanded = isDir && listings !== undefined;
-  const listing = listings?.get(path);
-  const error = isDir ? (listing?.error ?? null) : readError;
 
   // Stable ref callback: registers once per mount instead of detaching on every render.
   const rowRef = useCallback(
@@ -307,8 +480,6 @@ const TreeNode = memo(function TreeNode({
   );
 
   return (
-    // APG tree pattern: the focusable treeitem owns its row and, when open, its child group.
-    // Only the row itself shows the focus ring.
     <div
       ref={rowRef}
       role="treeitem"
@@ -316,22 +487,24 @@ const TreeNode = memo(function TreeNode({
       aria-level={depth + 1}
       aria-setsize={setSize}
       aria-posinset={posInSet}
-      aria-expanded={isDir ? expanded : undefined}
+      aria-expanded={isDir ? isExpanded : undefined}
       aria-selected={isDir ? undefined : isActive}
-      aria-busy={expanded && listing?.loading && !listing.entries ? true : undefined}
-      aria-describedby={error ? errorId : undefined}
+      aria-busy={isExpanded && isLoading ? true : undefined}
+      aria-describedby={errorId}
       onFocus={(e) => {
         if (e.target === e.currentTarget) onRowFocus(path);
       }}
-      className="outline-none [&:focus-visible>[data-row]]:outline [&:focus-visible>[data-row]]:outline-1 [&:focus-visible>[data-row]]:-outline-offset-1 [&:focus-visible>[data-row]]:outline-fg-subtle"
+      style={{ top, height: ROW_HEIGHT }}
+      className="absolute inset-x-0 outline-none [&:focus-visible>[data-row]]:outline [&:focus-visible>[data-row]]:outline-1 [&:focus-visible>[data-row]]:-outline-offset-1 [&:focus-visible>[data-row]]:outline-fg-subtle"
     >
+      <Guides depth={depth} bright={brightGuides} />
       <div
         data-row
         title={path}
         onClick={() => activate(entry)}
         style={{ paddingLeft: indentOf(depth) }}
         className={cn(
-          "relative flex h-6 items-center gap-1.5 rounded-sm pr-2 transition-colors duration-100",
+          "relative flex h-full items-center gap-1.5 rounded-sm pr-2 transition-colors duration-100",
           isActive
             ? "bg-hover text-fg before:absolute before:inset-y-1 before:left-0 before:w-px before:rounded-full before:bg-accent"
             : cn(
@@ -347,7 +520,7 @@ const TreeNode = memo(function TreeNode({
             aria-hidden
             className={cn(
               "shrink-0 text-fg-subtle transition-transform duration-150 ease-out-quint",
-              expanded && "rotate-90",
+              isExpanded && "rotate-90",
             )}
           />
         ) : (
@@ -355,102 +528,66 @@ const TreeNode = memo(function TreeNode({
         )}
         <span className="truncate">{entry.name}</span>
       </div>
-      {!isDir && error && (
-        <StatusRow id={errorId} inset={indentOf(depth) + NAME_OFFSET} tone="danger" role="alert">
-          {error}
-        </StatusRow>
-      )}
-      {listings && expandedSet && readErrors && (
-        <div role="group" className="relative">
-          {/* Indent guide under the chevron; brighter on the active file's ancestor chain. */}
-          <span
-            aria-hidden
-            style={{ left: indentOf(depth) + SLOT / 2 }}
-            className={cn(
-              "pointer-events-none absolute inset-y-0 w-px",
-              activeInside !== null && activeInside !== path ? "bg-border-strong" : "bg-border",
-            )}
-          />
-          {error && (
-            <StatusRow id={errorId} inset={indentOf(depth + 1)} tone="danger">
-              {error}
-            </StatusRow>
-          )}
-          <Children
-            view={{
-              listings,
-              expanded: expandedSet,
-              readErrors,
-              tabStop: tabStopInside,
-              activePath: activeInside,
-            }}
-            actions={actions}
-            path={path}
-            depth={depth + 1}
-            dimmed={dimmed}
-          />
-        </div>
-      )}
     </div>
   );
 });
 
+interface LineProps {
+  top: number;
+  depth: number;
+  brightGuides: number;
+}
+
 /**
- * Non-item text inside the tree (empty folder, errors). Defaults to `role="none"` so a
- * `tree` / `group` owns only treeitems (APG); a fresh file read error uses `alert`.
+ * Non-item text inside the tree (empty folder, errors): `role="none"` so the tree owns only
+ * treeitems (APG). One line, truncated; the full text is in the tooltip.
  */
-function StatusRow({
+const StatusRow = memo(function StatusRow({
   id,
+  top,
+  depth,
+  brightGuides,
   inset,
-  tone = "muted",
-  role = "none",
-  children,
-}: {
-  id?: string;
-  inset: number;
-  tone?: "muted" | "danger";
-  role?: "none" | "alert";
-  children: ReactNode;
-}) {
+  tone,
+  text,
+}: LineProps & { id: string; inset: number; tone: "muted" | "danger"; text: string }) {
   return (
     <div
       id={id}
-      role={role}
-      style={{ paddingLeft: inset }}
+      role="none"
+      title={text}
+      style={{ top, height: ROW_HEIGHT, paddingLeft: inset }}
       className={cn(
-        "pr-2 text-xs",
-        tone === "danger"
-          ? "py-1 leading-snug break-words text-danger select-text"
-          : "flex h-6 items-center text-fg-subtle",
+        "absolute inset-x-0 flex items-center pr-2 text-xs",
+        tone === "danger" ? "text-danger select-text" : "text-fg-subtle",
       )}
     >
-      {children}
+      <Guides depth={depth} bright={brightGuides} />
+      <span className="truncate">{text}</span>
     </div>
   );
-}
+});
 
-const SHIMMER_WIDTHS = ["58%", "42%", "50%"];
-
-/** Placeholder rows for a slow listing; renders nothing for fast loads to avoid a flash. */
-function LoadingRows({ depth }: { depth: number }) {
+/** Placeholder line for a slow listing; stays blank for fast loads to avoid a flash. */
+function LoadingRow({ top, depth, brightGuides }: LineProps) {
   const [visible, setVisible] = useState(false);
   useEffect(() => {
     const timer = setTimeout(() => setVisible(true), SHIMMER_DELAY_MS);
     return () => clearTimeout(timer);
   }, []);
-  if (!visible) return null;
   return (
-    <div aria-hidden>
-      {SHIMMER_WIDTHS.map((width) => (
-        <div
-          key={width}
-          style={{ paddingLeft: indentOf(depth) }}
-          className="flex h-6 items-center gap-1.5 pr-2 transition-opacity duration-300 ease-out-quint starting:opacity-0"
-        >
-          <span className="skeleton size-3 shrink-0 animate-skeleton rounded-sm" />
-          <span className="skeleton h-2 animate-skeleton rounded-full" style={{ width }} />
-        </div>
-      ))}
+    <div
+      aria-hidden
+      style={{ top, height: ROW_HEIGHT, paddingLeft: indentOf(depth) }}
+      className="absolute inset-x-0 flex items-center gap-1.5 pr-2"
+    >
+      <Guides depth={depth} bright={brightGuides} />
+      {visible && (
+        <>
+          <span className="skeleton size-3 shrink-0 animate-skeleton rounded-sm transition-opacity duration-300 ease-out-quint starting:opacity-0" />
+          <span className="skeleton h-2 w-1/2 animate-skeleton rounded-full transition-opacity duration-300 ease-out-quint starting:opacity-0" />
+        </>
+      )}
     </div>
   );
 }
