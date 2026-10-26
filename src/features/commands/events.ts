@@ -3,8 +3,9 @@
 
 export const TOGGLE_EDITOR = "xora:toggle-editor";
 export const SAVE_ACTIVE_FILE = "xora:save-active-file";
+export const TOGGLE_TERMINAL = "xora:toggle-terminal";
 
-export type CommandEvent = typeof TOGGLE_EDITOR | typeof SAVE_ACTIVE_FILE;
+export type CommandEvent = typeof TOGGLE_EDITOR | typeof SAVE_ACTIVE_FILE | typeof TOGGLE_TERMINAL;
 
 export const emitCommand = (name: CommandEvent) => window.dispatchEvent(new Event(name));
 
