@@ -63,6 +63,9 @@ export function filterSlash(commands: AcpCommand[], query: string): SlashItem[] 
   return [...rank("agent", commands), ...rank("xora", XORA_COMMANDS)];
 }
 
+/** DOM id of a popover row, shared by the list and the textarea's aria-activedescendant. */
+export const slashOptionId = (listId: string, index: number) => `${listId}-${index}`;
+
 /** Composer text after picking `name`: the command plus a space, keeping typed arguments. */
 export function applySlash(value: string, name: string): string {
   const end = value.search(/\s/);
