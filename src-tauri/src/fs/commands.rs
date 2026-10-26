@@ -12,6 +12,19 @@ pub async fn fs_list_dir(path: String) -> AppResult<Vec<DirEntry>> {
     Ok(super::list_dir(&PathBuf::from(path)).map_err(super::coded)?)
 }
 
+/// The workspace's files (relative, `/`-separated) for quick open and `@` mentions.
+#[tauri::command]
+pub async fn fs_list_files(root: String) -> AppResult<Vec<String>> {
+    let root = PathBuf::from(root);
+    let files = tauri::async_runtime::spawn_blocking(move || {
+        super::index::list_files(&root, super::index::MAX_FILES)
+    })
+    .await
+    .map_err(|e| std::io::Error::other(e.to_string()))?
+    .map_err(super::coded)?;
+    Ok(files)
+}
+
 #[tauri::command]
 pub async fn fs_read_file(path: String) -> AppResult<String> {
     Ok(super::read_file(&PathBuf::from(path)).map_err(super::coded)?)

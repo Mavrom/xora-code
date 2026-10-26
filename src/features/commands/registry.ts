@@ -2,6 +2,7 @@ import {
   CircleUserRound,
   Files,
   MessagesSquare,
+  FileSearch,
   FolderOpen,
   Inbox,
   PanelLeft,
@@ -29,6 +30,7 @@ import { useWorkspaceStore } from "@/features/workspace/store";
 import {
   emitCommand,
   NEW_CHAT,
+  QUICK_OPEN,
   SAVE_ACTIVE_FILE,
   TOGGLE_EDITOR,
   TOGGLE_SIDEBAR,
@@ -87,6 +89,15 @@ export const COMMANDS: Command[] = [
     icon: X,
     when: hasActiveTab,
     run: closeActiveTab,
+  },
+  {
+    id: "workspace.quickOpen",
+    title: "Dosyaya git…",
+    group: "Dosya",
+    shortcut: "mod+p",
+    icon: FileSearch,
+    when: () => useWorkspaceStore.getState().root !== null,
+    run: () => emitCommand(QUICK_OPEN),
   },
   {
     id: "chat.new",

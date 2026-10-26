@@ -45,6 +45,7 @@ macOS'ta palet, kaydetme, sekme kapatma ve geri alma için `Ctrl` yerine `Cmd` d
 | Kısayol                   | İşlem                                  |
 | ------------------------- | -------------------------------------- |
 | `Ctrl+K` / `Ctrl+Shift+P` | Komut paletini aç/kapat                |
+| `Ctrl+P`                  | Klasördeki bir dosyaya adıyla git      |
 | `Ctrl+N`                  | Yeni sohbet                            |
 | `Ctrl+B`                  | Kenar çubuğunu göster/gizle            |
 | `Ctrl+Shift+H`            | Sohbetleri göster                      |

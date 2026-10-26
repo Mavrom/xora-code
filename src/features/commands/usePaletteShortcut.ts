@@ -9,6 +9,13 @@ export function isPaletteShortcut(
   return (key === "k" && !e.shiftKey) || (key === "p" && e.shiftKey);
 }
 
+/** True for Ctrl+P (Cmd on macOS) without Shift: quick open. WebView2 would print. */
+export function isQuickOpenShortcut(
+  e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">,
+) {
+  return (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "p";
+}
+
 /**
  * Calls `onToggle` for the palette shortcuts anywhere in the app. Capture phase plus
  * stopPropagation so Monaco's own Ctrl+K chords and command palette never see them.
