@@ -6,9 +6,9 @@ An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemin
 
 ![Xora Code: file explorer, chat surface and editor side by side](docs/assets/screenshot.png)
 
-Xora Code puts an AI agent conversation at the center of the window, with a file explorer on one side and a code editor on the other. Agents will run through the official CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
+Xora Code puts an AI agent conversation at the center of the window. Your conversations sit on the left, the file explorer and the editor open when you need them, and your own wallpaper can glow through glass panels. Agents run through the official adapters for the CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
 
-> **Status:** Phase 1 (editor foundation) is complete. The agent connection arrives in Phase 2; until then the chat panel is a placeholder. Windows is the first target; the code is written to stay cross-platform. The UI copy is currently in Turkish.
+> **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows; Codex and Gemini use the same path but still need a full run on a machine with those accounts. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
 
 ## Features
 
@@ -16,14 +16,20 @@ What works today:
 
 | Area            | What you get                                                                                                                                                                                      |
 | --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Window          | Onyx / AMOLED-black interface with a custom frameless title bar (drag, minimize, maximize, close).                                                                                                |
-| Layout          | Resizable three-panel layout: sidebar, chat, editor. Panel sizes are remembered between sessions; the editor panel can be collapsed.                                                              |
-| Activity bar    | Switches the sidebar between **Explorer** and **Inbox**. The last view is remembered; the Inbox icon shows a badge with the number of open notes.                                                 |
-| Explorer        | Folder tree with lazy loading (directories are read when expanded), folders first, `.git` hidden. Full keyboard navigation: roving tabindex, arrow keys, Home/End, type-ahead.                    |
+| Agent chat      | Claude Code, Codex and Gemini CLI over the [Agent Client Protocol](https://agentclientprotocol.com/). Streaming answers, thinking blocks, tool-call cards, plans, slash commands, stop.           |
+| Model and mode  | Model, mode and effort pickers filled from what each agent reports (Gemini has no effort setting over ACP, so it is hidden there).                                                                |
+| Permissions     | Agent edits and commands ask first, with a diff preview. A changes bar lists the files a turn touched; accept or revert each one.                                                                 |
+| Sandbox         | Agent file and terminal access is limited to the open folder (symlinks, `..` and junctions are resolved before the check).                                                                        |
+| Sessions        | Conversations grouped by project in the sidebar, reopened with the agent's own history (`session/load` / `resume`), plus a local index for agents without one.                                    |
+| Settings        | Accounts (detects each CLI, sign-in state, sign in / install), agent defaults, editor, general, shortcuts, about. `Ctrl+,`.                                                                       |
+| Look            | Onyx / AMOLED black, custom frameless title bar. Optional wallpaper with adjustable glass, blur and dim.                                                                                          |
+| Terminal        | Integrated PowerShell / shell tabs under the chat and editor (``Ctrl+` ``).                                                                                                                       |
+| Layout          | Chat-first: the editor stays closed until a file opens. Resizable panels, sizes remembered between sessions.                                                                                      |
+| Activity bar    | Switches the sidebar between **Conversations**, **Explorer** and **Inbox**; settings sit at the bottom. The Inbox icon shows a badge with the number of open notes.                               |
+| Explorer        | Virtualised folder tree with live refresh from a file watcher, recent folders, last folder reopened on start. Full keyboard navigation: roving tabindex, arrow keys, Home/End, type-ahead.        |
 | Editor          | Monaco, bundled locally (works offline) and lazy-loaded only when the first file opens. Custom `xora-onyx` theme, tabs, unsaved-change (dirty) tracking, save and close shortcuts.                |
 | Inbox           | Quick-capture notes: add, edit inline, pin, mark done, delete with undo. Saved to disk atomically by the Rust `notes` module, with debounced writes, automatic retry, and a final flush on close. |
 | Command palette | `Ctrl+K` or `Ctrl+Shift+P`. Fuzzy search that is Turkish-aware (`klasor ac` finds `Klasör aç`), grouped commands, shortcut hints.                                                                 |
-| Chat            | Conversation surface and composer, ready for the Phase 2 agent connection.                                                                                                                        |
 
 ## Keyboard shortcuts
 
@@ -34,10 +40,13 @@ On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab a
 | Shortcut                  | Action                                     |
 | ------------------------- | ------------------------------------------ |
 | `Ctrl+K` / `Ctrl+Shift+P` | Toggle the command palette                 |
+| `Ctrl+Shift+H`            | Show the conversations                     |
 | `Ctrl+Shift+E`            | Show the Explorer                          |
 | `Ctrl+Shift+N`            | Show the Inbox and focus the note composer |
 | `Ctrl+S`                  | Save the active file                       |
 | `Ctrl+W`                  | Close the active tab                       |
+| `Ctrl+,`                  | Open or close the settings                 |
+| ``Ctrl+` ``               | Toggle the terminal                        |
 
 ### Command palette
 
@@ -85,12 +94,12 @@ On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab a
 
 The core idea is **bring your own subscription**: Xora Code talks to the official agent CLIs over the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/), and you sign in through each CLI's own login flow. API-key support is out of scope for now.
 
-| Phase | Scope                                                                                                                                                                                                              |
-| ----- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| 1     | **Done.** Editor foundation: layout, theme, Explorer, Monaco, Inbox, command palette.                                                                                                                              |
-| 2     | ACP agent connection for Claude Code, Codex and Gemini CLI using your own subscriptions. Streaming chat, permission prompts, diff review of agent edits, file watcher, workspace sandbox for file-system commands. |
-| 3     | Accounts screen: per-provider status, sign-in, and install guidance when a CLI is missing.                                                                                                                         |
-| 4     | Integrated terminal, per-project session history, settings, Windows installer.                                                                                                                                     |
+| Phase | Scope                                                                                                                                   |
+| ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 1     | **Done.** Editor foundation: layout, theme, Explorer, Monaco, Inbox, command palette.                                                   |
+| 2     | **Done.** ACP agent connection with your own subscriptions: streaming chat, permissions, diff review and revert, sandbox, file watcher. |
+| 3     | **Done.** Settings and accounts, wallpaper and glass, integrated terminal, conversation history.                                        |
+| Next  | Full Codex and Gemini runs, a Windows installer, optional managed Node.js for the Claude adapter, update notices for pinned adapters.   |
 
 ## Tech stack
 
@@ -109,7 +118,7 @@ The core idea is **bring your own subscription**: Xora Code talks to the officia
 
 ### Prerequisites
 
-- [Node.js](https://nodejs.org/) 24 or newer
+- [Node.js](https://nodejs.org/) 24 or newer (the agent adapters need Node.js 22+ at runtime; Xora installs the pinned adapter versions itself on first use)
 - [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
 - Tauri system prerequisites for your OS (on Windows: Microsoft C++ Build Tools and WebView2): see [v2.tauri.app/start/prerequisites](https://v2.tauri.app/start/prerequisites/)
 
@@ -141,11 +150,11 @@ Rust checks run against `src-tauri/Cargo.toml`; see [CONTRIBUTING.md](CONTRIBUTI
 ```
 src/
   app/          App shell: layout, title bar, activity bar, UI store
-  features/     One folder per feature (chat, commands, editor, files, inbox, workspace)
+  features/     One folder per feature (agents, chat, commands, editor, files, inbox, settings, terminal, workspace)
   shared/       Shared code: lib/ (typed IPC, path helpers), ui/ (primitives)
   styles/       globals.css: design tokens and base styles
 src-tauri/
-  src/          Rust core: error.rs, fs/, notes/ (each module: mod.rs + commands.rs)
+  src/          Rust core: agents/ (ACP), accounts/, fs/, notes/, settings/, terminal/ (each module: mod.rs + commands.rs)
 docs/           Architecture notes and the design spec
 ```
 

@@ -74,7 +74,15 @@ export function Layout() {
     const panel = editorPanel.current;
     const first = !hadFile.current;
     hadFile.current = activePath !== null;
-    if (!activePath || !panel) return;
+    if (!panel) return;
+    if (!activePath) {
+      // Closing the last tab hands the window back to the chat.
+      if (!first && !panel.isCollapsed()) {
+        moveFocusOutOfEditor();
+        panel.collapse();
+      }
+      return;
+    }
     if (panel.isCollapsed()) panel.expand();
     if (first && panel.getSize().asPercentage < EDITOR_OPEN_SIZE) {
       panel.resize(`${EDITOR_OPEN_SIZE}%`);
