@@ -3,6 +3,7 @@ import {
   FolderOpen,
   Inbox,
   PanelRight,
+  RotateCw,
   Save,
   SquarePen,
   X,
@@ -13,7 +14,9 @@ import { closeActiveTab } from "@/features/editor/closeTab";
 import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
+import { requestRefresh } from "@/features/workspace/fsWatch";
 import { openFolder } from "@/features/workspace/openFolder";
+import { useWorkspaceStore } from "@/features/workspace/store";
 import { emitCommand, SAVE_ACTIVE_FILE, TOGGLE_EDITOR } from "./events";
 import type { Rankable } from "./results";
 
@@ -44,6 +47,14 @@ export const COMMANDS: Command[] = [
     run: () => void openFolder(),
   },
   {
+    id: "workspace.refresh",
+    title: "Gezgini yenile",
+    group: "Dosya",
+    icon: RotateCw,
+    when: () => useWorkspaceStore.getState().root !== null,
+    run: () => requestRefresh(),
+  },
+  {
     id: "editor.save",
     title: "Aktif dosyayı kaydet",
     group: "Dosya",
@@ -70,7 +81,7 @@ export const COMMANDS: Command[] = [
   },
   {
     id: "view.explorer",
-    title: "Explorer'a geç",
+    title: "Gezgin'e geç",
     group: "Görünüm",
     shortcut: "ctrl+shift+e",
     icon: Files,

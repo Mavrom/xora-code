@@ -1,13 +1,16 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { ipc } from "@/shared/lib/ipc";
+import { onFsChange } from "@/features/workspace/fsWatch";
+import { describeFsError } from "./fsErrors";
 import { createLatestGate } from "./latestGate";
-import type { DirListing } from "./treeModel";
+import { affectedDirs, type DirListing } from "./treeModel";
 
 const LOADING: DirListing = { entries: null, error: null, loading: true };
 
 /**
  * Folder listings and expanded state for one workspace root. Listings are cached, so
  * re-expanding a folder shows its last entries at once while a fresh listing loads.
+ * File system changes (watcher, "Yenile") re-list the affected folders that are on screen.
  */
 export function useTreeState(root: string) {
   const [listings, setListings] = useState<ReadonlyMap<string, DirListing>>(
@@ -25,7 +28,7 @@ export function useTreeState(root: string) {
       };
       ipc.listDir(path).then(
         (entries) => apply({ entries, error: null, loading: false }),
-        (error: unknown) => apply({ entries: null, error: String(error), loading: false }),
+        (error: unknown) => apply({ entries: null, error: describeFsError(error), loading: false }),
       );
     },
     [gate],
@@ -35,6 +38,23 @@ export function useTreeState(root: string) {
     fetchListing(root);
     return () => gate.cancelAll();
   }, [root, fetchListing, gate]);
+
+  // Read through refs so the change subscription is made once per root.
+  const shown = useRef({ listings, expanded });
+  useEffect(() => {
+    shown.current = { listings, expanded };
+  }, [listings, expanded]);
+
+  useEffect(
+    () =>
+      onFsChange((change) => {
+        const { listings: cached, expanded: open } = shown.current;
+        // Only folders on screen re-list now; collapsed ones refresh when expanded again.
+        const visible = [...cached.keys()].filter((dir) => dir === root || open.has(dir));
+        for (const dir of affectedDirs(change.paths, visible, change.full)) fetchListing(dir);
+      }),
+    [root, fetchListing],
+  );
 
   const setOpen = useCallback(
     (path: string, open: boolean) => {
