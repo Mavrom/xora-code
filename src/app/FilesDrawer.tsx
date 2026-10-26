@@ -47,7 +47,7 @@ export function FilesDrawer() {
         aria-label="Dosyalar"
         inert={!open}
         className={cn(
-          "absolute inset-y-0 left-0 w-[17rem] pb-2 pl-2 transition-[translate,opacity] duration-base ease-out-quint",
+          "absolute inset-y-0 left-0 w-[17rem] py-2 pl-2 transition-[translate,opacity] duration-base ease-out-quint",
           open ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
         )}
       >

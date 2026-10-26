@@ -127,6 +127,8 @@ export function Layout() {
         <Panel id="main" defaultSize="82%" minSize="50%">
           <div className="relative isolate flex h-full flex-col">
             <HeroBackdrop />
+            {/* Full height, over the title strip too, so it reads as part of the sidebar. */}
+            <FilesDrawer />
             <MainBar
               sidebarOpen={sidebarOpen}
               onShowSidebar={() => sidebarPanel.current?.expand()}
@@ -176,7 +178,6 @@ export function Layout() {
                   </Group>
                 </TerminalDock>
               </div>
-              <FilesDrawer />
             </div>
           </div>
         </Panel>
