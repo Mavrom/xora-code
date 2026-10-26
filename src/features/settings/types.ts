@@ -104,6 +104,6 @@ export const DEFAULT_SETTINGS: Settings = {
     effect: "ascii",
     dim: 15,
     window: "frosted",
-    tint: 55,
+    tint: 72,
   },
 };

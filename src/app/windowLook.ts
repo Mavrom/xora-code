@@ -22,7 +22,9 @@ function apply(look: Look) {
     const win = getCurrentWindow();
     const task =
       look.window === "frosted"
-        ? win.setEffects({ effects: [Effect.Acrylic], color: [0, 0, 0, 0] })
+        ? // Acrylic's own tint: near-black, so a light desktop behind does not wash the
+          // window out to grey; `--app-base` darkens further on top.
+          win.setEffects({ effects: [Effect.Acrylic], color: [6, 6, 8, 150] })
         : win.clearEffects();
     task.catch((error: unknown) => console.error("Window effect failed", error));
   } catch {

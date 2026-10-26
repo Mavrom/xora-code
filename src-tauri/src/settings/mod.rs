@@ -215,7 +215,7 @@ impl Default for Appearance {
             effect: BackgroundEffect::default(),
             dim: 15,
             window: WindowLook::default(),
-            tint: 55,
+            tint: 72,
         }
     }
 }
@@ -397,7 +397,7 @@ mod tests {
         assert_eq!(value["editor"]["fontSize"], json!(13));
         assert_eq!(
             value["appearance"],
-            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15, "window": "frosted", "tint": 55 })
+            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15, "window": "frosted", "tint": 72 })
         );
     }
 
