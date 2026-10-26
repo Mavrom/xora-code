@@ -24,7 +24,7 @@ export function HeroBackdrop() {
       effect={appearance.effect}
       dim={appearance.dim}
       onError={() => setFailed(src)}
-      className="hero-backdrop absolute inset-x-0 top-0 h-[58%] transition-opacity duration-slow starting:opacity-0"
+      className="hero-backdrop absolute inset-x-0 top-0 h-[68%] transition-opacity duration-slow starting:opacity-0"
     />
   );
 }

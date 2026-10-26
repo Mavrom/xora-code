@@ -163,7 +163,7 @@ function AppearancePreview({ appearance, busy, onPick }: PreviewProps) {
             effect={appearance.effect}
             dim={appearance.dim}
             onError={() => setFailed(src)}
-            className="hero-backdrop absolute inset-x-0 top-0 h-[58%]"
+            className="hero-backdrop absolute inset-x-0 top-0 h-[68%]"
           />
         )}
         <div

@@ -136,7 +136,7 @@ export const dotRadius = (lum: number, cell: number) =>
 export const CELL: Record<Exclude<BackgroundEffect, "none" | "scanlines">, number> = {
   dither: 2,
   halftone: 6,
-  ascii: 8,
+  ascii: 5,
 };
 
 /** Draws `image` into a fresh `cols` x `rows` canvas (smoothing averages each cell). */
@@ -169,14 +169,14 @@ export function paintEffect(
   ctx.fillStyle = "#000";
   ctx.fillRect(0, 0, width, height);
 
-  if (effect === "none" || effect === "scanlines") {
+  if (effect === "none" || effect === "scanlines" || effect === "ascii") {
     ctx.imageSmoothingQuality = "high";
     ctx.drawImage(image, src.x, src.y, src.w, src.h, 0, 0, width, height);
     if (effect === "scanlines") {
       ctx.fillStyle = "rgb(0 0 0 / 0.55)";
       for (let y = 0; y < height; y += 3) ctx.fillRect(0, y + 1.5, width, 1.5);
     }
-    return;
+    if (effect !== "ascii") return;
   }
 
   const cell = CELL[effect];
@@ -187,6 +187,11 @@ export function paintEffect(
   const { canvas, ctx: small, pixels } = sampled;
   const data = pixels.data;
 
+  if (effect === "ascii") {
+    paintAscii(ctx, data, cols, rows, cell, width, height);
+    return;
+  }
+
   if (effect === "dither") {
     ditherPixels(data, cols);
     small.putImageData(pixels, 0, 0);
@@ -196,11 +201,6 @@ export function paintEffect(
   }
 
   const range = toneRange(data);
-  if (effect === "ascii") {
-    ctx.font = `700 ${cell + 2}px "JetBrains Mono Variable", ui-monospace, monospace`;
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-  }
   for (let row = 0; row < rows; row++) {
     for (let col = 0; col < cols; col++) {
       const i = (row * cols + col) * 4;
@@ -209,18 +209,49 @@ export function paintEffect(
       const b = data[i + 2];
       const level = stretch(markStrength(r, g, b), range);
       ctx.fillStyle = markColor(r, g, b, level);
-      const cx = col * cell + cell / 2;
-      const cy = row * cell + cell / 2;
-      if (effect === "halftone") {
-        const radius = dotRadius(level, cell);
-        if (radius < 0.3) continue;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius, 0, Math.PI * 2);
-        ctx.fill();
-      } else {
-        const ch = asciiChar(level);
-        if (ch !== " ") ctx.fillText(ch, cx, cy);
-      }
+      const radius = dotRadius(level, cell);
+      if (radius < 0.3) continue;
+      ctx.beginPath();
+      ctx.arc(col * cell + cell / 2, row * cell + cell / 2, radius, 0, Math.PI * 2);
+      ctx.fill();
+    }
+  }
+}
+
+/** Share of the picture's light the dark veil under the characters takes away. */
+const ASCII_VEIL = 0.4;
+
+/**
+ * ASCII as a texture: the picture stays whole, a veil darkens it, and a fine grid of
+ * characters in the picture's own colours (a touch brighter) brings the light back. Up
+ * close it is text; from a step back it is still the picture.
+ */
+function paintAscii(
+  ctx: CanvasRenderingContext2D,
+  data: Uint8ClampedArray,
+  cols: number,
+  rows: number,
+  cell: number,
+  width: number,
+  height: number,
+) {
+  ctx.fillStyle = `rgb(0 0 0 / ${ASCII_VEIL})`;
+  ctx.fillRect(0, 0, width, height);
+  const range = toneRange(data);
+  ctx.font = `700 ${cell + 2}px "JetBrains Mono Variable", ui-monospace, monospace`;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const lift = 1.6;
+  for (let row = 0; row < rows; row++) {
+    for (let col = 0; col < cols; col++) {
+      const i = (row * cols + col) * 4;
+      const r = data[i];
+      const g = data[i + 1];
+      const b = data[i + 2];
+      const ch = asciiChar(stretch(markStrength(r, g, b), range));
+      if (ch === " ") continue;
+      ctx.fillStyle = `rgb(${Math.min(255, r * lift)} ${Math.min(255, g * lift)} ${Math.min(255, b * lift)})`;
+      ctx.fillText(ch, col * cell + cell / 2, row * cell + cell / 2);
     }
   }
 }

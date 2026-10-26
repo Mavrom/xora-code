@@ -252,7 +252,13 @@
 
 /* The new-chat picture melts into onyx towards the composer (HeroBackdrop). */
 @utility hero-backdrop {
-  mask-image: linear-gradient(to bottom, #000 45%, rgb(0 0 0 / 0.55) 70%, transparent 100%);
+  mask-image: linear-gradient(
+    to bottom,
+    #000 40%,
+    rgb(0 0 0 / 0.5) 68%,
+    rgb(0 0 0 / 0.15) 86%,
+    transparent 100%
+  );
 }
 
 /* Streaming caret appended after the last token. */
