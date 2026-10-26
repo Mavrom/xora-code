@@ -96,7 +96,7 @@ export default function SettingsView() {
       aria-label="Ayarlar"
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-black/80 outline-none backdrop-blur-2xl transition-opacity duration-base ease-out-quint starting:opacity-0"
+      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-black/90 outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
     >
       <nav
         aria-label="Ayar bölümleri"

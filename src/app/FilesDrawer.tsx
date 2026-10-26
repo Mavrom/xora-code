@@ -48,11 +48,11 @@ export function FilesDrawer() {
         aria-label="Dosyalar"
         inert={!open}
         className={cn(
-          "absolute inset-y-0 left-0 w-[17rem] py-2 pl-2 transition-[translate,opacity] duration-base ease-out-quint",
+          "absolute inset-y-0 left-0 w-[17rem] py-2 pl-2 transition-[translate,opacity] duration-base ease-out-quint will-change-[translate,opacity]",
           open ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
         )}
       >
-        <div className="relative isolate h-full overflow-hidden rounded-xl border border-white/[0.09] bg-black/35 backdrop-saturate-150 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-2xl">
+        <div className="relative isolate h-full overflow-hidden rounded-xl border border-white/[0.09] bg-[rgb(12_12_13/0.86)] shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)]">
           <FrostedGround />
           <FileTree onOpenFolder={openFolder} />
         </div>

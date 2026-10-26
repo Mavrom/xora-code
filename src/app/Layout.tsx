@@ -171,7 +171,7 @@ export function Layout() {
                     >
                       {/* A card floating over the picture, not a slab cut out of it. */}
                       <div className="h-full pr-2 pb-2 pl-1">
-                        <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#0b0b0c]/80 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-xl">
+                        <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[rgb(11_11_12/0.88)] shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)]">
                           <EditorArea />
                         </div>
                       </div>
