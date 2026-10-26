@@ -75,7 +75,7 @@ export function InboxPanel() {
         <NoteComposer disabled={status !== "ready"} onSubmit={add} />
         {status === "ready" && error && <SaveError error={error} />}
       </div>
-      <div className="min-h-0 flex-1 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
         {status === "ready" ? (
           notes.length === 0 ? (
             <EmptyState
@@ -243,7 +243,7 @@ function NoteLists({ open, done }: { open: Note[]; done: Note[] }) {
             aria-expanded={showDone}
             aria-controls="inbox-done"
             onClick={() => setShowDone((v) => !v)}
-            className="flex h-7 w-full items-center gap-1 rounded-sm px-1.5 text-[11px] font-medium tracking-wide text-fg-subtle uppercase transition-colors duration-150 hover:text-fg-muted"
+            className="flex h-7 w-full min-w-0 items-center gap-1 rounded-sm px-1.5 text-2xs font-medium tracking-wide whitespace-nowrap text-fg-subtle uppercase transition-colors duration-150 hover:text-fg-muted"
           >
             <ChevronRight
               size={13}
@@ -254,8 +254,8 @@ function NoteLists({ open, done }: { open: Note[]; done: Note[] }) {
                 showDone && "rotate-90",
               )}
             />
-            Tamamlananlar
-            <span className="tabular-nums">({done.length})</span>
+            <span className="min-w-0 truncate">Tamamlananlar</span>
+            <span className="shrink-0 tabular-nums">({done.length})</span>
           </button>
           {/* Collapses with grid rows (no height measuring); inert keeps hidden rows out of tab order. */}
           <div
