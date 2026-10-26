@@ -8,3 +8,8 @@ pub mod acp;
 pub mod events;
 #[allow(dead_code)]
 pub mod session;
+
+// Client-side bridges (fs sandbox, terminals, review/revert).
+pub mod fs_bridge;
+pub mod review;
+pub mod terminal_bridge;
