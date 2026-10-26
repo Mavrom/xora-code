@@ -96,12 +96,12 @@ export default function SettingsView() {
       aria-label="Ayarlar"
       tabIndex={-1}
       onKeyDown={onKeyDown}
-      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-bg outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
+      className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-black/80 outline-none backdrop-blur-2xl transition-opacity duration-base ease-out-quint starting:opacity-0"
     >
       <nav
         aria-label="Ayar bölümleri"
         onKeyDown={onNavKeyDown}
-        className="bg-surface relative flex min-h-0 flex-col border-r border-border"
+        className="relative flex min-h-0 flex-col border-r border-border bg-white/[0.02]"
       >
         <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center gap-1.5 px-3">
           <button
@@ -169,7 +169,7 @@ export default function SettingsView() {
         </div>
       </nav>
 
-      <div className="bg-bg relative min-h-0">
+      <div className="relative min-h-0">
         {/* The page covers the window, so it carries the drag strip and caption buttons. */}
         <div
           data-tauri-drag-region="deep"

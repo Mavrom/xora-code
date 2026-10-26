@@ -42,6 +42,9 @@ export interface EditorSettings {
 /** How the new-chat background picture is redrawn. */
 export type BackgroundEffect = "none" | "dither" | "ascii" | "halftone" | "scanlines";
 
+/** Solid onyx, Windows Acrylic (what is behind, blurred) or plain see-through. */
+export type WindowLook = "solid" | "frosted" | "clear";
+
 export interface AppearanceSettings {
   /** Whether a new chat shows a picture at all. */
   picture: boolean;
@@ -50,6 +53,9 @@ export interface AppearanceSettings {
   effect: BackgroundEffect;
   /** Darkening over the picture, 0-100. */
   dim: number;
+  window: WindowLook;
+  /** How dark the see-through window is tinted, 0-100. */
+  tint: number;
 }
 
 export interface Settings {
@@ -92,5 +98,12 @@ export const DEFAULT_SETTINGS: Settings = {
     renderWhitespace: "none",
     formatOnSave: false,
   },
-  appearance: { picture: true, wallpaper: null, effect: "ascii", dim: 15 },
+  appearance: {
+    picture: true,
+    wallpaper: null,
+    effect: "ascii",
+    dim: 15,
+    window: "frosted",
+    tint: 55,
+  },
 };

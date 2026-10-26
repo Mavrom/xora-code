@@ -9,7 +9,12 @@ import { Slider } from "../controls/Slider";
 import { Toggle } from "../controls/Toggle";
 import { settingsIpc } from "../ipc";
 import { useSettingsStore } from "../store";
-import { DIM_RANGE, type AppearanceSettings, type BackgroundEffect } from "../types";
+import {
+  DIM_RANGE,
+  type AppearanceSettings,
+  type BackgroundEffect,
+  type WindowLook,
+} from "../types";
 import { backdropSrc, fileName, WALLPAPER_EXTENSIONS } from "../wallpaper";
 
 const EFFECTS: { value: BackgroundEffect; label: string }[] = [
@@ -18,6 +23,12 @@ const EFFECTS: { value: BackgroundEffect; label: string }[] = [
   { value: "ascii", label: "ASCII" },
   { value: "halftone", label: "Halftone" },
   { value: "scanlines", label: "Tarama" },
+];
+
+const WINDOW_LOOKS: { value: WindowLook; label: string }[] = [
+  { value: "solid", label: "Opak" },
+  { value: "frosted", label: "Buzlu" },
+  { value: "clear", label: "Net" },
 ];
 
 const percent = (v: number) => `${v}%`;
@@ -93,6 +104,36 @@ export function AppearanceSection() {
           Görsel eklenemedi: {error}
         </p>
       )}
+
+      <SettingGroup title="Pencere">
+        <SettingRow
+          label="Saydamlık"
+          description="Buzlu: arkadaki uygulamalar ve masaüstü bulanık görünür. Net: bulanıklık olmadan görünür. Opak: saf onyx."
+          control={(id) => (
+            <Segmented
+              labelledBy={id}
+              value={appearance.window}
+              options={WINDOW_LOOKS}
+              onChange={(window) => set({ window })}
+            />
+          )}
+        />
+        <SettingRow
+          label="Koyuluk"
+          description="Arkası görünen pencerenin ne kadar karartılacağı; yazılar okunaklı kalsın diye."
+          control={(id) => (
+            <Slider
+              labelledBy={id}
+              value={appearance.tint}
+              min={DIM_RANGE.min}
+              max={DIM_RANGE.max}
+              format={percent}
+              disabled={appearance.window === "solid"}
+              onChange={(tint) => set({ tint })}
+            />
+          )}
+        />
+      </SettingGroup>
 
       <SettingGroup title="Görsel">
         <SettingRow

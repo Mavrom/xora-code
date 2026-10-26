@@ -3,6 +3,7 @@ import { useAgentEvents } from "@/features/agents/useAgentEvents";
 import { CommandPalette } from "@/features/commands/CommandPalette";
 import { onCommand, OPEN_PALETTE } from "@/features/commands/events";
 import { installModelCatalog } from "@/features/agents/modelCatalog";
+import { installWindowLook } from "./windowLook";
 import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
@@ -15,6 +16,7 @@ installPaletteGuard();
 installNavHistory();
 installSessionReaper();
 installModelCatalog();
+installWindowLook();
 installContextMenuGuard();
 
 export default function App() {

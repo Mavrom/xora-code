@@ -107,7 +107,8 @@
   }
 
   body {
-    background: var(--color-bg);
+    /* `--app-base` is set by the window look (solid onyx or a see-through tint). */
+    background: var(--app-base, var(--color-bg));
     color: var(--color-fg);
     font-family: var(--font-sans);
     font-size: var(--text-ui);

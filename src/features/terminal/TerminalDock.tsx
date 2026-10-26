@@ -51,7 +51,7 @@ export function TerminalDock({ children }: { children: ReactNode }) {
         defaultSize="0%"
         minSize={120}
         onResize={noteSize}
-        className="bg-bg"
+        className="bg-black/55 backdrop-blur-xl"
       >
         <div ref={setSection} className="h-full">
           {loaded && (

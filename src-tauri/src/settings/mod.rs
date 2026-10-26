@@ -177,6 +177,19 @@ pub enum BackgroundEffect {
     Scanlines,
 }
 
+/// How much of what is behind the window shows through it.
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum WindowLook {
+    /// Opaque onyx.
+    Solid,
+    /// Windows Acrylic: the apps and desktop behind, blurred.
+    #[default]
+    Frosted,
+    /// See-through without blur.
+    Clear,
+}
+
 /// The picture behind the new-chat composer.
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
@@ -189,6 +202,9 @@ pub struct Appearance {
     pub effect: BackgroundEffect,
     /// Darkening over the picture, 0-100.
     pub dim: u32,
+    pub window: WindowLook,
+    /// How dark the see-through window is tinted, 0-100 (ignored when solid).
+    pub tint: u32,
 }
 
 impl Default for Appearance {
@@ -198,6 +214,8 @@ impl Default for Appearance {
             wallpaper: None,
             effect: BackgroundEffect::default(),
             dim: 15,
+            window: WindowLook::default(),
+            tint: 55,
         }
     }
 }
@@ -218,6 +236,7 @@ impl Settings {
             .clamp(TAB_SIZE_RANGE.0, TAB_SIZE_RANGE.1);
         let look = &mut self.appearance;
         look.dim = look.dim.clamp(DIM_RANGE.0, DIM_RANGE.1);
+        look.tint = look.tint.clamp(DIM_RANGE.0, DIM_RANGE.1);
         if look
             .wallpaper
             .as_deref()
@@ -378,7 +397,7 @@ mod tests {
         assert_eq!(value["editor"]["fontSize"], json!(13));
         assert_eq!(
             value["appearance"],
-            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15 })
+            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15, "window": "frosted", "tint": 55 })
         );
     }
 

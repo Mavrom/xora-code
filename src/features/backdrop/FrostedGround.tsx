@@ -9,8 +9,10 @@ import { backdropSrc } from "@/features/settings/wallpaper";
  */
 export function FrostedGround() {
   const src = useSettingsStore((s) => backdropSrc(s.settings.appearance));
+  // A see-through window is real glass already; the painted copy would hide what is behind.
+  const solid = useSettingsStore((s) => s.settings.appearance.window === "solid");
   const [failed, setFailed] = useState<string | null>(null);
-  if (!src || failed === src) return null;
+  if (!solid || !src || failed === src) return null;
   return (
     <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
       <img
