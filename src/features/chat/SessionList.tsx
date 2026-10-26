@@ -1,3 +1,4 @@
+import { shortTitle } from "./sessionTitle";
 import { useEffect, useMemo, useState, type MouseEvent } from "react";
 import {
   Archive,
@@ -191,7 +192,7 @@ function SessionRow({
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
-  const title = entry.title || "Adsız sohbet";
+  const title = entry.title ? shortTitle(entry.title) : "Adsız sohbet";
 
   const onContextMenu = (e: MouseEvent) => {
     e.preventDefault();
