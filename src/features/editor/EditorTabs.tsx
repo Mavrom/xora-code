@@ -5,7 +5,8 @@ import { basename } from "@/shared/lib/path";
 import { cn } from "@/shared/ui/cn";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { closeActiveTab, requestCloseTab } from "./closeTab";
-import { isCloseTabShortcut, isShown } from "./editorKeys";
+import { focusEditorSoon } from "./editorFocus";
+import { isCloseTabShortcut, isShown, revealTabScroll } from "./editorKeys";
 import { isDirty, useEditorStore, type Tab } from "./store";
 
 /** Parent folder name, shown only when two open tabs share a file name. */
@@ -45,15 +46,21 @@ export function EditorTabs() {
     };
   }, [tabs.length]);
 
-  // Keep the active tab (including its close button) visible, e.g. after opening a file.
+  // Keep the active tab (including its close button) fully visible, e.g. after opening a
+  // file: clear of the edge fades, and snapped so its neighbour is never cut mid-label.
   useEffect(() => {
     const el = scroller.current;
-    const tab = el?.querySelector("[aria-selected=true]")?.parentElement;
+    const tab = el?.querySelector<HTMLElement>("[aria-selected=true]")?.parentElement;
     if (!el || !tab) return;
-    const start = tab.offsetLeft;
-    const end = start + tab.offsetWidth;
-    if (start < el.scrollLeft) el.scrollLeft = start;
-    else if (end > el.scrollLeft + el.clientWidth) el.scrollLeft = end - el.clientWidth;
+    const tabs = [...el.querySelectorAll<HTMLElement>(":scope > [data-tab]")];
+    const next = revealTabScroll(
+      tabs.map((t) => ({ start: t.offsetLeft, end: t.offsetLeft + t.offsetWidth })),
+      tabs.indexOf(tab),
+      el.scrollLeft,
+      el.clientWidth,
+      FADE,
+    );
+    if (next !== null) el.scrollLeft = next;
   }, [activePath, tabs.length]);
 
   // Ctrl+W closes the active tab from anywhere; capture phase so Monaco cannot swallow it.
@@ -124,7 +131,11 @@ export function EditorTabs() {
           tab={tab}
           active={tab.path === activePath}
           hint={duplicateNames.has(tab.name) ? parentName(tab.path) : undefined}
-          onSelect={() => setActive(tab.path)}
+          onSelect={() => {
+            // Like VS Code / Zed: picking a tab means "edit this", so the editor gets focus.
+            setActive(tab.path);
+            focusEditorSoon();
+          }}
         />
       ))}
       {/* Filler carries the strip's bottom border; the active tab stays open to the editor. */}
@@ -142,6 +153,7 @@ interface EditorTabProps {
 
 function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
   const dirty = isDirty(tab);
+  const marked = dirty || !!tab.diskChanged;
 
   const onMouseDown = (e: MouseEvent) => {
     // Middle button: suppress the autoscroll cursor, close on auxclick.
@@ -150,6 +162,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
 
   return (
     <div
+      data-tab
       onMouseDown={onMouseDown}
       onAuxClick={(e) => {
         if (e.button === 1) void requestCloseTab(tab);
@@ -167,15 +180,16 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         role="tab"
         aria-selected={active}
         tabIndex={active ? 0 : -1}
-        title={tab.path}
+        title={tab.diskChanged ? `${tab.path}\nDiskte değişti` : tab.path}
         aria-keyshortcuts="Delete Control+W"
         onClick={onSelect}
-        className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3 text-[12px] outline-none focus-visible:bg-hover"
+        className="flex h-full min-w-0 items-center gap-2 pr-1 pl-3 text-xs outline-none focus-visible:bg-hover"
       >
         <FileIcon name={tab.name} />
         <span className="truncate">{tab.name}</span>
-        {hint && <span className="truncate text-[11px] text-fg-subtle">{hint}</span>}
+        {hint && <span className="truncate text-2xs text-fg-subtle">{hint}</span>}
         {dirty && <span className="sr-only">(kaydedilmedi)</span>}
+        {tab.diskChanged && <span className="sr-only">(diskte değişti)</span>}
       </button>
       <button
         type="button"
@@ -185,12 +199,23 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         onClick={() => void requestCloseTab(tab)}
         className={cn(
           "group/close mr-1.5 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-150 hover:bg-elevated hover:text-fg",
-          !dirty && !active && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
+          !marked && !active && "opacity-0 group-hover:opacity-100 focus-visible:opacity-100",
         )}
       >
-        {dirty ? (
+        {marked ? (
           <>
-            <span className="size-2 rounded-full bg-warning group-hover/close:hidden" aria-hidden />
+            {tab.diskChanged ? (
+              // Changed on disk under unsaved edits (or gone): a ring, not the plain dirty dot.
+              <span
+                className="size-2 rounded-full border-[1.5px] border-warning group-hover/close:hidden"
+                aria-hidden
+              />
+            ) : (
+              <span
+                className="size-2 rounded-full bg-warning group-hover/close:hidden"
+                aria-hidden
+              />
+            )}
             <X
               size={14}
               strokeWidth={1.75}

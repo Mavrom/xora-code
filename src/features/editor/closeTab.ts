@@ -1,46 +1,50 @@
-import { confirm } from "@tauri-apps/plugin-dialog";
+import { confirmDialog } from "@/shared/ui/confirm";
 import { EDITOR_EMPTY_ID, isShown } from "./editorKeys";
+import { confirmDirtyClose } from "./editorSettings";
+import { saveTab } from "./saveActiveTab";
 import { isDirty, useEditorStore, type Tab } from "./store";
 
-let confirming = false;
-
 /**
- * Closes a tab, asking first when it has unsaved changes. Uses the dialog plugin directly:
- * the plugin replaces `window.confirm` with an async version that always returns a Promise.
- * Only one confirm is shown at a time (e.g. a held Ctrl+W).
+ * Closes a tab. With unsaved changes it asks first (in-app dialog): Kaydet writes the file
+ * and closes (a failed write keeps the tab open, its error in the status bar), Kaydetme
+ * drops the edits, İptal keeps the tab. Only one dialog is shown at a time.
  */
 export async function requestCloseTab(tab: Tab) {
-  if (isDirty(tab)) {
-    if (confirming) return;
-    confirming = true;
-    try {
-      const discard = await confirm(`${tab.name} kaydedilmedi. Yine de kapatılsın mı?`, {
-        title: "Kaydedilmemiş değişiklikler",
-        kind: "warning",
-        okLabel: "Kapat",
-        cancelLabel: "İptal",
-      });
-      if (!discard) return;
-    } finally {
-      confirming = false;
+  if (isDirty(tab) && confirmDirtyClose()) {
+    const choice = await confirmDialog({
+      title: "Kaydedilmemiş değişiklikler",
+      message: `${tab.name} dosyasındaki değişiklikler kaydedilmedi. Kapatmadan önce kaydedilsin mi?`,
+    });
+    if (choice === "cancel") return;
+    if (choice === "save") {
+      const result = await saveTab(tab.path);
+      if (!result.ok) {
+        useEditorStore.getState().setActive(tab.path);
+        return;
+      }
     }
   }
   useEditorStore.getState().closeTab(tab.path);
-  if (useEditorStore.getState().tabs.length === 0) requestAnimationFrame(refocusAfterLastTab);
+  if (useEditorStore.getState().tabs.length === 0) refocusAfterLastTab();
 }
 
 /**
  * Closing the last tab unmounts whatever had focus (Monaco, the tab strip), dropping it to
  * `body`. Land on the explorer tree instead, so the next file is an arrow key away, or on
  * the editor's empty state when the tree is not shown. Leaves focus alone if it already
- * moved somewhere on its own.
+ * moved somewhere visible on its own. Two frames: React commits the empty editor and the
+ * lazy Monaco panel finishes unmounting before we look.
  */
 function refocusAfterLastTab() {
-  const current = document.activeElement;
-  if (current && current !== document.body) return;
-  const treeStop = document.querySelector('[role="tree"] [role="treeitem"][tabindex="0"]');
-  const target = isShown(treeStop) ? treeStop : document.getElementById(EDITOR_EMPTY_ID);
-  if (isShown(target)) target.focus({ preventScroll: true });
+  requestAnimationFrame(() =>
+    requestAnimationFrame(() => {
+      const current = document.activeElement;
+      if (current && current !== document.body && isShown(current)) return;
+      const treeStop = document.querySelector('[role="tree"] [role="treeitem"][tabindex="0"]');
+      const target = isShown(treeStop) ? treeStop : document.getElementById(EDITOR_EMPTY_ID);
+      if (isShown(target)) target.focus({ preventScroll: true });
+    }),
+  );
 }
 
 /** Closes the active tab (same dirty confirm); a no-op without one. */
