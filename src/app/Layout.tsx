@@ -7,7 +7,7 @@ import {
   usePanelRef,
   type PanelImperativeHandle,
 } from "react-resizable-panels";
-import { onCommand, TOGGLE_EDITOR } from "@/features/commands/events";
+import { emitCommand, onCommand, TOGGLE_EDITOR, TOGGLE_SIDEBAR } from "@/features/commands/events";
 import { HeroBackdrop } from "@/features/backdrop/HeroBackdrop";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
@@ -102,6 +102,28 @@ export function Layout() {
       }),
     [editorPanel],
   );
+
+  // Ctrl+B, like VS Code and Zed; capture phase so it also works from the editor.
+  useEffect(() => {
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.defaultPrevented || e.repeat || !e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)
+        return;
+      if (e.code !== "KeyB") return;
+      e.preventDefault();
+      emitCommand(TOGGLE_SIDEBAR);
+    };
+    document.addEventListener("keydown", onKeyDown, true);
+    const off = onCommand(TOGGLE_SIDEBAR, () => {
+      const panel = sidebarPanel.current;
+      if (!panel) return;
+      if (panel.isCollapsed()) panel.expand();
+      else panel.collapse();
+    });
+    return () => {
+      document.removeEventListener("keydown", onKeyDown, true);
+      off();
+    };
+  }, [sidebarPanel]);
 
   return (
     <div className="relative isolate h-full">

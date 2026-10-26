@@ -45,6 +45,8 @@ On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab a
 | Shortcut                  | Action                                     |
 | ------------------------- | ------------------------------------------ |
 | `Ctrl+K` / `Ctrl+Shift+P` | Toggle the command palette                 |
+| `Ctrl+N`                  | New chat                                   |
+| `Ctrl+B`                  | Show or hide the sidebar                   |
 | `Ctrl+Shift+H`            | Show the conversations                     |
 | `Ctrl+Shift+E`            | Pin or unpin the files drawer              |
 | `Ctrl+Shift+N`            | Show the Inbox and focus the note composer |

@@ -7,13 +7,16 @@ export const TOGGLE_TERMINAL = "xora:toggle-terminal";
 export const OPEN_PALETTE = "xora:open-palette";
 /** Back to the welcome composer, focused (sidebar button, Ctrl+N). */
 export const NEW_CHAT = "xora:new-chat";
+/** Shows or hides the left sidebar (Ctrl+B). */
+export const TOGGLE_SIDEBAR = "xora:toggle-sidebar";
 
 export type CommandEvent =
   | typeof TOGGLE_EDITOR
   | typeof SAVE_ACTIVE_FILE
   | typeof TOGGLE_TERMINAL
   | typeof OPEN_PALETTE
-  | typeof NEW_CHAT;
+  | typeof NEW_CHAT
+  | typeof TOGGLE_SIDEBAR;
 
 export const emitCommand = (name: CommandEvent) => window.dispatchEvent(new Event(name));
 

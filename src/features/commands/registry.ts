@@ -4,6 +4,7 @@ import {
   MessagesSquare,
   FolderOpen,
   Inbox,
+  PanelLeft,
   PanelRight,
   RotateCw,
   Palette,
@@ -20,10 +21,17 @@ import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
 import { requestRefresh } from "@/features/workspace/fsWatch";
-import { openSettings } from "@/features/settings/viewStore";
+import { closeSettings, openSettings } from "@/features/settings/viewStore";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
-import { emitCommand, SAVE_ACTIVE_FILE, TOGGLE_EDITOR, TOGGLE_TERMINAL } from "./events";
+import {
+  emitCommand,
+  NEW_CHAT,
+  SAVE_ACTIVE_FILE,
+  TOGGLE_EDITOR,
+  TOGGLE_SIDEBAR,
+  TOGGLE_TERMINAL,
+} from "./events";
 import type { Rankable } from "./results";
 
 export interface Command extends Rankable {
@@ -77,6 +85,25 @@ export const COMMANDS: Command[] = [
     icon: X,
     when: hasActiveTab,
     run: closeActiveTab,
+  },
+  {
+    id: "chat.new",
+    title: "Yeni sohbet",
+    group: "Sohbet",
+    shortcut: "mod+n",
+    icon: SquarePen,
+    run: () => {
+      closeSettings();
+      emitCommand(NEW_CHAT);
+    },
+  },
+  {
+    id: "view.toggleSidebar",
+    title: "Kenar çubuğunu göster/gizle",
+    group: "Görünüm",
+    shortcut: "mod+b",
+    icon: PanelLeft,
+    run: () => emitCommand(TOGGLE_SIDEBAR),
   },
   {
     id: "view.toggleEditor",
