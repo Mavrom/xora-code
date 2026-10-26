@@ -296,7 +296,11 @@ impl AgentManager {
         };
         self.set_status(agent, AgentStatus::Starting);
 
-        let launch = launch_spec(spec, &node.exe, &entry, cwd, prefs, &agents_dir);
+        // The adapter is shared by every session of this agent, each of which names its own
+        // folder. Starting it in the first session's folder would pin that folder (Windows
+        // cannot delete a process's working directory), e.g. a worktree about to be removed.
+        let process_dir = home_dir().unwrap_or_else(|| cwd.to_path_buf());
+        let launch = launch_spec(spec, &node.exe, &entry, &process_dir, prefs, &agents_dir);
         let AgentProcess {
             child,
             job,
@@ -1021,6 +1025,15 @@ pub fn initialize_params() -> Value {
 }
 
 /// How an adapter is started (design doc 1.2/1.4/3.8).
+/// The user's home folder: a working directory no project removal can pull away.
+fn home_dir() -> Option<PathBuf> {
+    ["USERPROFILE", "HOME"]
+        .into_iter()
+        .filter_map(std::env::var_os)
+        .map(PathBuf::from)
+        .find(|p| p.is_dir())
+}
+
 pub fn launch_spec(
     spec: &AgentSpec,
     node: &Path,

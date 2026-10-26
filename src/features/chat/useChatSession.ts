@@ -33,6 +33,25 @@ function emptySessionFor(agentId: AgentId, cwd: string): string | null {
 }
 
 /**
+ * Closes this agent's untouched sessions in other folders (left from a previous folder or
+ * worktree): each holds an agent process and would never be used again.
+ */
+function closeWarmElsewhere(agentId: AgentId, cwd: string) {
+  const { sessions, activeSessionId, closeSession } = useAgentStore.getState();
+  for (const view of Object.values(sessions)) {
+    if (
+      view.agentId === agentId &&
+      view.sessionId !== activeSessionId &&
+      view.items.length === 0 &&
+      !view.loading &&
+      !sameProject(view.cwd, cwd)
+    ) {
+      void closeSession(view.sessionId);
+    }
+  }
+}
+
+/**
  * Activates an empty session for `agentId` in `cwd`, reusing one that is open or opening.
  * Rejects with the store's raw error (auth, missing agent ...).
  */
@@ -69,6 +88,7 @@ export function useWarmSession(
     const key = `${agentId}|${cwd}|${status.state}`;
     if (attempted.has(key)) return;
     attempted.add(key);
+    closeWarmElsewhere(agentId, cwd);
     ensureSession(agentId, cwd)
       .then(() => attempted.delete(key))
       .catch((err: unknown) => console.debug("chat: warm session failed", err));
