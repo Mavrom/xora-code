@@ -172,6 +172,19 @@ function firstNumber(lines: DiffLine[], key: "oldNo" | "newNo"): number {
   return 0;
 }
 
+/** The first `maxRows` rows of `hunks` (whole hunks, the last one possibly cut short). */
+export function limitHunks(hunks: DiffHunk[], maxRows: number): DiffHunk[] {
+  const out: DiffHunk[] = [];
+  let budget = maxRows;
+  for (const hunk of hunks) {
+    if (budget <= 0) break;
+    const lines = hunk.lines.slice(0, budget);
+    budget -= lines.length;
+    out.push({ ...hunk, lines });
+  }
+  return out;
+}
+
 /** Added and removed line counts, for "+12 −3" badges. */
 export function diffStats(lines: DiffLine[]): { added: number; removed: number } {
   let added = 0;

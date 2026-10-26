@@ -58,6 +58,11 @@ export function fileName(path: string): string {
   return parts[parts.length - 1] ?? path;
 }
 
+/** Whether an agent status deserves a card (ready and not-yet-started agents stay quiet). */
+export function needsStatusCard(status: { state: string }): boolean {
+  return status.state !== "ready" && status.state !== "stopped";
+}
+
 /** Option Enter picks in a permission prompt: the first one-time allow, else any allow. */
 export function defaultAllow(options: AcpPermissionOption[]): AcpPermissionOption | null {
   return (
