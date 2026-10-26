@@ -17,6 +17,26 @@ pub async fn fs_read_file(path: String) -> AppResult<String> {
     Ok(super::read_file(&PathBuf::from(path)).map_err(super::coded)?)
 }
 
+/// Largest file sent to the chat as raw bytes (an attached image).
+const MAX_BYTES: u64 = 20 * 1024 * 1024;
+
+/// A file's raw bytes (an ArrayBuffer on the JS side), for images attached to a message.
+#[tauri::command]
+pub async fn fs_read_bytes(path: String) -> AppResult<tauri::ipc::Response> {
+    let path = PathBuf::from(path);
+    let size = std::fs::metadata(&path).map_err(super::coded)?.len();
+    if size > MAX_BYTES {
+        return Err(std::io::Error::other(format!(
+            "[too_large] {} MB is over the {} MB limit",
+            size / (1024 * 1024),
+            MAX_BYTES / (1024 * 1024)
+        ))
+        .into());
+    }
+    let bytes = std::fs::read(&path).map_err(super::coded)?;
+    Ok(tauri::ipc::Response::new(bytes))
+}
+
 #[tauri::command]
 pub async fn fs_write_file(path: String, contents: String) -> AppResult<()> {
     Ok(super::write_file(&PathBuf::from(path), &contents).map_err(super::coded)?)

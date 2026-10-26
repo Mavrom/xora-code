@@ -4,7 +4,8 @@ import { X } from "lucide-react";
 import { errorMessage, isAuthRequired } from "@/features/agents/ipc";
 import type { SessionView } from "@/features/agents/reducer";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
-import type { AgentId } from "@/features/agents/types";
+import type { AgentId, AgentStatus } from "@/features/agents/types";
+import { ipc } from "@/shared/lib/ipc";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { useEditorStore } from "@/features/editor/store";
@@ -23,7 +24,7 @@ import {
   ModelPicker,
   type OpenChip,
 } from "./ComposerToolbar";
-import { mentionFor } from "./mentions";
+import { attachmentFromBlob, attachmentFromPath, toBlocks, type Attachment } from "./attachments";
 import { PermissionPrompt } from "./PermissionPrompt";
 import type { XoraCommandName } from "./slash";
 import { isDocked } from "./sessionTitle";
@@ -33,6 +34,13 @@ import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 
 const NOTICE_MS = 3200;
+
+/** Whether the agent accepts image blocks in a prompt (ACP `promptCapabilities.image`). */
+function takesImages(status: AgentStatus): boolean {
+  if (status.state !== "ready") return false;
+  const caps = status.capabilities as { promptCapabilities?: { image?: boolean } } | null;
+  return caps?.promptCapabilities?.image === true;
+}
 
 /** A failed sign-in, worded for the card (the agent's own reason when it gave one). */
 function authFailureText(err: unknown): string {
@@ -68,6 +76,7 @@ export function ChatPanel() {
   const composerRef = useRef<ComposerHandle>(null);
   const [notice, setNotice] = useState<{ text: string; key: number } | null>(null);
   const [authError, setAuthError] = useState<{ agentId: AgentId; text: string } | null>(null);
+  const [attachments, setAttachments] = useState<Attachment[]>([]);
 
   const agentId = session?.agentId ?? selectedAgent;
   const agent = agents[agentId];
@@ -121,11 +130,14 @@ export function ChatPanel() {
 
   const submit = async (text: string) => {
     if (!cwd) return;
+    const sent = attachments;
+    setAttachments([]);
     try {
       const id = session?.sessionId ?? (await ensureSession(agentId, cwd));
-      await store().prompt(id, text);
+      await store().prompt(id, toBlocks(text, sent, takesImages(agent.status)));
     } catch (err) {
       composerRef.current?.fill(text);
+      setAttachments(sent);
       if (!isAuthRequired(err)) say(errorMessage(err));
     }
   };
@@ -171,10 +183,23 @@ export function ChatPanel() {
       .catch((err: unknown) => say(`Ayar değiştirilemedi: ${errorMessage(err)}`));
   };
 
-  const mention = (paths: string[], dir = false) => {
-    if (paths.length > 0)
-      composerRef.current?.insert(paths.map((p) => mentionFor(p, cwd, dir)).join(" "));
+  const addAttachments = async (pending: Promise<Attachment>[]) => {
+    const results = await Promise.allSettled(pending);
+    const added = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
+    const failed = results.find((r) => r.status === "rejected");
+    if (added.length > 0) {
+      // The same file twice is one attachment.
+      setAttachments((list) => [
+        ...list,
+        ...added.filter((a) => !a.path || !list.some((b) => b.path === a.path)),
+      ]);
+      composerRef.current?.focus();
+    }
+    if (failed) say(`Eklenemedi: ${errorMessage(failed.reason)}`);
   };
+
+  const attachPaths = (paths: string[], kind: "file" | "folder") =>
+    void addAttachments(paths.map((p) => attachmentFromPath(p, kind, ipc.readBytes)));
 
   const attach = async (directory: boolean) => {
     const picked = await open({
@@ -183,7 +208,10 @@ export function ChatPanel() {
       directory,
       defaultPath: cwd ?? undefined,
     }).catch(() => null);
-    mention(Array.isArray(picked) ? picked : picked ? [picked] : [], directory);
+    attachPaths(
+      Array.isArray(picked) ? picked : picked ? [picked] : [],
+      directory ? "folder" : "file",
+    );
   };
 
   const permission = session?.permissions[0] ?? null;
@@ -256,7 +284,7 @@ export function ChatPanel() {
               onPickFolder={() => void attach(true)}
               openFile={
                 activeFile
-                  ? { name: basename(activeFile), onAdd: () => mention([activeFile]) }
+                  ? { name: basename(activeFile), onAdd: () => attachPaths([activeFile], "file") }
                   : null
               }
             />
@@ -275,6 +303,13 @@ export function ChatPanel() {
           session?.usage && session.usage.size > 0 ? (
             <ContextMeter used={session.usage.used} size={session.usage.size} />
           ) : null
+        }
+        attachments={attachments}
+        onRemoveAttachment={(id) => setAttachments((list) => list.filter((a) => a.id !== id))}
+        onPasteImages={(files) =>
+          void addAttachments(
+            files.map((f, i) => attachmentFromBlob(f, f.name || `ekran-goruntusu-${i + 1}.png`)),
+          )
         }
         onSubmit={(text) => void submit(text)}
         onStop={() => session && void store().cancel(session.sessionId)}

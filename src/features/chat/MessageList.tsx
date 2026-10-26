@@ -9,6 +9,7 @@ import { gapBefore, isNearBottom } from "./scroll";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCallCard } from "./ToolCallCard";
 import { fileName } from "./toolView";
+import { dataUrl } from "./attachments";
 
 const STOP_NOTE: Partial<Record<AcpStopReason, string>> = {
   cancelled: "Durduruldu.",
@@ -188,24 +189,39 @@ function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
   const files = blocks.flatMap((b) =>
     b.type === "resource_link" ? [b.name || b.uri] : b.type === "resource" ? [b.resource.uri] : [],
   );
+  const images = blocks.flatMap((b) => (b.type === "image" ? [b] : []));
   return (
-    <div className="flex justify-end">
-      <div className="max-w-[85%] rounded-2xl rounded-br-md border border-glass-border bg-glass-strong px-4 py-2.5 text-ui leading-[22px] whitespace-pre-wrap text-fg backdrop-blur-xl select-text [overflow-wrap:anywhere]">
-        {text}
-        {files.length > 0 && (
-          <span className="mt-1.5 flex flex-wrap gap-1">
-            {files.map((file) => (
-              <span
-                key={file}
-                className="inline-flex h-5 items-center gap-1 rounded-md border border-glass-border px-1.5 font-mono text-3xs text-fg-muted"
-              >
-                <FileText size={10} strokeWidth={1.75} aria-hidden />
-                {fileName(file)}
-              </span>
-            ))}
-          </span>
-        )}
-      </div>
+    <div className="flex flex-col items-end gap-1.5">
+      {images.length > 0 && (
+        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+          {images.map((img, i) => (
+            <img
+              key={i}
+              src={dataUrl(img.mimeType, img.data)}
+              alt="Eklenen görsel"
+              className="max-h-48 max-w-72 rounded-xl border border-glass-border object-cover"
+            />
+          ))}
+        </div>
+      )}
+      {(text || files.length > 0) && (
+        <div className="max-w-[85%] rounded-2xl rounded-br-md border border-glass-border bg-glass-strong px-4 py-2.5 text-ui leading-[22px] whitespace-pre-wrap text-fg backdrop-blur-xl select-text [overflow-wrap:anywhere]">
+          {text}
+          {files.length > 0 && (
+            <span className="mt-1.5 flex flex-wrap gap-1">
+              {files.map((file) => (
+                <span
+                  key={file}
+                  className="inline-flex h-5 items-center gap-1 rounded-md border border-glass-border px-1.5 font-mono text-3xs text-fg-muted"
+                >
+                  <FileText size={10} strokeWidth={1.75} aria-hidden />
+                  {fileName(file)}
+                </span>
+              ))}
+            </span>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -8,11 +8,12 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import { ArrowUp, Square } from "lucide-react";
+import { ArrowUp, FileText, Folder, Square, X } from "lucide-react";
 import type { TurnState } from "@/features/agents/reducer";
 import type { AcpCommand } from "@/features/agents/types";
 import { useAutoGrow } from "@/shared/lib/autoGrow";
 import { cn } from "@/shared/ui/cn";
+import { dataUrl, type Attachment } from "./attachments";
 import { getComposerKeyAction } from "./composerKeys";
 import {
   applySlash,
@@ -28,8 +29,6 @@ import { SlashPopover } from "./SlashPopover";
 export interface ComposerHandle {
   /** Replaces the draft (e.g. from a suggestion) and focuses the field. */
   fill: (text: string) => void;
-  /** Adds text at the end of the draft (attached file mentions) and focuses the field. */
-  insert: (text: string) => void;
   focus: () => void;
 }
 
@@ -45,6 +44,11 @@ interface ComposerProps {
   toolbar?: ReactNode;
   /** Quiet meter left of the send button (context usage). */
   meter?: ReactNode;
+  /** Pictures and files going with the message, shown as cards above the field. */
+  attachments?: readonly Attachment[];
+  onRemoveAttachment?: (id: string) => void;
+  /** Pictures pasted into the field (Ctrl+V of a screenshot). */
+  onPasteImages?: (files: File[]) => void;
   onSubmit: (text: string) => void;
   onStop: () => void;
   onXoraCommand: (name: XoraCommandName) => void;
@@ -64,6 +68,9 @@ export function Composer({
   commands,
   toolbar,
   meter,
+  attachments = [],
+  onRemoveAttachment,
+  onPasteImages,
   onSubmit,
   onStop,
   onXoraCommand,
@@ -79,7 +86,9 @@ export function Composer({
   const hero = variant === "hero";
   const running = turn !== "idle";
   const hasText = value.trim().length > 0;
-  const canSend = hasText && blockedReason === null;
+  // A picture alone is a message too.
+  const hasContent = hasText || attachments.length > 0;
+  const canSend = hasContent && blockedReason === null;
 
   useAutoGrow(fieldRef, value);
 
@@ -95,10 +104,6 @@ export function Composer({
 
   useImperativeHandle(ref, () => ({
     fill: replaceDraft,
-    insert: (text) => {
-      const draft = fieldRef.current?.value ?? "";
-      replaceDraft(draft && !/\s$/.test(draft) ? `${draft} ${text} ` : `${draft}${text} `);
-    },
     focus: () => fieldRef.current?.focus(),
   }));
 
@@ -128,7 +133,7 @@ export function Composer({
 
   const submit = () => {
     const text = value.trim();
-    if (!text) return;
+    if (!text && attachments.length === 0) return;
     const xora = xoraCommandOf(text);
     if (xora) {
       setValue("");
@@ -209,6 +214,15 @@ export function Composer({
         <label htmlFor={id} className="sr-only">
           Mesaj
         </label>
+        {attachments.length > 0 && (
+          <ul aria-label="Ekler" className="flex flex-wrap gap-2 px-3 pt-3">
+            {attachments.map((a) => (
+              <li key={a.id}>
+                <AttachmentCard attachment={a} onRemove={onRemoveAttachment} />
+              </li>
+            ))}
+          </ul>
+        )}
         <textarea
           ref={fieldRef}
           id={id}
@@ -222,6 +236,14 @@ export function Composer({
             if (!event.target.value.startsWith("/")) setSlashDismissed(false);
           }}
           onKeyDown={onKeyDown}
+          onPaste={(event) => {
+            const images = [...event.clipboardData.files].filter((f) =>
+              f.type.startsWith("image/"),
+            );
+            if (images.length === 0 || !onPasteImages) return;
+            event.preventDefault();
+            onPasteImages(images);
+          }}
           onKeyUp={syncCaret}
           onClick={syncCaret}
           role="combobox"
@@ -253,13 +275,57 @@ export function Composer({
             running={running}
             cancelling={turn === "cancelling"}
             canSend={canSend}
-            hasText={hasText}
+            hasText={hasContent}
             onSend={submit}
             onStop={onStop}
           />
         </div>
       </div>
     </div>
+  );
+}
+
+/** One attachment above the field: a thumbnail for pictures, a name card for the rest. */
+function AttachmentCard({
+  attachment: a,
+  onRemove,
+}: {
+  attachment: Attachment;
+  onRemove?: (id: string) => void;
+}) {
+  const remove = onRemove && (
+    <button
+      type="button"
+      aria-label={`${a.name} ekini kaldır`}
+      title="Kaldır"
+      onClick={() => onRemove(a.id)}
+      className="absolute -top-1.5 -right-1.5 grid size-4.5 place-items-center rounded-full border border-white/10 bg-[#1c1c1e] text-fg-muted opacity-0 shadow-md transition-[opacity,color] duration-fast group-hover:opacity-100 group-focus-within:opacity-100 hover:text-fg"
+    >
+      <X size={10} strokeWidth={2.25} aria-hidden />
+    </button>
+  );
+  if (a.kind === "image" && a.data && a.mimeType) {
+    return (
+      <span className="group relative block" title={a.name}>
+        <img
+          src={dataUrl(a.mimeType, a.data)}
+          alt={a.name}
+          className="size-14 rounded-lg border border-white/10 object-cover"
+        />
+        {remove}
+      </span>
+    );
+  }
+  const Icon = a.kind === "folder" ? Folder : FileText;
+  return (
+    <span
+      title={a.path ?? a.name}
+      className="group relative flex h-9 max-w-56 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] pr-3 pl-2.5 text-xs text-fg-muted"
+    >
+      <Icon size={14} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
+      <span className="truncate">{a.name}</span>
+      {remove}
+    </span>
   );
 }
 

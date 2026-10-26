@@ -20,6 +20,8 @@ export interface Note {
 export const ipc = {
   listDir: (path: string) => invoke<DirEntry[]>("fs_list_dir", { path }),
   readFile: (path: string) => invoke<string>("fs_read_file", { path }),
+  /** Raw bytes (attached images); rejects with `[too_large]` over 20 MB. */
+  readBytes: (path: string) => invoke<ArrayBuffer>("fs_read_bytes", { path }),
   writeFile: (path: string, contents: string) => invoke<void>("fs_write_file", { path, contents }),
   notesList: () => invoke<Note[]>("notes_list"),
   /** Replaces the whole stored list (atomic on disk). */
