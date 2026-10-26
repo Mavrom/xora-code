@@ -33,7 +33,7 @@ export function TopBar({ folderName, editorOpen, onOpenFolder, onToggleEditor }:
   return (
     <header
       data-tauri-drag-region="deep"
-      className="flex h-10 shrink-0 items-center justify-between border-b border-border bg-bg pl-3.5"
+      className="flex h-10 shrink-0 items-center justify-between border-b border-border glass-bg pl-3.5"
     >
       <div className="flex min-w-0 items-center gap-2.5">
         <XoraMark />

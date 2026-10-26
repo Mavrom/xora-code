@@ -1,10 +1,13 @@
 import {
+  CircleUserRound,
   Files,
   FolderOpen,
   Inbox,
   PanelRight,
   RotateCw,
+  Palette,
   Save,
+  Settings,
   SquarePen,
   SquareTerminal,
   X,
@@ -16,6 +19,7 @@ import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
 import { requestRefresh } from "@/features/workspace/fsWatch";
+import { openSettings } from "@/features/settings/viewStore";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { emitCommand, SAVE_ACTIVE_FILE, TOGGLE_EDITOR, TOGGLE_TERMINAL } from "./events";
@@ -112,5 +116,27 @@ export const COMMANDS: Command[] = [
     shortcut: "ctrl+`",
     icon: SquareTerminal,
     run: () => emitCommand(TOGGLE_TERMINAL),
+  },
+  {
+    id: "settings.open",
+    title: "Ayarlar",
+    group: "Tercihler",
+    shortcut: "mod+,",
+    icon: Settings,
+    run: () => openSettings(),
+  },
+  {
+    id: "settings.accounts",
+    title: "Hesapları yönet",
+    group: "Tercihler",
+    icon: CircleUserRound,
+    run: () => openSettings("accounts"),
+  },
+  {
+    id: "settings.appearance",
+    title: "Duvar kağıdı ve görünüm",
+    group: "Tercihler",
+    icon: Palette,
+    run: () => openSettings("appearance"),
   },
 ];

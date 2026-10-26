@@ -17,6 +17,7 @@ import { EditorArea } from "@/features/editor/EditorArea";
 import { moveFocusOutOfEditor } from "@/features/editor/editorFocus";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { TerminalDock } from "@/features/terminal/TerminalDock";
+import { SettingsHost } from "@/features/settings/SettingsHost";
 import { TopBar } from "./TopBar";
 import { ActivityBar } from "./ActivityBar";
 import { useUiStore } from "./uiStore";
@@ -57,7 +58,7 @@ export function Layout() {
 
   return (
     // Grid: the top bar spans both columns; the activity bar sits left of the panels.
-    <div className="grid h-full grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] bg-bg [&>header]:col-span-2">
+    <div className="grid h-full grid-cols-[auto_minmax(0,1fr)] grid-rows-[auto_minmax(0,1fr)] [&>header]:col-span-2">
       <TopBar
         folderName={root ? basename(root) : null}
         editorOpen={editorOpen}
@@ -72,7 +73,7 @@ export function Layout() {
         onLayoutChanged={onLayoutChanged}
         className="min-h-0 flex-1"
       >
-        <Panel id="files" defaultSize="18%" minSize="12%" className="bg-surface">
+        <Panel id="files" defaultSize="18%" minSize="12%" className="glass-surface">
           {/* Both stay mounted so switching views keeps tree expansion and drafts. */}
           <div className="h-full" hidden={sidebarView !== "explorer"}>
             <FileTree onOpenFolder={openFolder} />
@@ -92,7 +93,7 @@ export function Layout() {
               onLayoutChanged={center.onLayoutChanged}
               className="h-full"
             >
-              <Panel id="chat" defaultSize="51%" minSize="30%" className="bg-bg">
+              <Panel id="chat" defaultSize="51%" minSize="30%" className="glass-bg">
                 <ChatPanel />
               </Panel>
               <ResizeHandle label="Editörü yeniden boyutlandır" />
@@ -108,7 +109,7 @@ export function Layout() {
                   if (!open) moveFocusOutOfEditor();
                   setEditorOpen(open);
                 }}
-                className="bg-surface"
+                className="glass-surface"
               >
                 <EditorArea />
               </Panel>
@@ -116,6 +117,8 @@ export function Layout() {
           </TerminalDock>
         </Panel>
       </Group>
+      {/* Settings page: overlays the panel area in the same grid cell while open. */}
+      <SettingsHost />
     </div>
   );
 }

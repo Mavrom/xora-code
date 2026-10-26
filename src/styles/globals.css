@@ -154,6 +154,63 @@
 
 @layer components {
   /* Placeholder bar with a slow sweep of light; pair with `animate-skeleton`. */
+  /* Range input with a white fill up to the thumb; set --fill (0-100%) inline. */
+  .range-slider {
+    appearance: none;
+    height: 18px;
+    background: transparent;
+    cursor: pointer;
+
+    &::-webkit-slider-runnable-track {
+      height: 4px;
+      border-radius: 9999px;
+      background: linear-gradient(
+        to right,
+        var(--color-fg) var(--fill, 0%),
+        var(--color-border-strong) var(--fill, 0%)
+      );
+    }
+
+    &::-webkit-slider-thumb {
+      appearance: none;
+      width: 14px;
+      height: 14px;
+      margin-top: -5px;
+      border-radius: 9999px;
+      background: var(--color-fg);
+      box-shadow:
+        0 0 0 3px var(--color-bg),
+        0 1px 6px rgb(0 0 0 / 0.6);
+      transition:
+        box-shadow var(--transition-duration-base) var(--ease-out-quint),
+        scale var(--transition-duration-base) var(--ease-out-quint);
+    }
+
+    &:hover::-webkit-slider-thumb {
+      box-shadow:
+        0 0 0 3px var(--color-bg),
+        0 0 0 7px color-mix(in srgb, var(--color-fg) 10%, transparent);
+    }
+
+    &:active::-webkit-slider-thumb {
+      scale: 1.12;
+    }
+
+    &:focus-visible {
+      outline: none;
+    }
+
+    &:focus-visible::-webkit-slider-thumb {
+      box-shadow:
+        0 0 0 3px var(--color-bg),
+        0 0 0 5px var(--color-fg-muted);
+    }
+
+    &:disabled {
+      cursor: not-allowed;
+    }
+  }
+
   .skeleton {
     background: linear-gradient(
         90deg,
@@ -187,6 +244,34 @@
   }
 }
 
+/* Glass surfaces (Settings > Görünüm). `src/app/Wallpaper.tsx` writes --glass-alpha on <html>:
+   1 (solid, the default) without a wallpaper, lower with one. Blur lives on the wallpaper image
+   itself, not in backdrop-filter, so fixed-position menus inside panels keep working. */
+@utility glass-bg {
+  background-color: color-mix(
+    in srgb,
+    var(--color-bg) calc(var(--glass-alpha, 1) * 100%),
+    transparent
+  );
+}
+
+@utility glass-surface {
+  background-color: color-mix(
+    in srgb,
+    var(--color-surface) calc(var(--glass-alpha, 1) * 100%),
+    transparent
+  );
+}
+
+/* Cards on glass stay a step more solid than the pane under them, for legibility. */
+@utility glass-card {
+  background-color: color-mix(
+    in srgb,
+    var(--color-surface) calc(min(1, var(--glass-alpha, 1) + 0.3) * 100%),
+    transparent
+  );
+}
+
 /* Faint radial light behind a hero block; AMOLED black everywhere else. */
 @utility hero-glow {
   background: radial-gradient(
@@ -216,13 +301,22 @@
   }
 }
 
-/* Global guard: motion collapses to an instant change for people who ask for less. */
+/* Global guard: motion collapses to an instant change for people who ask for less.
+   Settings > Genel can override the OS: data-motion="reduce" forces it, "full" skips it. */
 @media (prefers-reduced-motion: reduce) {
-  *,
-  ::before,
-  ::after {
+  :root:not([data-motion="full"]) *,
+  :root:not([data-motion="full"]) ::before,
+  :root:not([data-motion="full"]) ::after {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
   }
+}
+
+:root[data-motion="reduce"] *,
+:root[data-motion="reduce"] ::before,
+:root[data-motion="reduce"] ::after {
+  animation-duration: 0.01ms !important;
+  animation-iteration-count: 1 !important;
+  transition-duration: 0.01ms !important;
 }

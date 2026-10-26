@@ -1,6 +1,8 @@
+mod accounts;
 mod error;
 mod fs;
 mod notes;
+mod settings;
 mod terminal;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -17,6 +19,7 @@ pub fn run() {
         .manage(fs::watch::WatchState::default())
         .manage(terminal::TerminalManager::default())
         .on_window_event(terminal::commands::on_window_event)
+        .manage(settings::commands::SettingsLock::default())
         .invoke_handler(tauri::generate_handler![
             fs::commands::fs_list_dir,
             fs::commands::fs_read_file,
@@ -29,6 +32,12 @@ pub fn run() {
             terminal::commands::term_write,
             terminal::commands::term_resize,
             terminal::commands::term_kill,
+            settings::commands::settings_get,
+            settings::commands::settings_update,
+            settings::commands::settings_wallpaper_import,
+            settings::commands::settings_wallpaper_remove,
+            accounts::commands::accounts_detect,
+            accounts::commands::accounts_login,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

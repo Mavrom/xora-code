@@ -10,6 +10,8 @@ pub enum AppError {
     Tauri(#[from] tauri::Error),
     #[error(transparent)]
     Notes(#[from] crate::notes::NotesError),
+    #[error(transparent)]
+    Settings(#[from] crate::settings::SettingsError),
 }
 
 impl Serialize for AppError {
