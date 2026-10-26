@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { AcpPermissionOption, AcpToolCall } from "@/features/agents/types";
 import {
   localPath,
+  messageImagePaths,
   toolImages,
   defaultAllow,
   defaultReject,
@@ -146,5 +147,22 @@ describe("localPath", () => {
     expect(localPath("file:///C:/a%20b/c.png")).toBe("C:/a b/c.png");
     expect(localPath(String.raw`C:\a\c.png`)).toBe(String.raw`C:\a\c.png`);
     expect(localPath("https://x/y.png")).toBeNull();
+  });
+});
+
+describe("messageImagePaths", () => {
+  it("finds Windows, POSIX and file:// picture paths in prose", () => {
+    const text = [
+      String.raw`Kaydettim: C:\Users\me\My Pics\out.png ve`,
+      "`/home/me/a b.txt` değil, /tmp/gen/x.webp oldu.",
+      "![önizleme](file:///D:/art/y%20z.jpg)",
+      String.raw`Tekrar: c:\users\me\my pics\OUT.png`,
+      "Web: https://example.com/z.png",
+    ].join("\n");
+    expect(messageImagePaths(text)).toEqual([
+      String.raw`C:\Users\me\My Pics\out.png`,
+      "/tmp/gen/x.webp",
+      "D:/art/y z.jpg",
+    ]);
   });
 });

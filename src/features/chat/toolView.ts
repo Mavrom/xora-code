@@ -145,3 +145,31 @@ export function permissionLabel(
   const sameKind = options.filter((o) => o.kind === option.kind).length;
   return sameKind > 1 ? option.name : (PERMISSION_LABELS[option.kind] ?? option.name);
 }
+
+const IMAGE_EXT = "png|jpe?g|webp|gif|avif|bmp";
+/** Absolute Windows or POSIX paths and file:// URIs of pictures, as written in prose. */
+const IMAGE_PATH = new RegExp(
+  String.raw`(?:file:\/\/\/?[^\s<>"'\x60)]+|(?<![\w/])[A-Za-z]:[\\/][^\n<>"'\x60|*?]*?|(?<![\w.~:/])\/(?:[^\s<>"'\x60)]+\/)+[^\s<>"'\x60)]*?)\.(?:${IMAGE_EXT})(?![\w])`,
+  "gi",
+);
+
+/** Normalised form of a path, for "already shown" checks. */
+export const imageKey = (path: string) => path.replace(/\\/g, "/").toLowerCase();
+
+/**
+ * Local pictures an agent's message points at (a saved file it mentions, a markdown
+ * image), once each, in order. Web URLs are left alone: no remote fetches from a transcript.
+ */
+export function messageImagePaths(text: string): string[] {
+  const seen = new Set<string>();
+  const out: string[] = [];
+  for (const match of text.matchAll(IMAGE_PATH)) {
+    const path = localPath(match[0].trim());
+    if (!path) continue;
+    const key = imageKey(path);
+    if (seen.has(key)) continue;
+    seen.add(key);
+    out.push(path);
+  }
+  return out;
+}

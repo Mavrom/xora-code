@@ -4,12 +4,13 @@ import { FolderOpen, X } from "lucide-react";
 import { revealItemInDir } from "@tauri-apps/plugin-opener";
 import { ipc } from "@/shared/lib/ipc";
 import { basename } from "@/shared/lib/path";
+import { cn } from "@/shared/ui/cn";
 import { imageMime } from "./attachments";
 import type { ToolImage } from "./toolView";
 
 /** Object URL for a picture: inline base64 decoded once, or a file read through the backend. */
-function useImageUrl(image: ToolImage): string | null {
-  const [url, setUrl] = useState<string | null>(null);
+function useImageUrl(image: ToolImage): string | null | "failed" {
+  const [url, setUrl] = useState<string | null | "failed">(null);
   useEffect(() => {
     let alive = true;
     let made: string | null = null;
@@ -21,11 +22,11 @@ function useImageUrl(image: ToolImage): string | null {
     if (image.kind === "data") {
       void fetch(`data:${image.mimeType};base64,${image.data}`)
         .then((r) => r.blob())
-        .then(show, () => undefined);
+        .then(show, () => alive && setUrl("failed"));
     } else {
       void ipc.readBytes(image.path).then(
         (bytes) => show(new Blob([bytes], { type: imageMime(image.path) ?? "image/png" })),
-        () => undefined,
+        () => alive && setUrl("failed"),
       );
     }
     return () => {
@@ -37,9 +38,9 @@ function useImageUrl(image: ToolImage): string | null {
 }
 
 /** Pictures a tool call produced or opened, shown in the conversation; click to enlarge. */
-export function ToolImages({ images }: { images: ToolImage[] }) {
+export function ToolImages({ images, inset = true }: { images: ToolImage[]; inset?: boolean }) {
   return (
-    <div className="flex flex-wrap gap-2 pt-1 pb-2 pl-6">
+    <div className={cn("flex flex-wrap gap-2 pt-1 pb-2", inset && "pl-6")}>
       {images.map((image) => (
         <ToolImageTile key={image.key} image={image} />
       ))}
@@ -52,6 +53,8 @@ function ToolImageTile({ image }: { image: ToolImage }) {
   const [zoomed, setZoomed] = useState(false);
   const name = image.path ? basename(image.path) : "Görsel";
 
+  // A file that is gone (or never was) just does not show.
+  if (url === "failed") return null;
   if (!url) {
     return <div aria-hidden className="h-56 w-80 animate-pulse rounded-xl bg-white/[0.04]" />;
   }

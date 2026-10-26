@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useRef, useState } from "react";
+import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, CircleAlert, FileText, Info, TriangleAlert } from "lucide-react";
 import type { ChatItem, SessionView } from "@/features/agents/reducer";
 import type { AcpContentBlock, AcpStopReason } from "@/features/agents/types";
@@ -8,8 +8,11 @@ import { PlanView } from "./PlanView";
 import { gapBefore, isNearBottom } from "./scroll";
 import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCallCard } from "./ToolCallCard";
-import { fileName } from "./toolView";
+import { fileName, imageKey, messageImagePaths, toolImages, type ToolImage } from "./toolView";
+import { ToolImages } from "./ToolImages";
 import { dataUrl } from "./attachments";
+
+const NONE: ReadonlySet<string> = new Set();
 
 const STOP_NOTE: Partial<Record<AcpStopReason, string>> = {
   cancelled: "Durduruldu.",
@@ -35,6 +38,7 @@ export function MessageList({ session }: MessageListProps) {
   const { items, turn, terminals } = session;
   const running = turn !== "idle";
   const last = items[items.length - 1];
+  const shown = useShownImages(items);
 
   // A different session starts pinned to its latest message.
   useLayoutEffect(() => {
@@ -88,7 +92,12 @@ export function MessageList({ session }: MessageListProps) {
           {session.loading && items.length === 0 && <ReplaySkeleton />}
           {items.map((item, index) => (
             <div key={item.id} className={gapBefore(items[index - 1]?.kind, item.kind)}>
-              <Item item={item} streaming={running && item === last} terminals={terminals} />
+              <Item
+                item={item}
+                streaming={running && item === last}
+                terminals={terminals}
+                shown={item.kind === "agent" ? shown : undefined}
+              />
             </div>
           ))}
           {working && (
@@ -142,20 +151,64 @@ function isProgressVisible(item: ChatItem | undefined): boolean {
   return false;
 }
 
+/**
+ * Pictures tool cards already show, as a set that only changes identity when the list
+ * does (so agent rows are not re-rendered on every streamed chunk).
+ */
+function useShownImages(items: readonly ChatItem[]): ReadonlySet<string> {
+  const keys = items
+    .flatMap((i) =>
+      i.kind === "tool"
+        ? toolImages(i.call).flatMap((m) => (m.path ? [imageKey(m.path)] : []))
+        : [],
+    )
+    .join("|");
+  return useMemo(() => new Set(keys ? keys.split("|") : []), [keys]);
+}
+
+/** An agent reply, plus the local pictures it points at that no tool card has shown. */
+function AgentMessage({
+  text,
+  streaming,
+  shown,
+}: {
+  text: string;
+  streaming: boolean;
+  shown: ReadonlySet<string>;
+}) {
+  const images = useMemo<ToolImage[]>(
+    () =>
+      streaming
+        ? []
+        : messageImagePaths(text)
+            .filter((path) => !shown.has(imageKey(path)))
+            .map((path, i) => ({ key: `msg-${i}`, kind: "file", path })),
+    [text, streaming, shown],
+  );
+  return (
+    <>
+      <Markdown text={text} streaming={streaming} />
+      {images.length > 0 && <ToolImages images={images} inset={false} />}
+    </>
+  );
+}
+
 const Item = memo(function Item({
   item,
   streaming,
   terminals,
+  shown,
 }: {
   item: ChatItem;
   streaming: boolean;
   terminals: SessionView["terminals"];
+  shown?: ReadonlySet<string>;
 }) {
   switch (item.kind) {
     case "user":
       return <UserMessage blocks={item.blocks} />;
     case "agent":
-      return <Markdown text={item.text} streaming={streaming} />;
+      return <AgentMessage text={item.text} streaming={streaming} shown={shown ?? NONE} />;
     case "thought":
       return (
         <ThinkingBlock
