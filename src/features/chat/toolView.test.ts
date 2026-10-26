@@ -144,7 +144,7 @@ describe("toolImages", () => {
 describe("localPath", () => {
   it("turns file URIs into paths and leaves plain paths", () => {
     expect(localPath("file:///C:/a%20b/c.png")).toBe("C:/a b/c.png");
-    expect(localPath("C:\a\c.png")).toBe("C:\a\c.png");
+    expect(localPath(String.raw`C:\a\c.png`)).toBe(String.raw`C:\a\c.png`);
     expect(localPath("https://x/y.png")).toBeNull();
   });
 });
