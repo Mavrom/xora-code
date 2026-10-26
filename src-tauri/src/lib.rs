@@ -1,4 +1,5 @@
 mod accounts;
+mod agents;
 mod error;
 mod fs;
 mod notes;
