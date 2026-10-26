@@ -1,4 +1,6 @@
 import { convertFileSrc } from "@tauri-apps/api/core";
+import defaultPicture from "@/assets/backdrop-default.webp";
+import type { AppearanceSettings } from "./types";
 
 /** Image formats WebView2 shows; keep in sync with `settings::wallpaper::EXTENSIONS`. */
 export const WALLPAPER_EXTENSIONS = ["png", "jpg", "jpeg", "webp", "gif", "avif", "bmp"];
@@ -14,4 +16,10 @@ export function wallpaperSrc(path: string | null): string | null {
   } catch {
     return null; // Outside Tauri (tests, plain browser).
   }
+}
+
+/** The new-chat picture to show: the user's own, else the one Xora ships with; null when off. */
+export function backdropSrc(appearance: Pick<AppearanceSettings, "picture" | "wallpaper">) {
+  if (!appearance.picture) return null;
+  return appearance.wallpaper ? wallpaperSrc(appearance.wallpaper) : defaultPicture;
 }

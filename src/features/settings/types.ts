@@ -41,7 +41,9 @@ export interface EditorSettings {
 export type BackgroundEffect = "none" | "dither" | "ascii" | "halftone" | "scanlines";
 
 export interface AppearanceSettings {
-  /** Absolute path of the copy in app_data_dir/wallpapers/, or null for plain onyx. */
+  /** Whether a new chat shows a picture at all. */
+  picture: boolean;
+  /** The user's own copy in app_data_dir/wallpapers/; null is the picture Xora ships with. */
   wallpaper: string | null;
   effect: BackgroundEffect;
   /** Darkening over the picture, 0-100. */
@@ -87,5 +89,5 @@ export const DEFAULT_SETTINGS: Settings = {
     renderWhitespace: "none",
     formatOnSave: false,
   },
-  appearance: { wallpaper: null, effect: "dither", dim: 15 },
+  appearance: { picture: true, wallpaper: null, effect: "ascii", dim: 15 },
 };

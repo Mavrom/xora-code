@@ -1,15 +1,16 @@
 import { useState } from "react";
 import { open } from "@tauri-apps/plugin-dialog";
-import { ArrowUp, ImagePlus, Trash2 } from "lucide-react";
+import { ArrowUp, ImagePlus, RotateCcw } from "lucide-react";
 import { BackdropCanvas } from "@/features/backdrop/BackdropCanvas";
 import { Button } from "@/shared/ui/Button";
 import { Segmented } from "../controls/Segmented";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { Slider } from "../controls/Slider";
+import { Toggle } from "../controls/Toggle";
 import { settingsIpc } from "../ipc";
 import { useSettingsStore } from "../store";
 import { DIM_RANGE, type AppearanceSettings, type BackgroundEffect } from "../types";
-import { fileName, WALLPAPER_EXTENSIONS, wallpaperSrc } from "../wallpaper";
+import { backdropSrc, fileName, WALLPAPER_EXTENSIONS } from "../wallpaper";
 
 const EFFECTS: { value: BackgroundEffect; label: string }[] = [
   { value: "none", label: "Yok" },
@@ -32,7 +33,7 @@ export function AppearanceSection() {
   const pick = async () => {
     setError(null);
     const chosen = await open({
-      title: "Duvar kağıdı seç",
+      title: "Görsel seç",
       multiple: false,
       directory: false,
       filters: [{ name: "Görseller", extensions: WALLPAPER_EXTENSIONS }],
@@ -40,7 +41,7 @@ export function AppearanceSection() {
     if (typeof chosen !== "string") return;
     setBusy(true);
     try {
-      set({ wallpaper: await settingsIpc.importWallpaper(chosen) });
+      set({ wallpaper: await settingsIpc.importWallpaper(chosen), picture: true });
     } catch (err) {
       setError(String(err));
     } finally {
@@ -48,9 +49,10 @@ export function AppearanceSection() {
     }
   };
 
-  const remove = () => {
+  /** Back to the picture Xora ships with; the user's copy is deleted. */
+  const reset = () => {
     setError(null);
-    set({ wallpaper: null });
+    set({ wallpaper: null, picture: true });
     settingsIpc.removeWallpaper().catch(() => {
       // The setting is already cleared; a leftover file is replaced by the next import.
     });
@@ -60,7 +62,7 @@ export function AppearanceSection() {
     <>
       <SectionHeader
         title="Görünüm"
-        description="Yeni sohbet ekranının üstüne kendi görselinizi koyun; composer'ın altında onyx'e karışır. Görsel yokken Xora saf onyx kalır."
+        description="Yeni sohbet ekranının üstünde Xora'nın görseli durur ve composer'ın altında onyx'e karışır. Kendi görselinizi koyabilir ya da kapatabilirsiniz."
       />
 
       <AppearancePreview appearance={appearance} busy={busy} onPick={() => void pick()} />
@@ -72,21 +74,16 @@ export function AppearanceSection() {
         >
           {hasWallpaper
             ? fileName(appearance.wallpaper ?? "")
-            : "PNG, JPG, WebP, GIF, AVIF ya da BMP · en fazla 40 MB"}
+            : "Xora'nın görseli · kendi görseliniz: PNG, JPG, WebP, GIF, AVIF ya da BMP, en fazla 40 MB"}
         </p>
         <div className="flex shrink-0 items-center gap-1.5">
           {hasWallpaper && (
-            <Button variant="ghost" icon={Trash2} onClick={remove} disabled={busy}>
-              Kaldır
+            <Button variant="ghost" icon={RotateCcw} onClick={reset} disabled={busy}>
+              Varsayılana dön
             </Button>
           )}
-          <Button
-            variant={hasWallpaper ? "secondary" : "primary"}
-            icon={ImagePlus}
-            onClick={() => void pick()}
-            disabled={busy}
-          >
-            {busy ? "Ekleniyor…" : hasWallpaper ? "Değiştir…" : "Görsel seç…"}
+          <Button variant="secondary" icon={ImagePlus} onClick={() => void pick()} disabled={busy}>
+            {busy ? "Ekleniyor…" : hasWallpaper ? "Değiştir…" : "Kendi görselin…"}
           </Button>
         </div>
       </div>
@@ -98,6 +95,17 @@ export function AppearanceSection() {
       )}
 
       <SettingGroup title="Görsel">
+        <SettingRow
+          label="Görsel göster"
+          description="Kapalıyken yeni sohbet saf onyx açılır."
+          control={(id) => (
+            <Toggle
+              labelledBy={id}
+              checked={appearance.picture}
+              onChange={(picture) => set({ picture })}
+            />
+          )}
+        />
         <SettingRow
           label="Efekt"
           description="Görseli dither, ASCII, halftone ya da tarama çizgileriyle yeniden çizer."
@@ -120,7 +128,7 @@ export function AppearanceSection() {
               min={DIM_RANGE.min}
               max={DIM_RANGE.max}
               format={percent}
-              disabled={!hasWallpaper}
+              disabled={!appearance.picture}
               onChange={(dim) => set({ dim })}
             />
           )}
@@ -141,7 +149,7 @@ interface PreviewProps {
  * onyx, a mock sidebar and the composer. Without a picture it is the "choose" button.
  */
 function AppearancePreview({ appearance, busy, onPick }: PreviewProps) {
-  const src = wallpaperSrc(appearance.wallpaper);
+  const src = backdropSrc(appearance);
   const [failed, setFailed] = useState<string | null>(null);
   const showImage = src !== null && failed !== src;
 

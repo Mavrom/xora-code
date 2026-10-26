@@ -167,8 +167,8 @@ pub const TAB_SIZE_RANGE: (u32, u32) = (1, 8);
 #[serde(rename_all = "camelCase")]
 pub enum BackgroundEffect {
     None,
-    #[default]
     Dither,
+    #[default]
     Ascii,
     Halftone,
     Scanlines,
@@ -178,7 +178,10 @@ pub enum BackgroundEffect {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct Appearance {
-    /// Absolute path of the copy in `app_data_dir/wallpapers/`, or none.
+    /// Whether a new chat shows a picture at all.
+    pub picture: bool,
+    /// Absolute path of the user's own copy in `app_data_dir/wallpapers/`; none means
+    /// the picture that ships with Xora.
     pub wallpaper: Option<String>,
     pub effect: BackgroundEffect,
     /// Darkening over the picture, 0-100.
@@ -188,6 +191,7 @@ pub struct Appearance {
 impl Default for Appearance {
     fn default() -> Self {
         Self {
+            picture: true,
             wallpaper: None,
             effect: BackgroundEffect::default(),
             dim: 15,
@@ -371,7 +375,7 @@ mod tests {
         assert_eq!(value["editor"]["fontSize"], json!(13));
         assert_eq!(
             value["appearance"],
-            json!({ "wallpaper": null, "effect": "dither", "dim": 15 })
+            json!({ "picture": true, "wallpaper": null, "effect": "ascii", "dim": 15 })
         );
     }
 
@@ -383,7 +387,7 @@ mod tests {
         assert_eq!(settings.appearance.wallpaper.as_deref(), Some("C:/w/a.png"));
         assert_eq!(
             settings.appearance.effect,
-            BackgroundEffect::Dither,
+            BackgroundEffect::Ascii,
             "an unknown effect is invalid, default kept"
         );
         assert_eq!(settings.appearance.dim, DIM_RANGE.1);

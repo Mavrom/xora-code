@@ -2,7 +2,7 @@ import { useState } from "react";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import { isDocked } from "@/features/chat/sessionTitle";
 import { useSettingsStore } from "@/features/settings/store";
-import { wallpaperSrc } from "@/features/settings/wallpaper";
+import { backdropSrc } from "@/features/settings/wallpaper";
 import { BackdropCanvas } from "./BackdropCanvas";
 
 /**
@@ -13,7 +13,7 @@ import { BackdropCanvas } from "./BackdropCanvas";
 export function HeroBackdrop() {
   const appearance = useSettingsStore((s) => s.settings.appearance);
   const docked = useAgentStore((s) => isDocked(selectActiveSession(s)));
-  const src = wallpaperSrc(appearance.wallpaper);
+  const src = backdropSrc(appearance);
   const [failed, setFailed] = useState<string | null>(null);
 
   if (docked || !src || failed === src) return null;
