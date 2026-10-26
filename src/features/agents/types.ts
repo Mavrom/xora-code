@@ -57,7 +57,7 @@ export type AcpStopReason =
   "end_turn" | "max_tokens" | "max_turn_requests" | "refusal" | "cancelled";
 export type AcpContentBlock =
   | { type: "text"; text: string }
-  | { type: "image"; data: string; mimeType: string }
+  | { type: "image"; data: string; mimeType: string; uri?: string | null }
   | { type: "resource_link"; uri: string; name: string; mimeType?: string | null }
   | { type: "resource"; resource: { uri: string; text?: string; mimeType?: string | null } };
 export type AcpToolKind =

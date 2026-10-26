@@ -29,8 +29,10 @@ import {
   terminalPreview,
   toolDiffs,
   toolTerminals,
+  toolImages,
   toolText,
 } from "./toolView";
+import { ToolImages } from "./ToolImages";
 
 const KIND_ICON: Record<AcpToolKind, LucideIcon> = {
   read: FileText,
@@ -74,6 +76,7 @@ export const ToolCallCard = memo(function ToolCallCard({
   const diffs = useMemo(() => toolDiffs(call), [call]);
   const terminalIds = toolTerminals(call);
   const text = toolText(call);
+  const images = useMemo(() => toolImages(call), [call]);
   const locations = call.locations ?? [];
   const hasBody =
     diffs.length > 0 || terminalIds.length > 0 || text.length > 0 || locations.length > 1;
@@ -156,6 +159,8 @@ export const ToolCallCard = memo(function ToolCallCard({
           </div>
         </Collapse>
       )}
+      {/* Pictures are the result, not a detail: always shown, like a chat attachment. */}
+      {images.length > 0 && <ToolImages images={images} />}
     </div>
   );
 });

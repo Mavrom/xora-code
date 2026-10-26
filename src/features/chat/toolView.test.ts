@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { AcpPermissionOption, AcpToolCall } from "@/features/agents/types";
 import {
+  localPath,
+  toolImages,
   defaultAllow,
   defaultReject,
   fileName,
@@ -107,5 +109,42 @@ describe("permissionLabel", () => {
   it("keeps the agent's wording when kinds repeat", () => {
     const options = [opt("a", "allow_once", "Allow read"), opt("b", "allow_once", "Allow write")];
     expect(permissionLabel(options[1], options)).toBe("Allow write");
+  });
+});
+
+describe("toolImages", () => {
+  const png = "C:/Users/me/.codex/generated_images/a/b.png";
+  const call = (content: unknown[]) =>
+    ({ content: content.map((c) => ({ type: "content", content: c })) }) as Parameters<
+      typeof toolImages
+    >[0];
+
+  it("takes inline image blocks, keeping their file", () => {
+    const images = toolImages(
+      call([{ type: "image", data: "AAA", mimeType: "image/png", uri: png }]),
+    );
+    expect(images).toEqual([
+      { key: "img-0", kind: "data", mimeType: "image/png", data: "AAA", path: png },
+    ]);
+  });
+
+  it("reads linked image files once, ignoring other links", () => {
+    const images = toolImages(
+      call([
+        { type: "resource_link", name: "b", uri: `file:///${png}` },
+        { type: "resource_link", name: "b", uri: png },
+        { type: "resource_link", name: "notes", uri: "C:/notes.txt" },
+        { type: "resource_link", name: "web", uri: "https://example.com/a.png" },
+      ]),
+    );
+    expect(images).toEqual([{ key: "link-0", kind: "file", path: png }]);
+  });
+});
+
+describe("localPath", () => {
+  it("turns file URIs into paths and leaves plain paths", () => {
+    expect(localPath("file:///C:/a%20b/c.png")).toBe("C:/a b/c.png");
+    expect(localPath("C:\a\c.png")).toBe("C:\a\c.png");
+    expect(localPath("https://x/y.png")).toBeNull();
   });
 });

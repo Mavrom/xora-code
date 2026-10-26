@@ -6,6 +6,7 @@ import type {
   AcpToolCallUpdate,
   AcpToolContent,
 } from "@/features/agents/types";
+import { imageMime } from "./attachments";
 
 export type DiffContent = Extract<AcpToolContent, { type: "diff" }>;
 
@@ -31,6 +32,51 @@ export function toolText(call: Pick<AcpToolCall, "content">): string {
     })
     .join("\n\n")
     .trim();
+}
+
+/** A picture a tool call produced or looked at: inline bytes, or a file to read. */
+export type ToolImage =
+  | { key: string; kind: "data"; mimeType: string; data: string; path: string | null }
+  | { key: string; kind: "file"; path: string };
+
+/** `file:///C:/a%20b/c.png` or a plain path -> `C:/a b/c.png`; null for other schemes. */
+export function localPath(uri: string): string | null {
+  if (/^file:/i.test(uri)) {
+    const path = decodeURIComponent(uri.replace(/^file:\/\//i, ""));
+    return /^\/[a-z]:/i.test(path) ? path.slice(1) : path;
+  }
+  return /^[a-z][a-z0-9+.-]+:\/\//i.test(uri) ? null : uri;
+}
+
+/**
+ * Pictures in a tool call's content: image blocks (e.g. Codex's image generation) and
+ * links to image files (e.g. "View Image"), once per file.
+ */
+export function toolImages(call: Pick<AcpToolCall, "content">): ToolImage[] {
+  const seen = new Set<string>();
+  const out: ToolImage[] = [];
+  const add = (image: ToolImage) => {
+    const id = (image.path ?? image.key).replace(/\\/g, "/").toLowerCase();
+    if (seen.has(id)) return;
+    seen.add(id);
+    out.push(image);
+  };
+  (call.content ?? []).forEach((c, i) => {
+    if (c.type !== "content") return;
+    const block = c.content;
+    if (block.type === "image") {
+      const path = block.uri ? localPath(block.uri) : null;
+      if (block.data)
+        add({ key: `img-${i}`, kind: "data", mimeType: block.mimeType, data: block.data, path });
+      else if (path) add({ key: `img-${i}`, kind: "file", path });
+    } else if (block.type === "resource_link") {
+      const path = localPath(block.uri);
+      if (path && (block.mimeType?.startsWith("image/") || imageMime(path))) {
+        add({ key: `link-${i}`, kind: "file", path });
+      }
+    }
+  });
+  return out;
 }
 
 /** Whether a card should open by itself: edits show their diff, failures show the error. */
