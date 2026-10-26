@@ -132,7 +132,7 @@ npm run tauri dev
 
 İlk çalıştırma Rust çekirdeğini derler ve birkaç dakika sürer; sonrakiler artımlıdır.
 
-Windows'ta Visual Studio Build Tools yok mu? `npm run dev:mingw` LLVM-MinGW toolchain'iyle derler: `rustup toolchain install stable-x86_64-pc-windows-gnullvm` ile kur, [llvm-mingw sürümlerinden](https://github.com/mstorsjo/llvm-mingw/releases) bir `*-ucrt-x86_64.zip` dosyasını `%LOCALAPPDATA%\xora-toolchain` içine aç (ya da `XORA_LLVM_MINGW` ayarla), sonra çalıştır.
+Windows'ta Visual Studio Build Tools yok mu? `npm run tauri dev`, LLVM-MinGW kuruluysa ona otomatik geçer (`npm run dev:mingw` bunu zorlar): `rustup toolchain install stable-x86_64-pc-windows-gnullvm` ile kur, [llvm-mingw sürümlerinden](https://github.com/mstorsjo/llvm-mingw/releases) bir `*-ucrt-x86_64.zip` dosyasını `%LOCALAPPDATA%\xora-toolchain` içine aç (ya da `XORA_LLVM_MINGW` ayarla), sonra çalıştır.
 
 ### Script'ler
 

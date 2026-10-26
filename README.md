@@ -132,7 +132,7 @@ npm run tauri dev
 
 The first run compiles the Rust core and takes a few minutes; later runs are incremental.
 
-No Visual Studio Build Tools on Windows? `npm run dev:mingw` builds with the LLVM-MinGW toolchain instead: install it with `rustup toolchain install stable-x86_64-pc-windows-gnullvm`, unpack a `*-ucrt-x86_64.zip` from [llvm-mingw releases](https://github.com/mstorsjo/llvm-mingw/releases) to `%LOCALAPPDATA%\xora-toolchain` (or set `XORA_LLVM_MINGW`), then run it.
+No Visual Studio Build Tools on Windows? `npm run tauri dev` switches to the LLVM-MinGW toolchain automatically when it is installed (`npm run dev:mingw` forces it): install it with `rustup toolchain install stable-x86_64-pc-windows-gnullvm`, unpack a `*-ucrt-x86_64.zip` from [llvm-mingw releases](https://github.com/mstorsjo/llvm-mingw/releases) to `%LOCALAPPDATA%\xora-toolchain` (or set `XORA_LLVM_MINGW`), then run it.
 
 ### Scripts
 
