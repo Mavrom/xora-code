@@ -16,6 +16,8 @@ import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
 import { moveFocusOutOfEditor } from "@/features/editor/editorFocus";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
+import { SessionList } from "@/features/chat/SessionList";
+import { useEditorStore } from "@/features/editor/store";
 import { TerminalDock } from "@/features/terminal/TerminalDock";
 import { SettingsHost } from "@/features/settings/SettingsHost";
 import { TopBar } from "./TopBar";
@@ -51,7 +53,21 @@ export function Layout() {
   const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-shell" });
   const center = useDefaultLayout({ id: "xora-center" });
 
+  const activePath = useEditorStore((s) => s.activePath);
+  const firstLayout = center.defaultLayout === undefined;
+
   const toggleEditor = () => togglePanel(editorPanel.current);
+
+  // Minimal frame: the chat owns the window until there is a file to look at.
+  useEffect(() => {
+    if (firstLayout) editorPanel.current?.collapse();
+  }, [firstLayout, editorPanel]);
+
+  // Opening a file (from the tree, the palette or an agent's diff) reveals the editor.
+  useEffect(() => {
+    const panel = editorPanel.current;
+    if (activePath && panel?.isCollapsed()) panel.expand();
+  }, [activePath, editorPanel]);
 
   // The command palette asks for the toggle; the panel ref only exists here.
   useEffect(() => onCommand(TOGGLE_EDITOR, () => togglePanel(editorPanel.current)), [editorPanel]);
@@ -74,7 +90,10 @@ export function Layout() {
         className="min-h-0 flex-1"
       >
         <Panel id="files" defaultSize="18%" minSize="12%" className="glass-surface">
-          {/* Both stay mounted so switching views keeps tree expansion and drafts. */}
+          {/* All stay mounted so switching views keeps tree expansion and drafts. */}
+          <div className="h-full" hidden={sidebarView !== "sessions"}>
+            <SessionList />
+          </div>
           <div className="h-full" hidden={sidebarView !== "explorer"}>
             <FileTree onOpenFolder={openFolder} />
           </div>
@@ -83,7 +102,7 @@ export function Layout() {
           </div>
         </Panel>
         <ResizeHandle label="Kenar çubuğunu yeniden boyutlandır" />
-        <Panel id="main" defaultSize="82%" minSize="50%" className="bg-bg">
+        <Panel id="main" defaultSize="82%" minSize="50%">
           {/* The terminal docks under chat + editor; the sidebar keeps its full height. */}
           <TerminalDock>
             <Group

@@ -21,7 +21,7 @@ type ShortcutEvent = Pick<
  */
 export function isGlobalShortcut(e: ShortcutEvent) {
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
-  if (e.shiftKey) return e.code === "KeyN" || e.code === "KeyE";
+  if (e.shiftKey) return e.code === "KeyN" || e.code === "KeyE" || e.code === "KeyH";
   const key = e.key.toLowerCase();
   return key === "w" || key === "s";
 }

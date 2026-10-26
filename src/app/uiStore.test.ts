@@ -16,9 +16,9 @@ beforeEach(() => vi.resetModules());
 afterEach(() => vi.unstubAllGlobals());
 
 describe("ui store", () => {
-  it("defaults to the explorer", async () => {
+  it("defaults to the session list", async () => {
     vi.stubGlobal("localStorage", memoryStorage());
-    expect((await loadStore()).getState().sidebarView).toBe("explorer");
+    expect((await loadStore()).getState().sidebarView).toBe("sessions");
   });
 
   it("restores and persists the sidebar view", async () => {
@@ -32,7 +32,7 @@ describe("ui store", () => {
 
   it("ignores unknown stored values", async () => {
     vi.stubGlobal("localStorage", memoryStorage({ "xora.sidebarView": "bogus" }));
-    expect((await loadStore()).getState().sidebarView).toBe("explorer");
+    expect((await loadStore()).getState().sidebarView).toBe("sessions");
   });
 
   it("keeps working when storage throws", async () => {
@@ -41,7 +41,7 @@ describe("ui store", () => {
     };
     vi.stubGlobal("localStorage", { getItem: boom, setItem: boom });
     const store = await loadStore();
-    expect(store.getState().sidebarView).toBe("explorer");
+    expect(store.getState().sidebarView).toBe("sessions");
     store.getState().setSidebarView("inbox");
     expect(store.getState().sidebarView).toBe("inbox");
   });

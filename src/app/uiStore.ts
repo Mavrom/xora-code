@@ -1,15 +1,18 @@
 import { create } from "zustand";
 
-export type SidebarView = "explorer" | "inbox";
+export type SidebarView = "sessions" | "explorer" | "inbox";
+
+const VIEWS: readonly SidebarView[] = ["sessions", "explorer", "inbox"];
 
 const STORAGE_KEY = "xora.sidebarView";
 
 // localStorage can be missing or throw (private mode, tests); fall back quietly.
 function readView(): SidebarView {
   try {
-    return localStorage.getItem(STORAGE_KEY) === "inbox" ? "inbox" : "explorer";
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return VIEWS.find((v) => v === stored) ?? "sessions";
   } catch {
-    return "explorer";
+    return "sessions";
   }
 }
 

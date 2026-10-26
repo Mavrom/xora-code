@@ -1,5 +1,5 @@
 import { useEffect } from "react";
-import { Files, Inbox, Settings, type LucideIcon } from "lucide-react";
+import { Files, Inbox, MessagesSquare, Settings, type LucideIcon } from "lucide-react";
 import { useInboxStore } from "@/features/inbox/store";
 import { openCount } from "@/features/inbox/sortNotes";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
@@ -9,6 +9,7 @@ import { useUiStore, type SidebarView } from "./uiStore";
 
 /** Ctrl+Shift+<code> per view. Avoids WebView2's Ctrl+Shift+I/J (devtools). */
 const SHORTCUTS: Record<SidebarView, { code: string; label: string }> = {
+  sessions: { code: "KeyH", label: "Ctrl+Shift+H" },
   explorer: { code: "KeyE", label: "Ctrl+Shift+E" },
   inbox: { code: "KeyN", label: "Ctrl+Shift+N" },
 };
@@ -59,6 +60,12 @@ export function ActivityBar() {
       aria-label="Kenar çubuğu görünümü"
       className="flex w-11 shrink-0 flex-col items-center gap-1 border-r border-border glass-bg py-2"
     >
+      <ActivityItem
+        icon={MessagesSquare}
+        label={`Sohbetler (${SHORTCUTS.sessions.label})`}
+        active={!settingsOpen && view === "sessions"}
+        onClick={() => show("sessions")}
+      />
       <ActivityItem
         icon={Files}
         label={`Gezgin (${SHORTCUTS.explorer.label})`}

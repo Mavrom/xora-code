@@ -1,6 +1,7 @@
 import {
   CircleUserRound,
   Files,
+  MessagesSquare,
   FolderOpen,
   Inbox,
   PanelRight,
@@ -83,6 +84,14 @@ export const COMMANDS: Command[] = [
     group: "Görünüm",
     icon: PanelRight,
     run: () => emitCommand(TOGGLE_EDITOR),
+  },
+  {
+    id: "view.sessions",
+    title: "Sohbetlere geç",
+    group: "Görünüm",
+    shortcut: "ctrl+shift+h",
+    icon: MessagesSquare,
+    run: () => useUiStore.getState().setSidebarView("sessions"),
   },
   {
     id: "view.explorer",
