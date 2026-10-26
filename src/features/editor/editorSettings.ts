@@ -1,10 +1,6 @@
-// Integration seam with the Settings feature (package S). The editor reads every user
-// preference through this file only, so wiring the real settings is a change here alone:
-//
-//   useEditorSettings  -> `import { useEditorSettings } from "@/features/settings/useEditorSettings"`
-//   confirmDirtyClose  -> `useSettingsStore.getState().settings.general.confirmDirtyClose`
-//
-// Until then the defaults below (identical to the Settings defaults) apply.
+// The editor reads every user preference through this file only (Settings > Editör and
+// Settings > Genel).
+import { useSettingsStore } from "@/features/settings/store";
 
 export interface EditorSettings {
   fontSize: number;
@@ -26,14 +22,19 @@ export const DEFAULT_EDITOR_SETTINGS: EditorSettings = {
   formatOnSave: false,
 };
 
-/** Live editor preferences (a hook so it can subscribe to the settings store later). */
+/** Live editor preferences. */
 export function useEditorSettings(): EditorSettings {
-  return DEFAULT_EDITOR_SETTINGS;
+  return useSettingsStore((s) => s.settings.editor);
 }
 
 /** Whether closing a tab with unsaved changes asks first. */
 export function confirmDirtyClose(): boolean {
-  return true;
+  return useSettingsStore.getState().settings.general.confirmDirtyClose;
+}
+
+/** Whether saving formats the document first (when the language has a formatter). */
+export function formatOnSave(): boolean {
+  return useSettingsStore.getState().settings.editor.formatOnSave;
 }
 
 /** Line height that keeps the 13px / 20px rhythm at other font sizes. */

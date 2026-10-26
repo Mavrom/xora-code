@@ -1,7 +1,7 @@
 // Side effect: local Monaco workers + xora-onyx theme. This module is lazy-loaded, so Monaco
 // stays out of the startup bundle.
 import "./monaco/setup";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Editor, type OnMount } from "@monaco-editor/react";
 import * as monaco from "monaco-editor";
 import { FileCode } from "lucide-react";
@@ -10,7 +10,12 @@ import { onCommand, SAVE_ACTIVE_FILE } from "@/features/commands/events";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { registerEditorFocus } from "./editorFocus";
 import { isSaveShortcut } from "./editorKeys";
-import { lineHeightFor, useEditorSettings, type EditorSettings } from "./editorSettings";
+import {
+  formatOnSave,
+  lineHeightFor,
+  useEditorSettings,
+  type EditorSettings,
+} from "./editorSettings";
 import { XORA_THEME } from "./monaco/theme";
 import { saveActiveTab } from "./saveActiveTab";
 import { useEditorStore } from "./store";
@@ -66,7 +71,15 @@ export function EditorPanel() {
   const settings = useEditorSettings();
   const options = useMemo(() => optionsFor(settings), [settings]);
 
-  const save = useCallback(() => void saveActiveTab(), []);
+  const editorRef = useRef<monaco.editor.IStandaloneCodeEditor | null>(null);
+  // Format on save (Settings > Editör): only when the shown model is the tab being saved
+  // and its language has a formatter; a formatter failure never blocks the save.
+  const save = useCallback(() => {
+    const editor = editorRef.current;
+    const format = formatOnSave() ? editor?.getAction("editor.action.formatDocument") : null;
+    const run = format?.isSupported() ? format.run().catch(() => undefined) : Promise.resolve();
+    void run.then(() => saveActiveTab());
+  }, []);
 
   // A failed save is shown for a while, then the status bar returns to the path.
   useEffect(() => {
@@ -104,6 +117,7 @@ export function EditorPanel() {
   useEffect(() => () => registerEditorFocus(null), []);
 
   const onMount: OnMount = (editor, m) => {
+    editorRef.current = editor;
     editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.KeyS, save);
     const syncCursor = () => {
       const position = editor.getPosition();

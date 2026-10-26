@@ -1,13 +1,11 @@
 import { useEffect } from "react";
+import { ensureSettingsLoaded } from "@/features/settings/store";
 import { watchRoot } from "./fsWatch";
 import { persistWorkspaceSession, restoreLastWorkspace } from "./restore";
 import { useWorkspaceStore } from "./store";
 
-/**
- * Settings seam: "open last folder on start" (Settings `general.openLastFolder`, default on).
- * At merge: `async () => (await ensureSettingsLoaded()).general.openLastFolder`.
- */
-const openLastFolderOnStart = () => true;
+/** Settings > Genel > "Son klasörü aç". */
+const openLastFolderOnStart = async () => (await ensureSettingsLoaded()).general.openLastFolder;
 
 /**
  * App-lifetime workspace duties, mounted once by the always-present file tree: reopen the
