@@ -322,6 +322,8 @@ export function ChatPanel() {
           ) : null
         }
         attachments={attachments}
+        mentionRoot={cwd}
+        onMention={(path) => attachPaths([path], "file")}
         onRemoveAttachment={(id) => setAttachments((list) => list.filter((a) => a.id !== id))}
         onPasteImages={(files) =>
           void addAttachments(

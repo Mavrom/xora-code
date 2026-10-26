@@ -1,4 +1,5 @@
 import {
+  useEffect,
   useId,
   useImperativeHandle,
   useMemo,
@@ -26,6 +27,10 @@ import {
   type XoraCommandName,
 } from "./slash";
 import { SlashPopover } from "./SlashPopover";
+import { absolutePath, loadFileIndex } from "@/features/files/fileIndex";
+import { searchFiles, type FileHit, type IndexedFile } from "@/features/files/fileSearch";
+import { mentionOptionId, mentionToken, removeMention } from "./mention";
+import { MentionPopover } from "./MentionPopover";
 
 export interface ComposerHandle {
   /** Replaces the draft (e.g. from a suggestion) and focuses the field. */
@@ -48,6 +53,10 @@ interface ComposerProps {
   /** Pictures and files going with the message, shown as cards above the field. */
   attachments?: readonly Attachment[];
   onRemoveAttachment?: (id: string) => void;
+  /** Folder whose files "@" lists; no folder, no mentions. */
+  mentionRoot?: string | null;
+  /** A file picked from the "@" list (absolute path), to attach. */
+  onMention?: (path: string) => void;
   /** Pictures pasted into the field (Ctrl+V of a screenshot). */
   onPasteImages?: (files: File[]) => void;
   onSubmit: (text: string) => void;
@@ -71,6 +80,8 @@ export function Composer({
   meter,
   attachments = [],
   onRemoveAttachment,
+  mentionRoot = null,
+  onMention,
   onPasteImages,
   onSubmit,
   onStop,
@@ -107,6 +118,41 @@ export function Composer({
     fill: replaceDraft,
     focus: () => fieldRef.current?.focus(),
   }));
+
+  // "@name": the folder's files, attached on pick.
+  const mentionListId = `${id}-mention`;
+  const [mentionDismissed, setMentionDismissed] = useState<number | null>(null);
+  const [files, setFiles] = useState<IndexedFile[] | null>(null);
+  const token = mentionRoot && onMention ? mentionToken(value, caret) : null;
+  const mentionOpen = token !== null && token.start !== mentionDismissed;
+  useEffect(() => {
+    if (!mentionOpen || !mentionRoot) return;
+    let alive = true;
+    void loadFileIndex(mentionRoot, (fresh) => alive && setFiles(fresh)).then(
+      (list) => alive && setFiles(list),
+    );
+    return () => {
+      alive = false;
+    };
+  }, [mentionOpen, mentionRoot]);
+  const mentionQuery = mentionOpen ? token.query : null;
+  const mentionHits = useMemo(
+    () => (mentionQuery !== null && files ? searchFiles(mentionQuery, files, 8) : []),
+    [mentionQuery, files],
+  );
+
+  const pickMention = (hit: FileHit) => {
+    if (!token || !mentionRoot) return;
+    const next = removeMention(value, token, caret);
+    setValue(next.text);
+    setCaret(next.caret);
+    onMention?.(absolutePath(mentionRoot, hit.path));
+    requestAnimationFrame(() => {
+      const el = fieldRef.current;
+      el?.focus();
+      el?.setSelectionRange(next.caret, next.caret);
+    });
+  };
 
   const query = slashDismissed ? null : slashQuery(value, caret);
   const items = useMemo(
@@ -151,6 +197,29 @@ export function Composer({
   };
 
   const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
+    if (mentionOpen) {
+      const last = mentionHits.length - 1;
+      if ((event.key === "ArrowDown" || event.key === "ArrowUp") && last >= 0) {
+        event.preventDefault();
+        const step = event.key === "ArrowDown" ? 1 : -1;
+        setActive((i) => (i + step > last ? 0 : i + step < 0 ? last : i + step));
+        return;
+      }
+      if (
+        (event.key === "Tab" || (event.key === "Enter" && !event.shiftKey)) &&
+        last >= 0 &&
+        !event.nativeEvent.isComposing
+      ) {
+        event.preventDefault();
+        pickMention(mentionHits[Math.min(active, last)]);
+        return;
+      }
+      if (event.key === "Escape") {
+        event.preventDefault();
+        setMentionDismissed(token.start);
+        return;
+      }
+    }
     if (slashOpen && items.length > 0) {
       const last = items.length - 1;
       if (event.key === "ArrowDown" || event.key === "ArrowUp") {
@@ -200,7 +269,17 @@ export function Composer({
 
   return (
     <div className="relative w-full">
-      {slashOpen && (
+      {mentionOpen && (
+        <MentionPopover
+          id={mentionListId}
+          hits={mentionHits}
+          active={Math.min(active, Math.max(0, mentionHits.length - 1))}
+          loading={files === null}
+          onHover={setActive}
+          onPick={pickMention}
+        />
+      )}
+      {slashOpen && !mentionOpen && (
         <SlashPopover
           id={listId}
           items={items}
@@ -253,11 +332,15 @@ export function Composer({
           onKeyUp={syncCaret}
           onClick={syncCaret}
           role="combobox"
-          aria-expanded={slashOpen}
-          aria-controls={slashOpen ? listId : undefined}
+          aria-expanded={slashOpen || mentionOpen}
+          aria-controls={mentionOpen ? mentionListId : slashOpen ? listId : undefined}
           aria-autocomplete="list"
           aria-activedescendant={
-            slashOpen && items.length > 0 ? slashOptionId(listId, activeIndex) : undefined
+            mentionOpen && mentionHits.length > 0
+              ? mentionOptionId(mentionListId, Math.min(active, mentionHits.length - 1))
+              : slashOpen && items.length > 0
+                ? slashOptionId(listId, activeIndex)
+                : undefined
           }
           spellCheck={false}
           placeholder={
