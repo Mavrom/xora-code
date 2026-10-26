@@ -15,6 +15,7 @@
     "core:window:allow-destroy",
     "core:window:allow-is-maximized",
     "core:window:allow-set-effects",
+    "core:window:allow-request-user-attention",
     "opener:default",
     "dialog:default"
   ]

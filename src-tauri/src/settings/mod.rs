@@ -41,6 +41,8 @@ pub struct General {
     pub open_last_folder: bool,
     pub confirm_dirty_close: bool,
     pub reduced_motion: ReducedMotion,
+    /// Flash the taskbar when an agent finishes or asks for approval in the background.
+    pub notify_when_done: bool,
 }
 
 impl Default for General {
@@ -49,6 +51,7 @@ impl Default for General {
             open_last_folder: true,
             confirm_dirty_close: true,
             reduced_motion: ReducedMotion::System,
+            notify_when_done: true,
         }
     }
 }

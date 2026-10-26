@@ -35,6 +35,20 @@ export function GeneralSection() {
         />
       </SettingGroup>
 
+      <SettingGroup title="Bildirim">
+        <SettingRow
+          label="Bitince haber ver"
+          description="Xora arka plandayken ajan işini bitirince ya da onay isteyince görev çubuğunda yanıp söner."
+          control={(id) => (
+            <Toggle
+              labelledBy={id}
+              checked={general.notifyWhenDone}
+              onChange={(notifyWhenDone) => update({ general: { notifyWhenDone } })}
+            />
+          )}
+        />
+      </SettingGroup>
+
       <SettingGroup title="Düzenleme">
         <SettingRow
           label="Kaydedilmemiş sekmeyi kapatırken sor"

@@ -13,6 +13,8 @@ export interface GeneralSettings {
   /** Ask before closing a tab with unsaved changes. */
   confirmDirtyClose: boolean;
   reducedMotion: ReducedMotion;
+  /** Flash the taskbar when an agent finishes or asks for approval in the background. */
+  notifyWhenDone: boolean;
 }
 
 export interface AgentSettings {
@@ -79,7 +81,12 @@ export const DIM_RANGE = { min: 0, max: 100 } as const;
 
 export const DEFAULT_SETTINGS: Settings = {
   version: SETTINGS_VERSION,
-  general: { openLastFolder: true, confirmDirtyClose: true, reducedMotion: "system" },
+  general: {
+    openLastFolder: true,
+    confirmDirtyClose: true,
+    reducedMotion: "system",
+    notifyWhenDone: true,
+  },
   agent: {
     defaultAgent: "claude",
     defaultMode: "agent",
