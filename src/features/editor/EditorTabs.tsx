@@ -123,7 +123,7 @@ export function EditorTabs() {
         if (e.deltaY !== 0 && e.deltaX === 0) e.currentTarget.scrollLeft += e.deltaY;
       }}
       style={{ maskImage: mask, WebkitMaskImage: mask }}
-      className="relative flex h-9 shrink-0 overflow-x-auto overflow-y-hidden bg-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+      className="relative flex h-9 shrink-0 overflow-x-auto overflow-y-hidden glass-surface [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
     >
       {tabs.map((tab) => (
         <EditorTab
@@ -171,7 +171,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         "group relative flex h-full max-w-56 shrink-0 items-center border-r border-b transition-colors duration-150",
         "before:pointer-events-none before:absolute before:inset-x-0 before:top-0 before:h-px before:bg-accent before:transition-opacity before:duration-150",
         active
-          ? "border-r-border border-b-transparent bg-bg text-fg before:opacity-100"
+          ? "border-r-border border-b-transparent glass-bg text-fg before:opacity-100"
           : "border-border text-fg-muted before:opacity-0 hover:bg-hover hover:text-fg",
       )}
     >

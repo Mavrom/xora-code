@@ -40,7 +40,7 @@ export function EditorStatusBar({ path, error, cursor, diskChanged }: EditorStat
   const ext = path ? extname(path).toUpperCase() : "";
 
   return (
-    <div className="flex h-7 shrink-0 items-center justify-between gap-4 border-t border-border bg-surface px-3 text-2xs">
+    <div className="flex h-7 shrink-0 items-center justify-between gap-4 border-t border-border glass-surface px-3 text-2xs">
       <div className="flex min-w-0 items-center gap-3" role="status" aria-live="polite">
         {error ? (
           <span className="flex min-w-0 items-center gap-1.5 text-danger">

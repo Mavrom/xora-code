@@ -48,8 +48,10 @@ export function defineXoraTheme(m: typeof Monaco) {
       { token: "variable.source.md", foreground: "a5c9a1" },
     ],
     colors: {
-      "editor.background": "#000000",
-      "editor.lineHighlightBackground": "#0a0a0a",
+      // Transparent: the panel paints onyx or, with a wallpaper, its glass surface.
+      "editor.background": "#00000000",
+      "editorGutter.background": "#00000000",
+      "editor.lineHighlightBackground": "#ffffff08",
       // ~3:1 on black: readable as a gutter, still quieter than code.
       "editorLineNumber.foreground": "#555555",
       "editorLineNumber.activeForeground": "#a1a1a1",

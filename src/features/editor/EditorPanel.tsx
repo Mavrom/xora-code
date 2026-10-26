@@ -133,7 +133,7 @@ export function EditorPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col bg-bg">
+    <div className="flex h-full flex-col">
       <EditorTabs />
       <div className="min-h-0 flex-1">
         <Editor

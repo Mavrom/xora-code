@@ -224,7 +224,7 @@ export function ChatPanel() {
 
   if (hero) {
     return (
-      <div className="flex h-full flex-col overflow-y-auto">
+      <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
         <div aria-hidden className="min-h-6 flex-1" />
         <div className="mx-auto w-full max-w-180 px-6">
           <ChatWelcome onPick={(text) => composerRef.current?.fill(text)}>{composer}</ChatWelcome>

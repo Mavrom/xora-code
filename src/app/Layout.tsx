@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Group,
   Panel,
@@ -45,6 +45,9 @@ function togglePanel(panel: PanelImperativeHandle | null) {
   panel.collapse();
 }
 
+/** Share of the chat + editor area an auto-opened editor gets. */
+const EDITOR_OPEN_SIZE = 45;
+
 export function Layout() {
   const root = useWorkspaceStore((s) => s.root);
   const sidebarView = useUiStore((s) => s.sidebarView);
@@ -64,9 +67,18 @@ export function Layout() {
   }, [firstLayout, editorPanel]);
 
   // Opening a file (from the tree, the palette or an agent's diff) reveals the editor.
+  // The first file after an empty editor also gets a readable width; later opens keep
+  // whatever width the user chose.
+  const hadFile = useRef(activePath !== null);
   useEffect(() => {
     const panel = editorPanel.current;
-    if (activePath && panel?.isCollapsed()) panel.expand();
+    const first = !hadFile.current;
+    hadFile.current = activePath !== null;
+    if (!activePath || !panel) return;
+    if (panel.isCollapsed()) panel.expand();
+    if (first && panel.getSize().asPercentage < EDITOR_OPEN_SIZE) {
+      panel.resize(`${EDITOR_OPEN_SIZE}%`);
+    }
   }, [activePath, editorPanel]);
 
   // The command palette asks for the toggle; the panel ref only exists here.
@@ -129,7 +141,7 @@ export function Layout() {
                   if (!open) moveFocusOutOfEditor();
                   setEditorOpen(open);
                 }}
-                className="glass-surface"
+                className="glass-bg"
               >
                 <EditorArea />
               </Panel>
