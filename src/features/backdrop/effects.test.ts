@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
-import { asciiChar, BAYER_8, coverRect, ditherPixels, dotRadius, luminance } from "./effects";
+import {
+  asciiChar,
+  BAYER_8,
+  coverRect,
+  ditherPixels,
+  dotRadius,
+  luminance,
+  markColor,
+  stretch,
+  toneRange,
+} from "./effects";
 
 describe("coverRect", () => {
   it("crops the sides of a wide picture into a square", () => {
@@ -67,5 +77,22 @@ describe("asciiChar / dotRadius / luminance", () => {
   it("weighs green brightest", () => {
     expect(luminance(255, 255, 255)).toBeCloseTo(1);
     expect(luminance(0, 255, 0)).toBeGreaterThan(luminance(255, 0, 0));
+  });
+});
+
+describe("toneRange / stretch / markColor", () => {
+  it("stretches a dark picture's narrow range to the full scale", () => {
+    const data = new Uint8ClampedArray(400);
+    for (let i = 0; i < data.length; i += 4) data.fill(10 + ((i / 4) % 40), i, i + 3);
+    const range = toneRange(data);
+    expect(range[0]).toBeLessThan(0.06);
+    expect(range[1]).toBeLessThan(0.25);
+    expect(stretch(range[1], range)).toBe(1);
+    expect(stretch(range[0], range)).toBe(0);
+  });
+
+  it("keeps the hue and scales brightness with the level", () => {
+    expect(markColor(20, 40, 80, 1)).toBe("rgb(64 128 255)");
+    expect(markColor(20, 40, 80, 0)).toBe("rgb(29 57 115)");
   });
 });

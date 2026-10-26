@@ -76,7 +76,7 @@ export function ChatPanel() {
   const hostname = useHostname();
   const branch = useGitBranch(cwd, session?.lastStopReason, FIXTURE ? "main" : null);
 
-  useWarmSession(!docked, agentId, cwd, agent.status);
+  useWarmSession(session === null, agentId, cwd, agent.status);
 
   // An Inbox note sent to the chat lands in the composer, ready to edit and send.
   useEffect(() => onChatDraft((text) => composerRef.current?.fill(text)), []);

@@ -53,8 +53,9 @@ export function ensureSession(agentId: AgentId, cwd: string): Promise<string> {
 }
 
 /**
- * While the welcome is visible, keep an empty session ready for the selected agent. One
- * attempt per agent, folder and agent status, so a failure does not loop.
+ * While the welcome has no session, keep an empty one ready for the selected agent. A
+ * failed attempt is not retried for the same agent, folder and status, so it cannot loop;
+ * a successful one is, so every "new chat" gets its warm session (and model chip) again.
  */
 export function useWarmSession(
   enabled: boolean,
@@ -68,9 +69,9 @@ export function useWarmSession(
     const key = `${agentId}|${cwd}|${status.state}`;
     if (attempted.has(key)) return;
     attempted.add(key);
-    ensureSession(agentId, cwd).catch((err: unknown) =>
-      console.debug("chat: warm session failed", err),
-    );
+    ensureSession(agentId, cwd)
+      .then(() => attempted.delete(key))
+      .catch((err: unknown) => console.debug("chat: warm session failed", err));
   }, [enabled, agentId, cwd, status, attempted]);
 }
 

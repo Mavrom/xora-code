@@ -30,6 +30,14 @@ export function coverRect(
 export const luminance = (r: number, g: number, b: number) =>
   (0.2126 * r + 0.7152 * g + 0.0722 * b) / 255;
 
+/**
+ * How strongly a cell should be marked: luminance blended with the strongest channel, so
+ * saturated colours (red eyes, petals) count as bright even though red weighs little in
+ * luminance.
+ */
+export const markStrength = (r: number, g: number, b: number) =>
+  0.5 * luminance(r, g, b) + (0.5 * Math.max(r, g, b)) / 255;
+
 /** 8x8 Bayer threshold matrix, values 0-63. */
 export const BAYER_8: readonly number[] = (() => {
   const out: number[] = [];
@@ -82,6 +90,44 @@ export function asciiChar(lum: number): string {
   return ASCII_RAMP[i];
 }
 
+/**
+ * Brightness range of a picture: the 2nd and 97th percentile of its luminance. Dark
+ * pictures span only a sliver of 0-1; stretching that sliver keeps faces and shadows
+ * from vanishing into blank cells.
+ */
+export function toneRange(data: Uint8ClampedArray): [number, number] {
+  const bins = new Uint32Array(256);
+  for (let i = 0; i < data.length; i += 4) {
+    bins[Math.round(markStrength(data[i], data[i + 1], data[i + 2]) * 255)]++;
+  }
+  const total = data.length / 4;
+  const at = (share: number) => {
+    let seen = 0;
+    for (let v = 0; v < 256; v++) {
+      seen += bins[v];
+      if (seen >= total * share) return v / 255;
+    }
+    return 1;
+  };
+  const lo = at(0.02);
+  const hi = Math.max(at(0.97), lo + 0.1);
+  return [lo, Math.min(1, hi)];
+}
+
+/** Luminance stretched to the picture's own range, lifted slightly (gamma) for small marks. */
+export const stretch = (lum: number, [lo, hi]: [number, number]) =>
+  Math.pow(Math.min(1, Math.max(0, (lum - lo) / (hi - lo))), 0.6);
+
+/**
+ * Colour of a mark: the cell's hue at full strength, dimmed by its stretched brightness.
+ * A tiny character or dot on black reads much darker than the area it stands for.
+ */
+export function markColor(r: number, g: number, b: number, level: number): string {
+  const peak = Math.max(r, g, b, 1);
+  const k = ((0.45 + 0.55 * level) * 255) / peak;
+  return `rgb(${Math.round(r * k)} ${Math.round(g * k)} ${Math.round(b * k)})`;
+}
+
 /** Halftone dot radius for a cell: brighter cells get bigger dots, never past the cell. */
 export const dotRadius = (lum: number, cell: number) =>
   (Math.sqrt(Math.min(1, Math.max(0, lum))) * cell) / 1.85;
@@ -89,8 +135,8 @@ export const dotRadius = (lum: number, cell: number) =>
 /** Size in CSS px of one effect cell (a dither pixel, a dot, a character). */
 export const CELL: Record<Exclude<BackgroundEffect, "none" | "scanlines">, number> = {
   dither: 2,
-  halftone: 7,
-  ascii: 9,
+  halftone: 6,
+  ascii: 8,
 };
 
 /** Draws `image` into a fresh `cols` x `rows` canvas (smoothing averages each cell). */
@@ -149,8 +195,9 @@ export function paintEffect(
     return;
   }
 
+  const range = toneRange(data);
   if (effect === "ascii") {
-    ctx.font = `600 ${cell + 1}px "JetBrains Mono Variable", ui-monospace, monospace`;
+    ctx.font = `700 ${cell + 2}px "JetBrains Mono Variable", ui-monospace, monospace`;
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
   }
@@ -160,20 +207,18 @@ export function paintEffect(
       const r = data[i];
       const g = data[i + 1];
       const b = data[i + 2];
-      const lum = luminance(r, g, b);
-      // Lift the colour a little: a small mark on black reads darker than the area it stands for.
-      const lift = 1.35;
-      ctx.fillStyle = `rgb(${Math.min(255, r * lift)} ${Math.min(255, g * lift)} ${Math.min(255, b * lift)})`;
+      const level = stretch(markStrength(r, g, b), range);
+      ctx.fillStyle = markColor(r, g, b, level);
       const cx = col * cell + cell / 2;
       const cy = row * cell + cell / 2;
       if (effect === "halftone") {
-        const radius = dotRadius(lum, cell);
+        const radius = dotRadius(level, cell);
         if (radius < 0.3) continue;
         ctx.beginPath();
         ctx.arc(cx, cy, radius, 0, Math.PI * 2);
         ctx.fill();
       } else {
-        const ch = asciiChar(lum);
+        const ch = asciiChar(level);
         if (ch !== " ") ctx.fillText(ch, cx, cy);
       }
     }
