@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import type { AcpToolCall, AcpToolKind } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
-import type { TerminalView } from "./stub/types";
+import type { TerminalView } from "@/features/agents/reducer";
 import { Collapse } from "./Disclosure";
 import { DiffPreview, DiffStat } from "./DiffPreview";
 import { diffLines, diffStats } from "./diff";

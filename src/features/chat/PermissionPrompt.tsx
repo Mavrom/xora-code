@@ -4,7 +4,7 @@ import type { AcpPermissionOption } from "@/features/agents/types";
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
-import type { PendingPermission } from "./stub/types";
+import type { PendingPermission } from "@/features/agents/reducer";
 import { DiffPreview } from "./DiffPreview";
 import { defaultAllow, defaultReject, toolDiffs, toolText } from "./toolView";
 

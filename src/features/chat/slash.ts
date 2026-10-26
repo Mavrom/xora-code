@@ -21,7 +21,7 @@ export interface SlashItem {
 /** Xora-local commands; handled in the UI, never sent to the agent. */
 export const XORA_COMMANDS = [
   { name: "new", description: "Yeni sohbet başlat" },
-  { name: "history", description: "Oturum geçmişini aç" },
+  { name: "clear", description: "Sohbeti kapat, boş sayfaya dön" },
 ] as const;
 
 export type XoraCommandName = (typeof XORA_COMMANDS)[number]["name"];
@@ -70,7 +70,7 @@ export function applySlash(value: string, name: string): string {
   return `/${name} ${rest}`;
 }
 
-/** The Xora command a submitted text invokes ("/new", "/history"), or null. */
+/** The Xora command a submitted text invokes ("/new", "/clear"), or null. */
 export function xoraCommandOf(text: string): XoraCommandName | null {
   const match = /^\/(\S+)\s*$/.exec(text.trim());
   if (!match) return null;

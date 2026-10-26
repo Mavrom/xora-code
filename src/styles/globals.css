@@ -19,6 +19,12 @@
   --color-fg-subtle: #7e7e7e;
   --color-accent: #ffffff; /* monochrome accent: white on onyx */
   --color-accent-fg: #000000;
+  /* Glass: translucent surfaces over an optional wallpaper; pair with backdrop-blur.
+     Over plain black they read as a hair darker than surface, so nothing looks broken
+     when no wallpaper is set. */
+  --color-glass: rgb(10 10 10 / 0.45);
+  --color-glass-strong: rgb(10 10 10 / 0.7);
+  --color-glass-border: rgb(255 255 255 / 0.08);
   --color-warning: #e5b567; /* dirty indicator */
   --color-danger: #f87171;
 

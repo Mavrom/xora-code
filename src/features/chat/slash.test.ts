@@ -26,7 +26,7 @@ describe("filterSlash", () => {
       "agent:compact",
       "agent:review-branch",
       "xora:new",
-      "xora:history",
+      "xora:clear",
     ]);
   });
 
@@ -42,7 +42,7 @@ describe("filterSlash", () => {
 
   it("drops non-matching commands", () => {
     expect(filterSlash(COMMANDS, "zzz")).toEqual([]);
-    expect(filterSlash([], "hist").map((i) => i.name)).toEqual(["history"]);
+    expect(filterSlash([], "clr").map((i) => i.name)).toEqual(["clear"]);
   });
 });
 
@@ -56,7 +56,7 @@ describe("applySlash", () => {
 describe("xoraCommandOf", () => {
   it("recognises bare Xora commands only", () => {
     expect(xoraCommandOf("/new")).toBe("new");
-    expect(xoraCommandOf(" /history ")).toBe("history");
+    expect(xoraCommandOf(" /clear ")).toBe("clear");
     expect(xoraCommandOf("/new chat")).toBeNull();
     expect(xoraCommandOf("/review")).toBeNull();
     expect(xoraCommandOf("new")).toBeNull();
