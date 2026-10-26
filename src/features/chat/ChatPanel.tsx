@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from "react";
+import { lazy, Suspense, useEffect, useRef, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
 import { SquarePen, X } from "lucide-react";
 import { errorMessage, isAuthRequired } from "@/features/agents/ipc";
@@ -16,13 +16,16 @@ import { ChangesBar } from "./ChangesBar";
 import { ChatWelcome } from "./ChatWelcome";
 import { Composer, type ComposerHandle } from "./Composer";
 import { ComposerToolbar, ContextMeter, ContextRow, type OpenChip } from "./ComposerToolbar";
-import { MessageList } from "./MessageList";
 import { PermissionPrompt } from "./PermissionPrompt";
 import type { XoraCommandName } from "./slash";
 import { needsStatusCard } from "./toolView";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 
 const NOTICE_MS = 3200;
+
+// The transcript (markdown, sanitiser, code highlighting) is only needed once a chat has
+// messages; keeping it out of the entry chunk makes cold start lighter.
+const MessageList = lazy(() => import("./MessageList").then((m) => ({ default: m.MessageList })));
 
 /** DEV-only `?fixture=` screenshot knobs: the cwd the fixture sessions use, an open chip. */
 function devFixture(): { cwd: string; open: OpenChip } | null {
@@ -234,7 +237,9 @@ export function ChatPanel() {
   return (
     <div className="flex h-full flex-col">
       <ChatHeader session={session} onNewChat={newChat} />
-      <MessageList session={session} />
+      <Suspense fallback={<div className="min-h-0 flex-1" />}>
+        <MessageList session={session} />
+      </Suspense>
       <div className="mx-auto w-full max-w-180 px-4 pt-1 pb-2">{composer}</div>
     </div>
   );
