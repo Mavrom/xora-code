@@ -51,7 +51,7 @@ export function FilesDrawer() {
           open ? "translate-x-0 opacity-100" : "pointer-events-none -translate-x-4 opacity-0",
         )}
       >
-        <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[#0b0b0c]/65 backdrop-saturate-150 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-2xl">
+        <div className="h-full overflow-hidden rounded-xl border border-white/[0.09] bg-black/35 backdrop-saturate-150 shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)] backdrop-blur-2xl">
           <FileTree onOpenFolder={openFolder} />
         </div>
       </aside>

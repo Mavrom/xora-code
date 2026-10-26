@@ -28,7 +28,7 @@ export function HeroBackdrop() {
       // In a conversation it stays, faint, so the transcript keeps its contrast.
       className={cn(
         "hero-backdrop absolute inset-x-0 top-0 h-[68%] transition-opacity duration-slow starting:opacity-0",
-        docked ? "opacity-30" : "opacity-100",
+        docked ? "opacity-50" : "opacity-100",
       )}
     />
   );
