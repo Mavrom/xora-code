@@ -1,6 +1,7 @@
 import { WindowControls } from "@/app/WindowControls";
 import { useEffect, useLayoutEffect, useRef, type KeyboardEvent, type ReactNode } from "react";
 import {
+  ArrowLeft,
   Bot,
   CircleUserRound,
   Info,
@@ -8,7 +9,6 @@ import {
   Palette,
   SlidersHorizontal,
   SquareCode,
-  X,
   type LucideIcon,
 } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
@@ -103,7 +103,16 @@ export default function SettingsView() {
         onKeyDown={onNavKeyDown}
         className="bg-surface relative flex min-h-0 flex-col border-r border-border"
       >
-        <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center px-5">
+        <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center gap-1.5 px-3">
+          <button
+            type="button"
+            aria-label="Geri"
+            title="Geri (Esc)"
+            onClick={close}
+            className="grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+          >
+            <ArrowLeft size={15} strokeWidth={1.75} aria-hidden />
+          </button>
           <h1 className="text-ui font-semibold tracking-tight text-fg">Ayarlar</h1>
         </div>
         <div className="flex min-h-0 flex-1 flex-col overflow-y-auto px-2.5 pb-3">
@@ -166,15 +175,6 @@ export default function SettingsView() {
           data-tauri-drag-region="deep"
           className="absolute inset-x-0 top-0 z-10 flex h-10 items-center justify-end"
         >
-          <button
-            type="button"
-            aria-label="Ayarları kapat"
-            title="Kapat (Esc)"
-            onClick={close}
-            className="mr-2 grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-          >
-            <X size={15} strokeWidth={1.75} aria-hidden />
-          </button>
           <WindowControls />
         </div>
 
