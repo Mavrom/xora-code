@@ -6,7 +6,7 @@ import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
 import type { PendingPermission } from "@/features/agents/reducer";
 import { DiffPreview } from "./DiffPreview";
-import { defaultAllow, defaultReject, toolDiffs, toolText } from "./toolView";
+import { defaultAllow, defaultReject, permissionLabel, toolDiffs, toolText } from "./toolView";
 
 interface PermissionPromptProps {
   request: PendingPermission;
@@ -130,6 +130,7 @@ export function PermissionPrompt({ request, queued, onRespond }: PermissionPromp
                 isAllow ? "primary" : option.kind.startsWith("allow") ? "secondary" : "ghost"
               }
               onClick={() => pick(option)}
+              title={option.name}
               trailing={
                 isAllow ? (
                   <Kbd
@@ -143,7 +144,7 @@ export function PermissionPrompt({ request, queued, onRespond }: PermissionPromp
                 ) : undefined
               }
             >
-              {option.name}
+              {permissionLabel(option, options)}
             </Button>
           );
         })}

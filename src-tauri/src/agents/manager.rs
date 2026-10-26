@@ -116,6 +116,8 @@ struct Inner {
     index: SessionIndex,
     conns: tokio::sync::Mutex<HashMap<AgentId, Arc<Connection>>>,
     statuses: Mutex<HashMap<AgentId, AgentStatus>>,
+    /// Diffs seen on a tool call, recorded for review once the call completes.
+    pending_diffs: Mutex<PendingDiffs>,
     agents_dir: Mutex<Option<PathBuf>>,
     shutting_down: AtomicBool,
 }
@@ -137,6 +139,7 @@ impl Default for AgentManager {
             index: SessionIndex::default(),
             conns: tokio::sync::Mutex::new(HashMap::new()),
             statuses: Mutex::new(HashMap::new()),
+            pending_diffs: Mutex::new(PendingDiffs::default()),
             agents_dir: Mutex::new(None),
             shutting_down: AtomicBool::new(false),
         }))
@@ -171,6 +174,11 @@ impl AgentManager {
 
     /// Static status for agents that are not running.
     fn idle_status(&self, spec: &AgentSpec, node: Option<&NodeRuntime>) -> AgentStatus {
+        // An install in progress wins: the package is not on disk yet by definition.
+        if let Some(status @ AgentStatus::Installing { .. }) = lock(&self.0.statuses).get(&spec.id)
+        {
+            return status.clone();
+        }
         let dir = self.agents_dir().ok();
         match dir
             .as_deref()
@@ -230,6 +238,7 @@ impl AgentManager {
                 }
                 _ => Err("node".into()),
             };
+            lock(&this.0.statuses).remove(&agent);
             let status = match result {
                 Ok(()) => AgentStatus::Stopped,
                 Err(_) => this.idle_status(spec, node.as_ref()),
@@ -464,6 +473,7 @@ impl AgentManager {
                 .await;
         }
         self.cancel_permissions(session_id);
+        lock(&self.0.pending_diffs).forget(session_id);
         self.0.bridges.session_closed(session_id).await;
         self.0.sessions.remove(session_id);
         Ok(())
@@ -729,6 +739,7 @@ impl AgentManager {
                         code: None,
                     });
                 }
+                lock(&this.0.pending_diffs).forget(&session_id);
                 this.0.bridges.session_closed(&session_id).await;
                 this.0.sessions.remove(&session_id);
             }
@@ -818,26 +829,85 @@ fn observe_update(manager: &AgentManager, agent: AgentId, session_id: &str, upda
             }
         }
         Some("tool_call" | "tool_call_update") => {
-            let completed = update.get("status").and_then(Value::as_str) == Some("completed");
-            let contents = update.get("content").and_then(Value::as_array);
-            for item in contents.into_iter().flatten() {
-                if !completed || item.get("type").and_then(Value::as_str) != Some("diff") {
-                    continue;
-                }
-                let (Some(path), Some(new_text)) = (
-                    item.get("path").and_then(Value::as_str),
-                    item.get("newText").and_then(Value::as_str),
-                ) else {
-                    continue;
-                };
-                let old_text = item.get("oldText").and_then(Value::as_str);
-                manager
-                    .0
-                    .bridges
-                    .record_diff(session_id, path, old_text, new_text);
+            let Some(call_id) = update.get("toolCallId").and_then(Value::as_str) else {
+                return;
+            };
+            let diffs = diffs_in(update);
+            let status = update.get("status").and_then(Value::as_str);
+            let ready = lock(&manager.0.pending_diffs).observe(session_id, call_id, diffs, status);
+            for diff in ready {
+                manager.0.bridges.record_diff(
+                    session_id,
+                    &diff.path,
+                    diff.old_text.as_deref(),
+                    &diff.new_text,
+                );
             }
         }
         _ => {}
+    }
+}
+
+/// One ACP `diff` content item.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct FileDiff {
+    pub path: String,
+    pub old_text: Option<String>,
+    pub new_text: String,
+}
+
+fn diffs_in(update: &Value) -> Vec<FileDiff> {
+    update
+        .get("content")
+        .and_then(Value::as_array)
+        .into_iter()
+        .flatten()
+        .filter(|item| item.get("type").and_then(Value::as_str) == Some("diff"))
+        .filter_map(|item| {
+            Some(FileDiff {
+                path: item.get("path")?.as_str()?.to_owned(),
+                old_text: item
+                    .get("oldText")
+                    .and_then(Value::as_str)
+                    .map(str::to_owned),
+                new_text: item.get("newText")?.as_str()?.to_owned(),
+            })
+        })
+        .collect()
+}
+
+/// Agents send a tool call's diff and its completion in different updates
+/// (Claude: diff on `tool_call`, `completed` on a later content-less update).
+#[derive(Debug, Default)]
+pub struct PendingDiffs(HashMap<(String, String), Vec<FileDiff>>);
+
+impl PendingDiffs {
+    /// Remembers diffs and returns them once the call reports `completed`.
+    /// A `failed` call drops its diffs: nothing was written.
+    pub fn observe(
+        &mut self,
+        session_id: &str,
+        call_id: &str,
+        diffs: Vec<FileDiff>,
+        status: Option<&str>,
+    ) -> Vec<FileDiff> {
+        let key = (session_id.to_owned(), call_id.to_owned());
+        if !diffs.is_empty() {
+            // Later updates replace the content list wholesale (ACP semantics).
+            self.0.insert(key.clone(), diffs);
+        }
+        match status {
+            Some("completed") => self.0.remove(&key).unwrap_or_default(),
+            Some("failed") => {
+                self.0.remove(&key);
+                Vec::new()
+            }
+            _ => Vec::new(),
+        }
+    }
+
+    pub fn forget(&mut self, session_id: &str) {
+        self.0.retain(|(session, _), _| session != session_id);
     }
 }
 
@@ -1050,6 +1120,47 @@ mod tests {
         assert_eq!(params["protocolVersion"], 1);
         assert_eq!(params["clientCapabilities"]["fs"]["writeTextFile"], true);
         assert_eq!(params["clientCapabilities"]["auth"]["terminal"], true);
+    }
+
+    #[test]
+    fn diffs_wait_for_completion_across_updates() {
+        let mut pending = PendingDiffs::default();
+        let call = json!({ "toolCallId": "t1", "status": "pending", "content": [
+            { "type": "diff", "path": "C:/p/a.md", "oldText": null, "newText": "hi" },
+            { "type": "content", "content": { "type": "text", "text": "x" } }
+        ]});
+        let ready = pending.observe("s", "t1", diffs_in(&call), Some("pending"));
+        assert!(ready.is_empty());
+        let done = pending.observe("s", "t1", Vec::new(), Some("completed"));
+        assert_eq!(done.len(), 1);
+        assert_eq!(done[0].new_text, "hi");
+        assert_eq!(done[0].old_text, None);
+        assert!(
+            pending
+                .observe("s", "t1", Vec::new(), Some("completed"))
+                .is_empty()
+        );
+    }
+
+    #[test]
+    fn failed_calls_drop_their_diffs() {
+        let mut pending = PendingDiffs::default();
+        let diff = FileDiff {
+            path: "a".into(),
+            old_text: None,
+            new_text: "b".into(),
+        };
+        pending.observe("s", "t", vec![diff], None);
+        assert!(
+            pending
+                .observe("s", "t", Vec::new(), Some("failed"))
+                .is_empty()
+        );
+        assert!(
+            pending
+                .observe("s", "t", Vec::new(), Some("completed"))
+                .is_empty()
+        );
     }
 
     #[test]

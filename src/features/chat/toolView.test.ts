@@ -5,6 +5,7 @@ import {
   defaultReject,
   fileName,
   opensByDefault,
+  permissionLabel,
   terminalPreview,
   toolDiffs,
   toolTerminals,
@@ -80,5 +81,31 @@ describe("permission defaults", () => {
     expect(defaultAllow([options[0]])?.optionId).toBe("always");
     expect(defaultReject([options[2]])?.optionId).toBe("never");
     expect(defaultAllow([options[3]])).toBeNull();
+  });
+});
+
+describe("permissionLabel", () => {
+  const opt = (optionId: string, kind: AcpPermissionOption["kind"], name: string) => ({
+    optionId,
+    kind,
+    name,
+  });
+
+  it("translates unique kinds", () => {
+    const options = [
+      opt("a", "allow_once", "Yes"),
+      opt("b", "allow_always", "Yes, allow all edits during this session"),
+      opt("c", "reject_once", "No"),
+    ];
+    expect(options.map((o) => permissionLabel(o, options))).toEqual([
+      "İzin ver",
+      "Hep izin ver",
+      "Reddet",
+    ]);
+  });
+
+  it("keeps the agent's wording when kinds repeat", () => {
+    const options = [opt("a", "allow_once", "Allow read"), opt("b", "allow_once", "Allow write")];
+    expect(permissionLabel(options[1], options)).toBe("Allow write");
   });
 });

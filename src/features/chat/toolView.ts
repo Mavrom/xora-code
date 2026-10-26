@@ -80,3 +80,22 @@ export function defaultReject(options: AcpPermissionOption[]): AcpPermissionOpti
     null
   );
 }
+
+const PERMISSION_LABELS: Record<AcpPermissionOption["kind"], string> = {
+  allow_once: "İzin ver",
+  allow_always: "Hep izin ver",
+  reject_once: "Reddet",
+  reject_always: "Hep reddet",
+};
+
+/**
+ * Turkish label for a permission option. Agents send English names; when two
+ * options share a kind the agent's own wording is kept so they stay distinct.
+ */
+export function permissionLabel(
+  option: AcpPermissionOption,
+  options: AcpPermissionOption[],
+): string {
+  const sameKind = options.filter((o) => o.kind === option.kind).length;
+  return sameKind > 1 ? option.name : (PERMISSION_LABELS[option.kind] ?? option.name);
+}

@@ -109,8 +109,13 @@ function ExtraControl({
 }
 
 /** Small ring that fills with the context window; turns warm near the limit. */
+/** Below this share of the context window the meter stays hidden. */
+const CONTEXT_METER_MIN = 0.5;
+
 export function ContextMeter({ used, size }: { used: number; size: number }) {
   const ratio = contextRatio(used, size);
+  // Only worth a glance once the window starts to fill; a near-empty ring reads as a spinner.
+  if (ratio < CONTEXT_METER_MIN) return null;
   const percent = Math.round(ratio * 100);
   const r = 6;
   const circumference = 2 * Math.PI * r;
