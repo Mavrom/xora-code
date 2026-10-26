@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
+import { Check } from "lucide-react";
 import { cn } from "./cn";
 import { placeMenu, SEPARATOR, type MenuEntry, type MenuItem } from "./menuModel";
 
@@ -89,7 +90,8 @@ export function ContextMenu({ x, y, items, label, onClose }: ContextMenuProps) {
           <button
             key={entry.label}
             type="button"
-            role="menuitem"
+            role={entry.checked === undefined ? "menuitem" : "menuitemradio"}
+            aria-checked={entry.checked}
             tabIndex={-1}
             onPointerMove={() => setActive(i)}
             onClick={() => pick(entry)}
@@ -101,7 +103,20 @@ export function ContextMenu({ x, y, items, label, onClose }: ContextMenuProps) {
             )}
           >
             {Icon && <Icon size={14} strokeWidth={1.75} aria-hidden />}
-            {entry.label}
+            <span className="min-w-0 flex-1 truncate">{entry.label}</span>
+            {entry.hint && (
+              <span className="max-w-32 shrink-0 truncate font-mono text-[11px] text-fg-subtle">
+                {entry.hint}
+              </span>
+            )}
+            {entry.checked !== undefined && (
+              <Check
+                size={13}
+                strokeWidth={2}
+                aria-hidden
+                className={cn("shrink-0 text-fg", entry.checked ? "opacity-100" : "opacity-0")}
+              />
+            )}
           </button>
         );
       })}

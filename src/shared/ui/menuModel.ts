@@ -7,6 +7,10 @@ export interface MenuItem {
   icon?: LucideIcon;
   /** Red, for destructive actions. */
   danger?: boolean;
+  /** Ticked: the current choice in a list of options. */
+  checked?: boolean;
+  /** Quiet text on the right (a branch name, a count). */
+  hint?: string;
   onSelect: () => void;
 }
 

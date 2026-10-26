@@ -12,7 +12,9 @@ import { useEditorStore } from "@/features/editor/store";
 import { basename } from "@/shared/lib/path";
 import { useHostname } from "@/shared/lib/useHostname";
 import { Kbd } from "@/shared/ui/Kbd";
+import { useWorktreeStore } from "@/features/git/worktrees";
 import { AgentStatusCard } from "./AgentStatusCard";
+import { CheckoutChip } from "./CheckoutChip";
 import { ChangesBar } from "./ChangesBar";
 import { Composer, type ComposerHandle } from "./Composer";
 import {
@@ -80,7 +82,9 @@ export function ChatPanel() {
 
   const agentId = session?.agentId ?? selectedAgent;
   const agent = agents[agentId];
-  const cwd = session?.cwd || root || FIXTURE?.cwd || null;
+  // A new chat starts in the checkout picked on the chip (a worktree), else the folder.
+  const checkout = useWorktreeStore((s) => s.selected);
+  const cwd = session?.cwd || checkout || root || FIXTURE?.cwd || null;
   const docked = isDocked(session);
   const turn = session?.turn ?? "idle";
   const running = turn !== "idle";
@@ -217,12 +221,10 @@ export function ChatPanel() {
   const permission = session?.permissions[0] ?? null;
   const side = docked ? "top" : "bottom";
   const hero = !docked;
-  const folderChip = (
-    <FolderChip
-      folderName={cwd ? basename(cwd.replace(/[\\/]+$/, "")) : null}
-      onOpenFolder={() => void openFolder()}
-    />
-  );
+  // The repository's name, also while the chat runs in one of its worktrees.
+  const repoPath = root || cwd;
+  const projectName = repoPath ? basename(repoPath.replace(/[\\/]+$/, "")) : null;
+  const folderChip = <FolderChip folderName={projectName} onOpenFolder={() => void openFolder()} />;
 
   const composer = (
     <>
@@ -318,6 +320,11 @@ export function ChatPanel() {
       />
       <ContextRow
         folder={hero ? null : folderChip}
+        checkout={
+          root && cwd ? (
+            <CheckoutChip repo={root} cwd={cwd} chatTitle={session?.title ?? null} onNotice={say} />
+          ) : null
+        }
         branch={branch}
         aside={running ? <StopHint /> : null}
       />

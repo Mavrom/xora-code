@@ -285,16 +285,22 @@ export function FolderChip({
 interface ContextRowProps {
   /** Shown first in the row when the composer has no folder chip above it. */
   folder?: ReactNode;
+  /** Where the agent works: the repository or one of its worktrees. */
+  checkout?: ReactNode;
   branch: string | null;
   /** Right-aligned quiet content (the stop hint while a turn runs). */
   aside?: ReactNode;
 }
 
-/** The line under the composer: the folder (docked) and the git branch the agent works on. */
-export function ContextRow({ folder, branch, aside }: ContextRowProps) {
+/**
+ * The line under the composer: the folder (docked), the checkout and the git branch the
+ * agent works on.
+ */
+export function ContextRow({ folder, checkout, branch, aside }: ContextRowProps) {
   return (
     <div className="mt-2 flex min-h-7 items-center gap-1 @container">
       {folder}
+      {checkout}
       {branch && (
         <span
           title={`Git dalı: ${branch}`}

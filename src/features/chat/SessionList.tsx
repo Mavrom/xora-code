@@ -14,6 +14,13 @@ import type { SessionListEntry } from "@/features/agents/sessionList";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
 import { relativeTime } from "@/features/inbox/relativeTime";
 import { useWorkspaceStore } from "@/features/workspace/store";
+import {
+  selectWorktrees,
+  useWorktreeStore,
+  worktreeName,
+  worktreeOf,
+  type Worktree,
+} from "@/features/git/worktrees";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { SEPARATOR } from "@/shared/ui/menuModel";
@@ -47,9 +54,25 @@ export function SessionList() {
     };
   }, [groups, emptyKey, root, filter]);
 
+  const worktrees = useWorktreeStore(selectWorktrees(root));
+  // Chats in a worktree are listed under that folder: fetch them along with the repo's.
+  const worktreeKey = worktrees
+    .filter((w) => !w.main)
+    .map((w) => w.path)
+    .join("\n");
+
   useEffect(() => {
-    if (root) void useAgentStore.getState().refreshHistory(root);
-  }, [root, finished]);
+    if (root) void useWorktreeStore.getState().load(root);
+  }, [root]);
+
+  useEffect(() => {
+    if (!root) return;
+    const store = useAgentStore.getState();
+    void store.refreshHistory(root);
+    for (const path of worktreeKey ? worktreeKey.split("\n") : []) {
+      void store.refreshHistory(path);
+    }
+  }, [root, finished, worktreeKey]);
 
   return (
     <div className="h-full overflow-y-auto px-2 pb-3 [scrollbar-width:thin]">
@@ -74,7 +97,7 @@ export function SessionList() {
             <ul className="flex flex-col gap-px">
               {day.entries.map((entry) => (
                 <li key={`${entry.agentId}:${entry.sessionId}`}>
-                  <SessionRow entry={entry} />
+                  <SessionRow entry={entry} worktrees={worktrees} />
                 </li>
               ))}
             </ul>
@@ -107,7 +130,7 @@ export function SessionList() {
             <ul className="flex flex-col gap-px">
               {archived.map((entry) => (
                 <li key={`${entry.agentId}:${entry.sessionId}`}>
-                  <SessionRow entry={entry} />
+                  <SessionRow entry={entry} worktrees={worktrees} />
                 </li>
               ))}
             </ul>
@@ -156,7 +179,15 @@ const remove = (entry: SessionListEntry) =>
  * One conversation. Hover shows archive and delete; right-click opens the same actions.
  * Delete asks once, inside the row, so a stray click never loses a chat.
  */
-function SessionRow({ entry }: { entry: SessionListEntry }) {
+function SessionRow({
+  entry,
+  worktrees,
+}: {
+  entry: SessionListEntry;
+  /** The open repository's worktrees, to tag chats that run in one. */
+  worktrees: readonly Worktree[];
+}) {
+  const worktree = worktreeOf(worktrees, entry.cwd);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [confirming, setConfirming] = useState(false);
   const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
@@ -232,6 +263,14 @@ function SessionRow({ entry }: { entry: SessionListEntry }) {
             />
           )}
           <span className={cn("min-w-0 flex-1 truncate", entry.running && "shimmer")}>{title}</span>
+          {worktree && (
+            <span
+              title={`Worktree: ${worktree.branch ?? worktree.path}`}
+              className="shrink-0 rounded-md bg-white/[0.06] px-1.5 font-mono text-[10px] leading-4 text-fg-subtle"
+            >
+              {worktreeName(worktree.path)}
+            </span>
+          )}
         </button>
         <span className="relative mr-1.5 ml-1 flex h-full shrink-0 items-center">
           {!entry.running && Number.isFinite(updated) && (

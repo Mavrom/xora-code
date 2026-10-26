@@ -181,13 +181,41 @@ pub fn create(repo: &Path, base: &Path, name: &str) -> Result<Worktree> {
         &root,
         &["worktree", "add", "-b", &branch, &path_str, "HEAD"],
     )?;
-    let head = git(&path, &["rev-parse", "HEAD"])?;
-    Ok(Worktree {
-        path: path_str,
-        branch: Some(branch),
-        head,
-        main: false,
-    })
+    // Report the path the way git lists it: a packaged app's app-data folder can be
+    // redirected on Windows, and every later lookup compares against git's own list.
+    list(&root)?
+        .into_iter()
+        .find(|w| w.branch.as_deref() == Some(branch.as_str()))
+        .ok_or_else(|| GitError::Failed(format!("worktree for {branch} was not listed")))
+}
+
+/// How long a folder git has already let go of is retried while a process (an agent that
+/// is shutting down) still has it open.
+const RELEASE_WAIT: std::time::Duration = std::time::Duration::from_secs(30);
+
+/// Deletes `path` now, or keeps trying in the background until whatever holds it exits.
+fn remove_dir_soon(path: PathBuf) {
+    if std::fs::remove_dir_all(&path).is_ok() || !path.exists() {
+        return;
+    }
+    std::thread::spawn(move || {
+        let step = std::time::Duration::from_millis(500);
+        let mut waited = std::time::Duration::ZERO;
+        while waited < RELEASE_WAIT && path.exists() {
+            std::thread::sleep(step);
+            waited += step;
+            let _ = std::fs::remove_dir_all(&path);
+        }
+    });
+}
+
+/// Same folder, whatever the slashes or (on Windows) the letter case.
+fn same_path(a: &str, b: &Path) -> bool {
+    let norm = |p: &str| {
+        let p = p.replace('\\', "/").trim_end_matches('/').to_owned();
+        if cfg!(windows) { p.to_lowercase() } else { p }
+    };
+    norm(a) == norm(&b.to_string_lossy())
 }
 
 pub fn is_dirty(path: &Path) -> Result<bool> {
@@ -213,7 +241,15 @@ pub fn remove(repo: &Path, path: &Path, force: bool) -> Result<()> {
         args.push("--force");
     }
     args.push(&path_str);
-    git(repo, &args)?;
+    if let Err(err) = git(repo, &args) {
+        // Git drops its record first and the folder after; a file still held open (an
+        // editor, a shell) can fail the second step. Once git has let go, finish the job.
+        let still_listed = list(repo)?.iter().any(|w| same_path(&w.path, path));
+        if still_listed {
+            return Err(err);
+        }
+        remove_dir_soon(path.to_path_buf());
+    }
     if let Some(branch) = branch.filter(|b| b.starts_with(BRANCH_PREFIX)) {
         let flag = if force { "-D" } else { "-d" };
         if git(repo, &["branch", flag, &branch]).is_err() {
