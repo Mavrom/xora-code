@@ -5,6 +5,7 @@ import {
   PanelRight,
   Save,
   SquarePen,
+  SquareTerminal,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -14,7 +15,7 @@ import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
 import { openFolder } from "@/features/workspace/openFolder";
-import { emitCommand, SAVE_ACTIVE_FILE, TOGGLE_EDITOR } from "./events";
+import { emitCommand, SAVE_ACTIVE_FILE, TOGGLE_EDITOR, TOGGLE_TERMINAL } from "./events";
 import type { Rankable } from "./results";
 
 export interface Command extends Rankable {
@@ -92,5 +93,13 @@ export const COMMANDS: Command[] = [
     // The composer is disabled until notes have loaded.
     when: () => useInboxStore.getState().status === "ready",
     run: showInbox,
+  },
+  {
+    id: "view.toggleTerminal",
+    title: "Terminali aç/kapat",
+    group: "Görünüm",
+    shortcut: "ctrl+`",
+    icon: SquareTerminal,
+    run: () => emitCommand(TOGGLE_TERMINAL),
   },
 ];

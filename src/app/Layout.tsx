@@ -15,6 +15,7 @@ import { FileTree } from "@/features/files/FileTree";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
+import { TerminalDock } from "@/features/terminal/TerminalDock";
 import { TopBar } from "./TopBar";
 import { ActivityBar } from "./ActivityBar";
 import { useUiStore } from "./uiStore";
@@ -37,7 +38,8 @@ export function Layout() {
   const sidebarView = useUiStore((s) => s.sidebarView);
   const editorPanel = usePanelRef();
   const [editorOpen, setEditorOpen] = useState(true);
-  const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-layout" });
+  const { defaultLayout, onLayoutChanged } = useDefaultLayout({ id: "xora-shell" });
+  const center = useDefaultLayout({ id: "xora-center" });
 
   const toggleEditor = () => togglePanel(editorPanel.current);
 
@@ -55,7 +57,7 @@ export function Layout() {
       />
       <ActivityBar />
       <Group
-        id="xora-layout"
+        id="xora-shell"
         orientation="horizontal"
         defaultLayout={defaultLayout}
         onLayoutChanged={onLayoutChanged}
@@ -71,20 +73,33 @@ export function Layout() {
           </div>
         </Panel>
         <ResizeHandle />
-        <Panel id="chat" defaultSize="42%" minSize="25%" className="bg-bg">
-          <ChatPanel />
-        </Panel>
-        <ResizeHandle />
-        <Panel
-          id="editor"
-          panelRef={editorPanel}
-          collapsible
-          defaultSize="40%"
-          minSize="20%"
-          onResize={(size) => setEditorOpen(size.asPercentage > 0)}
-          className="bg-surface"
-        >
-          <EditorArea />
+        <Panel id="main" defaultSize="82%" minSize="50%" className="bg-bg">
+          {/* The terminal docks under chat + editor; the sidebar keeps its full height. */}
+          <TerminalDock>
+            <Group
+              id="xora-center"
+              orientation="horizontal"
+              defaultLayout={center.defaultLayout}
+              onLayoutChanged={center.onLayoutChanged}
+              className="h-full"
+            >
+              <Panel id="chat" defaultSize="51%" minSize="30%" className="bg-bg">
+                <ChatPanel />
+              </Panel>
+              <ResizeHandle />
+              <Panel
+                id="editor"
+                panelRef={editorPanel}
+                collapsible
+                defaultSize="49%"
+                minSize="24%"
+                onResize={(size) => setEditorOpen(size.asPercentage > 0)}
+                className="bg-surface"
+              >
+                <EditorArea />
+              </Panel>
+            </Group>
+          </TerminalDock>
         </Panel>
       </Group>
     </div>
