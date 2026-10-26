@@ -8,7 +8,7 @@ import { useTerminalStore } from "./store";
 const TerminalPanel = lazy(() => import("./TerminalPanel"));
 
 // The app has one terminal dock, so its imperative controller is a module singleton.
-const { setPanel, setSection, hide, toggle, onKeyDown } = createDockController();
+const { setPanel, setSection, noteSize, hide, toggle, onKeyDown } = createDockController();
 
 /**
  * Wraps the chat + editor area in a vertical group with a collapsible terminal panel
@@ -50,7 +50,7 @@ export function TerminalDock({ children }: { children: ReactNode }) {
         collapsible
         defaultSize="0%"
         minSize={120}
-        onResize={(size) => useTerminalStore.getState().setOpen(size.inPixels > 0)}
+        onResize={noteSize}
         className="bg-bg"
       >
         <div ref={setSection} className="h-full">

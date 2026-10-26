@@ -120,11 +120,12 @@ export class TerminalSession {
     this.term.open(this.host);
     this.fit();
 
-    const onData = new Channel<OutputMessage>((message) => {
-      if (!this.disposed) this.term.write(toBytes(message));
-    });
-    const onExit = new Channel<number | null>((code) => this.handleExit(code));
     try {
+      // Inside the try: outside Tauri (plain browser) creating a Channel already throws.
+      const onData = new Channel<OutputMessage>((message) => {
+        if (!this.disposed) this.term.write(toBytes(message));
+      });
+      const onExit = new Channel<number | null>((code) => this.handleExit(code));
       const info = await terminalIpc.spawn(
         this.term.cols,
         this.term.rows,

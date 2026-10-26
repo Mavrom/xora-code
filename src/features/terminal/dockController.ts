@@ -1,11 +1,12 @@
-import type { PanelImperativeHandle } from "react-resizable-panels";
+import type { PanelImperativeHandle, PanelSize } from "react-resizable-panels";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { isNewTerminalShortcut, isToggleTerminalShortcut } from "./keys";
 import { useTerminalStore } from "./store";
 
 /** Height the panel opens to when it has no remembered size yet. */
 const DEFAULT_OPEN_SIZE = "32%";
-const MIN_OPEN_PERCENT = 10;
+/** Sizes below this (e.g. a drag that stopped at minSize) are not remembered for reopening. */
+const MIN_OPEN_PX = 160;
 
 const isShown = (el: Element | null): el is HTMLElement =>
   el instanceof HTMLElement && el.isConnected && el.getClientRects().length > 0;
@@ -15,6 +16,8 @@ export interface DockController {
   setPanel: (handle: PanelImperativeHandle | null) => void;
   /** Callback ref for the element wrapping the terminal UI (focus tracking). */
   setSection: (el: HTMLElement | null) => void;
+  /** Panel `onResize`: mirrors the open state and remembers the last open height. */
+  noteSize: (size: PanelSize) => void;
   /** Expands the panel and focuses the active terminal. */
   show: () => void;
   /** Collapses the panel; focus goes back to where it was before the terminal took it. */
@@ -29,6 +32,7 @@ export function createDockController(): DockController {
   let panel: PanelImperativeHandle | null = null;
   let section: HTMLElement | null = null;
   let returnFocus: Element | null = null;
+  let lastOpenSize: string | null = null;
 
   const hasFocus = () => section?.contains(document.activeElement) ?? false;
 
@@ -36,9 +40,14 @@ export function createDockController(): DockController {
     const handle = panel;
     if (!handle) return;
     if (!hasFocus()) returnFocus = document.activeElement;
-    if (handle.isCollapsed()) handle.expand();
-    if (handle.getSize().asPercentage < MIN_OPEN_PERCENT) handle.resize(DEFAULT_OPEN_SIZE);
+    // Resize instead of expand(): expand() lands on minSize when no size was seen yet.
+    if (handle.isCollapsed()) handle.resize(lastOpenSize ?? DEFAULT_OPEN_SIZE);
     useTerminalStore.getState().requestFocus();
+  };
+
+  const noteSize = (size: PanelSize) => {
+    useTerminalStore.getState().setOpen(size.inPixels > 0);
+    if (size.inPixels >= MIN_OPEN_PX) lastOpenSize = `${size.asPercentage}%`;
   };
 
   const hide = () => {
@@ -85,6 +94,7 @@ export function createDockController(): DockController {
     setSection: (el) => {
       section = el;
     },
+    noteSize,
     show,
     hide,
     toggle,

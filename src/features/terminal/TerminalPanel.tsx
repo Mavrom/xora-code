@@ -36,9 +36,10 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
     [onHide],
   );
 
-  // Opening the panel with no terminal starts one.
+  // Opening the panel with no terminal starts one. Reads the live store, not the render
+  // snapshot, so StrictMode's double effect run cannot start two.
   useEffect(() => {
-    if (open && tabs.length === 0) newTab();
+    if (open && useTerminalStore.getState().tabs.length === 0) newTab();
   }, [open, tabs.length, newTab]);
 
   const select = (key: number) => {
@@ -157,14 +158,7 @@ function TerminalTabButton({ tab, label, active, onSelect, onClose }: TerminalTa
             ended ? "text-fg-subtle" : active ? "text-fg" : "text-fg-subtle",
           )}
         />
-        <span
-          className={cn(
-            "max-w-32 truncate",
-            ended && "text-fg-subtle line-through decoration-fg-subtle/60",
-          )}
-        >
-          {label}
-        </span>
+        <span className={cn("max-w-32 truncate", ended && "text-fg-subtle")}>{label}</span>
         {tab.status === "failed" && (
           <span className="size-1.5 rounded-full bg-danger" aria-hidden />
         )}
