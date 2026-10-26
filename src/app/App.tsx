@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useAgentEvents } from "@/features/agents/useAgentEvents";
 import { CommandPalette } from "@/features/commands/CommandPalette";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
 import { usePaletteShortcut } from "@/features/commands/usePaletteShortcut";
@@ -10,6 +11,7 @@ installPaletteGuard();
 export default function App() {
   const [paletteOpen, setPaletteOpen] = useState(false);
   usePaletteShortcut(() => setPaletteOpen((open) => !open));
+  useAgentEvents();
 
   return (
     <>
