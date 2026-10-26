@@ -8,7 +8,7 @@ Açık kaynak, agent-first bir kod editörü. Kendi Claude, ChatGPT veya Gemini 
 
 Xora Code, pencerenin merkezine bir AI agent sohbetini koyar. Sohbetlerin solda durur, dosya gezgini ve editör gerektiğinde açılır, kendi duvar kağıdın cam panellerin arkasından görünebilir. Agent'lar zaten kullandığın CLI'ların (Claude Code, Codex, Gemini CLI) resmi adapter'ları üzerinden, kendi aboneliğinle giriş yapılarak çalışır. Xora Code'un kendi AI faturası yoktur ve API key istemez.
 
-> **Durum:** Faz 1 ve 2 hazır: editör temeli, ACP üzerinden çalışan agent sohbeti, ayarlar ve hesaplar, entegre terminal. Windows'ta Claude Code ile uçtan uca doğrulandı. Gemini CLI bağlanıp girişe kadar geliyor, ama Google kişisel hesapla Gemini CLI girişini kapattı (artık Antigravity'ye yönlendiriyor), bu yüzden Gemini aboneliği bugün bu yolla kullanılamıyor. Codex aynı yolu kullanıyor; ChatGPT hesabıyla bir deneme daha gerekiyor. İlk hedef Windows; kod çapraz platform kalacak şekilde yazılıyor. Arayüz metinleri Türkçe.
+> **Durum:** Faz 1 ve 2 hazır: editör temeli, ACP üzerinden çalışan agent sohbeti, ayarlar ve hesaplar, entegre terminal. Windows'ta Claude Code ile uçtan uca doğrulandı. Gemini CLI bağlanıp girişe kadar geliyor, ama Google kişisel hesapla Gemini CLI girişini kapattı (artık Antigravity'ye yönlendiriyor), bu yüzden Gemini aboneliği bugün bu yolla kullanılamıyor. Codex kuruluyor, başlıyor ve ChatGPT girişine geliyor; tam bir tur için ChatGPT hesabı gerekiyor. İlk hedef Windows; kod çapraz platform kalacak şekilde yazılıyor. Arayüz metinleri Türkçe.
 
 ## Özellikler
 
@@ -86,6 +86,7 @@ macOS'ta palet, kaydetme, sekme kapatma ve geri alma için `Ctrl` yerine `Cmd` d
 | `Enter`         | Odaktaki not           | Yerinde düzenle              |
 | `P`             | Odaktaki not           | Sabitle / sabitlemeyi kaldır |
 | `E`             | Odaktaki not           | Tamamlandı / yeniden aç      |
+| `G`             | Odaktaki not           | Sohbete gönder               |
 | `Delete`        | Odaktaki not           | Sil                          |
 | `Ctrl+Z`        | Inbox paneli           | Son silmeyi geri al          |
 | `Enter` / `Esc` | Yerinde düzenleme      | Kaydet / vazgeç              |
@@ -130,6 +131,8 @@ npm run tauri dev
 ```
 
 İlk çalıştırma Rust çekirdeğini derler ve birkaç dakika sürer; sonrakiler artımlıdır.
+
+Windows'ta Visual Studio Build Tools yok mu? `npm run dev:mingw` LLVM-MinGW toolchain'iyle derler: `rustup toolchain install stable-x86_64-pc-windows-gnullvm` ile kur, [llvm-mingw sürümlerinden](https://github.com/mstorsjo/llvm-mingw/releases) bir `*-ucrt-x86_64.zip` dosyasını `%LOCALAPPDATA%\xora-toolchain` içine aç (ya da `XORA_LLVM_MINGW` ayarla), sonra çalıştır.
 
 ### Script'ler
 

@@ -8,7 +8,7 @@ An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemin
 
 Xora Code puts an AI agent conversation at the center of the window. Your conversations sit on the left, the file explorer and the editor open when you need them, and your own wallpaper can glow through glass panels. Agents run through the official adapters for the CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
 
-> **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows. Gemini CLI connects and reaches sign-in, but Google has retired personal Google sign-in for Gemini CLI (it now points to Antigravity), so a Gemini subscription cannot be used this way today. Codex uses the same path and still needs a run with a ChatGPT account. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
+> **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows. Gemini CLI connects and reaches sign-in, but Google has retired personal Google sign-in for Gemini CLI (it now points to Antigravity), so a Gemini subscription cannot be used this way today. Codex installs, starts and reaches ChatGPT sign-in; a full turn still needs a ChatGPT account. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
 
 ## Features
 
@@ -86,6 +86,7 @@ On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab a
 | `Enter`         | Focused note       | Edit inline          |
 | `P`             | Focused note       | Pin / unpin          |
 | `E`             | Focused note       | Mark done / reopen   |
+| `G`             | Focused note       | Send to the chat     |
 | `Delete`        | Focused note       | Delete               |
 | `Ctrl+Z`        | Inbox panel        | Undo the last delete |
 | `Enter` / `Esc` | Inline edit        | Save / cancel        |
@@ -130,6 +131,8 @@ npm run tauri dev
 ```
 
 The first run compiles the Rust core and takes a few minutes; later runs are incremental.
+
+No Visual Studio Build Tools on Windows? `npm run dev:mingw` builds with the LLVM-MinGW toolchain instead: install it with `rustup toolchain install stable-x86_64-pc-windows-gnullvm`, unpack a `*-ucrt-x86_64.zip` from [llvm-mingw releases](https://github.com/mstorsjo/llvm-mingw/releases) to `%LOCALAPPDATA%\xora-toolchain` (or set `XORA_LLVM_MINGW`), then run it.
 
 ### Scripts
 

@@ -5,7 +5,6 @@ import editorWorker from "monaco-editor/editor/editor.worker?worker";
 import jsonWorker from "monaco-editor/language/json/json.worker?worker";
 import cssWorker from "monaco-editor/language/css/css.worker?worker";
 import htmlWorker from "monaco-editor/language/html/html.worker?worker";
-import tsWorker from "monaco-editor/language/typescript/ts.worker?worker";
 import { defineXoraTheme } from "./theme";
 
 // Load Monaco from the bundle (no CDN) so the editor works offline.
@@ -14,25 +13,14 @@ self.MonacoEnvironment = {
     if (label === "json") return new jsonWorker();
     if (label === "css" || label === "scss" || label === "less") return new cssWorker();
     if (label === "html" || label === "handlebars" || label === "razor") return new htmlWorker();
-    if (label === "typescript" || label === "javascript") return new tsWorker();
     return new editorWorker();
   },
 };
 
-// Files open without their project (no tsconfig, no node_modules), so semantic errors would be
-// noise everywhere; keep syntax checks only.
-for (const defaults of [
-  monaco.typescript.typescriptDefaults,
-  monaco.typescript.javascriptDefaults,
-]) {
-  defaults.setDiagnosticsOptions({ noSemanticValidation: true, noSyntaxValidation: false });
-  defaults.setCompilerOptions({
-    ...defaults.getCompilerOptions(),
-    jsx: monaco.typescript.JsxEmit.ReactJSX,
-    target: monaco.typescript.ScriptTarget.ESNext,
-    allowNonTsExtensions: true,
-  });
-}
+// No TypeScript language service: "monaco-editor" resolves to a slim entry without it
+// (vite.config.ts, scripts/gen-monaco-slim.mjs). Files open without their project, so its
+// IntelliSense was shallow, while its worker is ~7 MB of code and hundreds of MB running.
+// Highlighting is Monarch-based and stays; the agent is the one that knows the project.
 
 // Xora has one command palette. Drop Monaco's own (F1, and Ctrl+Shift+P where bound); the
 // app's capture-phase Ctrl+K / Ctrl+Shift+P listener never lets those reach the editor anyway.

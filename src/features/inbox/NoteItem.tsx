@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from "react";
-import { Check, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
+import { Check, MessageSquareShare, Pin, PinOff, RotateCcw, Trash2 } from "lucide-react";
+import { sendToChat } from "@/features/commands/events";
 import type { Note } from "@/shared/lib/ipc";
 import { isImeComposing } from "@/shared/lib/ime";
 import { IconButton } from "@/shared/ui/IconButton";
@@ -67,6 +68,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
     if (key === "enter") setEditing(true);
     else if (key === "p" && !note.done) keepFocus(() => togglePin(note.id));
     else if (key === "e") keepFocus(() => toggleDone(note.id));
+    else if (key === "g") sendToChat(note.text);
     else if (key === "delete") keepFocus(() => remove(note.id));
     else return;
     e.preventDefault();
@@ -83,7 +85,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
       ref={rowRef}
       role="listitem"
       tabIndex={0}
-      aria-keyshortcuts="Enter P E Delete"
+      aria-keyshortcuts="Enter P E G Delete"
       aria-label={noteLabel(note)}
       data-note-row
       data-note-id={note.id}
@@ -156,6 +158,12 @@ export function NoteItem({ note, now }: NoteItemProps) {
               "group-focus-visible:translate-x-0 group-focus-visible:opacity-100 group-has-[:focus-visible]:translate-x-0 group-has-[:focus-visible]:opacity-100",
             )}
           >
+            <IconButton
+              size="sm"
+              icon={MessageSquareShare}
+              label="Sohbete gönder (G)"
+              onClick={() => sendToChat(note.text)}
+            />
             {!note.done && (
               <IconButton
                 size="sm"

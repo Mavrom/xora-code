@@ -6,7 +6,14 @@ import reactRefresh from "eslint-plugin-react-refresh";
 import tseslint from "typescript-eslint";
 
 export default defineConfig([
-  globalIgnores(["dist", "src-tauri/target", "src-tauri/gen", ".superpowers", ".claude"]),
+  globalIgnores([
+    "dist",
+    "src-tauri/target",
+    "src-tauri/gen",
+    ".superpowers",
+    ".claude",
+    "src/features/editor/monaco/slim.js",
+  ]),
   {
     files: ["**/*.{ts,tsx}"],
     extends: [js.configs.recommended, tseslint.configs.recommended],

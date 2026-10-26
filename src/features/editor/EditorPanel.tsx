@@ -33,6 +33,8 @@ const BASE_OPTIONS: monaco.editor.IStandaloneEditorConstructionOptions = {
   overviewRulerBorder: false,
   hideCursorInOverviewRuler: true,
   scrollbar: { useShadows: false, verticalScrollbarSize: 10, horizontalScrollbarSize: 10 },
+  // "Ambiguous character" boxes flag ordinary Turkish letters (ı, İ) in strings and comments.
+  unicodeHighlight: { ambiguousCharacters: false },
 };
 
 function optionsFor(s: EditorSettings): monaco.editor.IStandaloneEditorConstructionOptions {

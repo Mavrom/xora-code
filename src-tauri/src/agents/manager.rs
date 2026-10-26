@@ -302,7 +302,16 @@ impl AgentManager {
             stdout,
             stderr_tail: stderr,
         } = process::spawn(&launch).map_err(|err| {
-            AgentError::Unavailable(format!("{} başlatılamadı: {err}", spec.display_name))
+            let message = format!("{} başlatılamadı: {err}", spec.display_name);
+            // Never leave the UI on "connecting" after a failed start.
+            self.set_status(
+                agent,
+                AgentStatus::Crashed {
+                    code: None,
+                    stderr_tail: vec![message.clone()],
+                },
+            );
+            AgentError::Unavailable(message)
         })?;
         let mut proc = ProcHandle { child, job };
 

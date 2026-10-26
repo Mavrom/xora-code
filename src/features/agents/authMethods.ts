@@ -19,3 +19,15 @@ export function subscriptionAuthMethods(
   const picked = methods.filter((m) => allowed.includes(m.id));
   return picked.length > 0 ? picked : methods;
 }
+
+const LABELS: Record<string, string> = {
+  "claude-ai-login": "Claude aboneliğiyle giriş yap",
+  "claude-login": "Claude ile giriş yap",
+  "chat-gpt": "ChatGPT ile giriş yap",
+  "oauth-personal": "Google ile giriş yap",
+};
+
+/** Button text for a sign-in method (the agent's own name for unknown ones). */
+export function authMethodLabel(method: AcpAuthMethod): string {
+  return LABELS[method.id] ?? method.name;
+}

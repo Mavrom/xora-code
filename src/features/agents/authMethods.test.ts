@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { subscriptionAuthMethods } from "./authMethods";
+import { authMethodLabel, subscriptionAuthMethods } from "./authMethods";
 
 const m = (id: string) => ({ id, name: id });
 
@@ -16,5 +16,18 @@ describe("subscriptionAuthMethods", () => {
   it("falls back to everything when an agent renames its methods", () => {
     const renamed = [m("new-login")];
     expect(subscriptionAuthMethods("codex", renamed)).toEqual(renamed);
+  });
+});
+
+describe("authMethodLabel", () => {
+  it("uses Turkish labels for known subscription methods", () => {
+    expect(authMethodLabel({ id: "chat-gpt", name: "ChatGPT" })).toBe("ChatGPT ile giriş yap");
+    expect(authMethodLabel({ id: "oauth-personal", name: "Log in with Google" })).toBe(
+      "Google ile giriş yap",
+    );
+  });
+
+  it("falls back to the agent's name", () => {
+    expect(authMethodLabel({ id: "other", name: "Other login" })).toBe("Other login");
   });
 });

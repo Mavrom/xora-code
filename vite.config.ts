@@ -11,7 +11,26 @@ const host = process.env.TAURI_DEV_HOST;
 export default defineConfig(() => ({
   plugins: [react(), tailwindcss()],
 
-  resolve: { alias: { "@": fileURLToPath(new URL("./src", import.meta.url)) } },
+  resolve: {
+    alias: [
+      { find: "@", replacement: fileURLToPath(new URL("./src", import.meta.url)) },
+      // Slim Monaco: the bare "monaco-editor" import resolves to a generated entry without
+      // the TypeScript language service (see scripts/gen-monaco-slim.mjs). Types still come
+      // from the package; worker subpaths ("monaco-editor/...") are untouched.
+      {
+        find: /^monaco-editor$/,
+        replacement: fileURLToPath(
+          new URL("./src/features/editor/monaco/slim.js", import.meta.url),
+        ),
+      },
+      {
+        find: /^monaco-esm\//,
+        replacement: fileURLToPath(
+          new URL("./node_modules/monaco-editor/esm/vs/", import.meta.url),
+        ),
+      },
+    ],
+  },
 
   test: { environment: "node", include: ["src/**/*.test.ts"] },
 

@@ -4,5 +4,6 @@ src-tauri/gen
 src-tauri/icons
 .superpowers
 .claude
+src/features/editor/monaco/slim.js
 docs
 package-lock.json

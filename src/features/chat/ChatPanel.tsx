@@ -19,6 +19,7 @@ import { ComposerToolbar, ContextMeter, ContextRow, type OpenChip } from "./Comp
 import { PermissionPrompt } from "./PermissionPrompt";
 import type { XoraCommandName } from "./slash";
 import { needsStatusCard } from "./toolView";
+import { onChatDraft } from "@/features/commands/events";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 
 const NOTICE_MS = 3200;
@@ -67,6 +68,9 @@ export function ChatPanel() {
   const branch = useGitBranch(cwd, session?.lastStopReason, FIXTURE ? "main" : null);
 
   useWarmSession(!docked, agentId, cwd, agent.status);
+
+  // An Inbox note sent to the chat lands in the composer, ready to edit and send.
+  useEffect(() => onChatDraft((text) => composerRef.current?.fill(text)), []);
 
   useEffect(() => {
     if (!notice) return;

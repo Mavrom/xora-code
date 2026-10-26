@@ -9,7 +9,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { openUrl } from "@tauri-apps/plugin-opener";
-import { subscriptionAuthMethods } from "@/features/agents/authMethods";
+import { authMethodLabel, subscriptionAuthMethods } from "@/features/agents/authMethods";
 import type { AcpAuthMethod, AgentInfo } from "@/features/agents/types";
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/ui/cn";
@@ -109,7 +109,7 @@ export function AgentStatusCard({
               onClick={() => onAuthenticate(method.id)}
               title={method.description ?? undefined}
             >
-              {method.name}
+              {authMethodLabel(method)}
             </Button>
           ))}
         />
