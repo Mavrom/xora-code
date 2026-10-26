@@ -1,6 +1,10 @@
 //! ACP agent core: spawning agent adapters, the JSON-RPC transport and the
 //! event stream to the frontend (design doc `2026-10-25-phase2-acp-design.md`).
 
-// The contract lands before its producers; remove once the manager emits events.
+// Modules land before the manager that wires them; remove once commands use them.
+#[allow(dead_code)]
+pub mod acp;
 #[allow(dead_code)]
 pub mod events;
+#[allow(dead_code)]
+pub mod session;
