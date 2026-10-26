@@ -10,7 +10,7 @@ use super::terminal_bridge::TerminalBridge;
 use agent_client_protocol_schema::v1::{
     CreateTerminalRequest, CreateTerminalResponse, KillTerminalRequest, KillTerminalResponse,
     ReadTextFileRequest, ReadTextFileResponse, ReleaseTerminalRequest, ReleaseTerminalResponse,
-    TerminalOutputRequest, TerminalOutputResponse, WaitForTerminalExitRequest,
+    TerminalId, TerminalOutputRequest, TerminalOutputResponse, WaitForTerminalExitRequest,
     WaitForTerminalExitResponse, WriteTextFileRequest, WriteTextFileResponse,
 };
 use std::path::{Path, PathBuf};
@@ -130,7 +130,7 @@ impl ClientHandlers for Bridges {
                 req.output_byte_limit,
                 &roots,
             )?;
-            Ok(CreateTerminalResponse::new(id))
+            Ok(CreateTerminalResponse::new(TerminalId::new(id)))
         })
     }
 
