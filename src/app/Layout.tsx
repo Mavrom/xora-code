@@ -129,7 +129,9 @@ export function Layout() {
         <Panel id="main" defaultSize="82%" minSize="50%">
           <div className="relative isolate flex h-full flex-col">
             {/* Full height, over the title strip too, so it reads as part of the sidebar. */}
-            <FilesDrawer />
+            <FilesDrawer
+              onEdgeClick={sidebarOpen ? undefined : () => sidebarPanel.current?.expand()}
+            />
             <MainBar
               sidebarOpen={sidebarOpen}
               onShowSidebar={() => sidebarPanel.current?.expand()}

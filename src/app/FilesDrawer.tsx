@@ -7,13 +7,18 @@ import { useUiStore } from "./uiStore";
 
 /** Grace period before a drawer the pointer left slides away (crossing a gap, overshoot). */
 const CLOSE_DELAY_MS = 300;
+/** With the sidebar hidden the strip is also a button: hover waits so a click can land. */
+const OPEN_DELAY_MS = 250;
 
 /**
  * The file tree, tucked against the sidebar's edge. A thin strip there opens it on hover
  * and it slides away once the pointer leaves; pinned (title bar button, Ctrl+Shift+E) it
  * stays. Always mounted: the tree also runs the workspace lifecycle.
+ *
+ * `onEdgeClick` (given while the sidebar is hidden) makes a click on the strip bring the
+ * sidebar back; hovering then opens the drawer only after a short pause.
  */
-export function FilesDrawer() {
+export function FilesDrawer({ onEdgeClick }: { onEdgeClick?: () => void }) {
   const pinned = useUiStore((s) => s.filesOpen);
   const [hovered, setHovered] = useState(false);
   const timer = useRef<number | undefined>(undefined);
@@ -23,7 +28,16 @@ export function FilesDrawer() {
 
   const enter = () => {
     window.clearTimeout(timer.current);
-    setHovered(true);
+    if (onEdgeClick && !open) {
+      timer.current = window.setTimeout(() => setHovered(true), OPEN_DELAY_MS);
+    } else {
+      setHovered(true);
+    }
+  };
+  const click = () => {
+    if (open || !onEdgeClick) return;
+    window.clearTimeout(timer.current);
+    onEdgeClick();
   };
   const leave = () => {
     window.clearTimeout(timer.current);
@@ -34,7 +48,13 @@ export function FilesDrawer() {
     <div
       onMouseEnter={enter}
       onMouseLeave={leave}
-      className={cn("absolute inset-y-0 left-0 z-30", open ? "w-[17rem]" : "w-2.5")}
+      onClick={click}
+      title={!open && onEdgeClick ? "Kenar çubuğunu göster" : undefined}
+      className={cn(
+        "absolute inset-y-0 left-0 z-30",
+        open ? "w-[17rem]" : "w-2.5",
+        !open && onEdgeClick && "cursor-pointer",
+      )}
     >
       {/* Handle: tells the edge strip apart while the drawer is away. */}
       <div
