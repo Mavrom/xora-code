@@ -87,7 +87,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   }, []);
 
   return (
-    <div className="relative flex h-full flex-col bg-[#0b0b0c]">
+    <div className="relative flex h-full flex-col bg-[#0b0b0c]/70 backdrop-blur-2xl backdrop-saturate-150">
       {/* A breath of light along the top edge, so the column reads as a surface. */}
       <div
         aria-hidden

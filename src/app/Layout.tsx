@@ -104,13 +104,15 @@ export function Layout() {
   );
 
   return (
-    <div className="relative h-full">
+    <div className="relative isolate h-full">
+      {/* Behind the whole window, so the sidebar and the drawers are glass over it. */}
+      <HeroBackdrop />
       <Group
         id="xora-shell"
         orientation="horizontal"
         defaultLayout={defaultLayout}
         onLayoutChanged={onLayoutChanged}
-        className="h-full"
+        className="relative h-full"
       >
         <Panel
           id="files"
@@ -126,7 +128,6 @@ export function Layout() {
         <ResizeHandle label="Kenar çubuğunu yeniden boyutlandır" />
         <Panel id="main" defaultSize="82%" minSize="50%">
           <div className="relative isolate flex h-full flex-col">
-            <HeroBackdrop />
             {/* Full height, over the title strip too, so it reads as part of the sidebar. */}
             <FilesDrawer />
             <MainBar
