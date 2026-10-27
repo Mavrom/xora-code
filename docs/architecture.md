@@ -1,6 +1,6 @@
 # Architecture
 
-This document describes how Xora Code is built today (end of Phase 1) and where the Phase 2 agent layer plugs in. The full design and phase plan live in the spec: [docs/superpowers/specs/2026-10-25-xora-code-design.md](superpowers/specs/2026-10-25-xora-code-design.md).
+This document describes how Xora Code is put together: the process model, the folder map and the main data flows.
 
 ## Process model
 
@@ -59,7 +59,7 @@ Generated from the repository tree (`node_modules`, `target`, `dist`, `.superpow
 ├── assets/brand/                  Source logo (SVG) and icon render script
 ├── docs/
 │   ├── architecture.md            This file
-│   └── superpowers/specs/         Design spec and phase plan
+│   └── assets/                    README screenshots
 ├── index.html                     Vite entry HTML
 ├── src/                           Frontend (WebView)
 │   ├── main.tsx                   React root, global styles
@@ -80,6 +80,7 @@ Generated from the repository tree (`node_modules`, `target`, `dist`, `.superpow
 │   │   ├── inbox/                 Inbox: panel, composer, note item, store (debounced save, retry), flush on close
 │   │   └── workspace/             Workspace root store and the open-folder dialog
 │   ├── shared/
+│   │   ├── i18n/                  t() and the Turkish catalog (English is the message id)
 │   │   ├── lib/                   ipc.ts (typed IPC), path.ts
 │   │   └── ui/                    Button, IconButton, Kbd, EmptyState, PanelHeader, cn, keys
 │   └── styles/globals.css         Design tokens (@theme) and base styles
@@ -145,3 +146,9 @@ UI ── approve / reject ──────▶ permissions ──▶ agent con
 ```
 
 New commands follow the existing rules: a `commands.rs` per module, `AppError` for failures, and typed wrappers (and event listeners) in `src/shared/lib/ipc.ts`.
+
+## Interface language
+
+Every interface string goes through `t()` from `src/shared/i18n`, with the English text as the message id: `t("New chat")`, `t("Continue with {name}", { name })`. `src/shared/i18n/tr.ts` maps each id to Turkish; a missing entry falls back to English. Strings kept as data (command lists, option labels) are wrapped where they are defined, so they are translated when the module loads.
+
+The language comes from Settings > General > Language (`auto` follows the system). It is cached in `localStorage`, so the first render already uses it, and changing it reloads the window. `src/shared/i18n/i18n.test.ts` fails when a message has no Turkish entry, an entry is no longer used, or the placeholders differ: add the Turkish line next to any new `t()` call.

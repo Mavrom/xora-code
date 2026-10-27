@@ -1,181 +1,143 @@
+<div align="center">
+
+<img src="src-tauri/icons/128x128@2x.png" width="96" height="96" alt="Xora Code logo" />
+
 # Xora Code
 
-**English** · [Türkçe](README.tr.md)
+**An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemini subscription.**
 
-An open-source, agent-first code editor. Bring your own Claude, ChatGPT or Gemini subscription.
+[![Latest release](https://img.shields.io/github/v/release/Mavrom/xora-code?style=flat-square&color=111111&label=release)](https://github.com/Mavrom/xora-code/releases/latest)
+[![License: MIT](https://img.shields.io/badge/license-MIT-111111?style=flat-square)](LICENSE)
+![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-111111?style=flat-square&logo=windows)
+![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-111111?style=flat-square&logo=tauri)
 
-![Xora Code: file explorer, chat surface and editor side by side](docs/assets/screenshot.png)
+[**Download for Windows**](https://github.com/Mavrom/xora-code/releases/latest) · [Features](#features) · [Shortcuts](#keyboard-shortcuts) · [Build from source](#build-from-source)
 
-Xora Code puts an AI agent conversation at the center of the window. Your conversations sit on the left, the file explorer and the editor open when you need them, and a new chat can open under your own picture, redrawn with a dither, ASCII, halftone or scanline effect. Agents run through the official adapters for the CLIs you already use (Claude Code, Codex, Gemini CLI), signed in with your own subscription. Xora Code has no AI billing of its own and asks for no API keys.
+<br />
 
-> **Status:** Phases 1 and 2 are in: editor foundation, working agent chat over ACP, settings and accounts, integrated terminal. Verified end to end with Claude Code on Windows. Gemini CLI connects and reaches sign-in, but Google has retired personal Google sign-in for Gemini CLI (it now points to Antigravity), so a Gemini subscription cannot be used this way today. Codex installs, starts and reaches ChatGPT sign-in; a full turn still needs a ChatGPT account. Windows is the first target; the code is written to stay cross-platform. The UI copy is in Turkish.
+<img src="docs/assets/screenshot.webp" alt="Xora Code: a conversation with Claude Code that wrote a useDebounce hook, its diff, and the file open in the editor" />
+
+</div>
+
+## Why Xora
+
+Most AI editors are a code editor with a chat bolted on. Xora turns that around: **the conversation with your agent is the center of the window**, and the file tree, editor and terminal slide in when you need them.
+
+- **Your subscription, not ours.** Xora drives the official agent CLIs (Claude Code, Codex, Gemini CLI) over the [Agent Client Protocol](https://agentclientprotocol.com/). You sign in through each CLI's own login. Xora has no AI billing of its own, asks for no API keys, and never sees your credentials.
+- **You stay in control.** Edits and commands ask first, with a diff. Every file a turn touched can be accepted or reverted. Agents can only reach the folder you opened.
+- **Light and quiet.** A native Tauri app with a small footprint, an onyx/AMOLED look, a see-through window if you want it, and no telemetry.
 
 ## Features
 
-What works today:
+### Agents
 
-| Area            | What you get                                                                                                                                                                                                                                                                                                                                                                                                         |
-| --------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Agent chat      | Claude Code, Codex and Gemini CLI over the [Agent Client Protocol](https://agentclientprotocol.com/). Streaming answers, thinking blocks, tool-call cards, plans, slash commands, stop.                                                                                                                                                                                                                              |
-| Model and mode  | Model, mode and effort pickers filled from what each agent reports (Gemini has no effort setting over ACP, so it is hidden there).                                                                                                                                                                                                                                                                                   |
-| Model list      | Settings > Agent lists every model each agent has offered; switch off the ones you never use and they leave the picker.                                                                                                                                                                                                                                                                                              |
-| See-through     | Settings > Appearance > Window: Frosted (Windows Acrylic, the apps behind blurred), Clear or Solid, with a tint slider.                                                                                                                                                                                                                                                                                              |
-| Attention       | While Xora is in the background, its taskbar button flashes when an agent finishes or asks for approval (Settings > General).                                                                                                                                                                                                                                                                                        |
-| Attachments     | Files, folders and pictures (also pasted screenshots, or dragged in from Explorer; type `@` and a file name to attach a file of the folder) ride along as cards above the field; pictures go to the agent as images.                                                                                                                                                                                                 |
-| Worktrees       | Run a chat in its own git worktree on an `xora/<name>` branch, then take its work into your branch (fast-forward only) or throw it away.                                                                                                                                                                                                                                                                             |
-| Permissions     | Agent edits and commands ask first, with a diff preview. A changes bar lists the files a turn touched; accept or revert each one.                                                                                                                                                                                                                                                                                    |
-| Sandbox         | Agent file and terminal access is limited to the open folder (symlinks, `..` and junctions are resolved before the check).                                                                                                                                                                                                                                                                                           |
-| Sessions        | Conversations under day headings in the sidebar, filterable by project, reopened with the agent's own history (`session/load` / `resume`). Pin to the top, rename, archive or delete from the row or its right-click menu.                                                                                                                                                                                           |
-| Hand-off        | Continue a conversation with another agent ("<agent> ile devam et" in the … menu): a new chat opens with what happened so far, ready to send. Copy or export any conversation as Markdown.                                                                                                                                                                                                                           |
-| Settings        | Search across every setting, a reset next to anything changed from its default. Accounts, agent defaults and visible models, general (send key, chat text size, notifications), appearance (see-through window, UI scale with `Ctrl +`/`Ctrl -`/`Ctrl 0`, picture), editor (auto save, line numbers, cursor, sticky scroll, bracket colours…), terminal (shell, font size), shortcuts, about. `Ctrl+,`.              |
-| Look            | Onyx / AMOLED black, frameless window. Optional new-chat picture with dither, ASCII, halftone or scanline effect and adjustable dim.                                                                                                                                                                                                                                                                                 |
-| Terminal        | Integrated PowerShell / shell tabs under the chat and editor (``Ctrl+` ``).                                                                                                                                                                                                                                                                                                                                          |
-| Layout          | Chat-first: the editor stays closed until a file opens. Resizable panels, sizes remembered between sessions.                                                                                                                                                                                                                                                                                                         |
-| Sidebar         | New chat (`Ctrl+N`), search, and **Conversations** and **Inbox** (with an open-note count); a footer card shows this computer and the agent's state.                                                                                                                                                                                                                                                                 |
-| Files           | A drawer beside the sidebar that opens when the pointer reaches its edge and slides away after; pin it with the title bar button or `Ctrl+Shift+E`. Several folders open side by side as tabs over the tree (+ adds one). Virtualised folder tree with live refresh from a file watcher, recent folders, last folder reopened on start. Full keyboard navigation: roving tabindex, arrow keys, Home/End, type-ahead. |
-| Editor          | Monaco, bundled locally (works offline) and lazy-loaded only when the first file opens. Custom `xora-onyx` theme, tabs, unsaved-change (dirty) tracking, save and close shortcuts.                                                                                                                                                                                                                                   |
-| Inbox           | Quick-capture notes: add, edit inline, pin, mark done, delete with undo. Saved to disk atomically by the Rust `notes` module, with debounced writes, automatic retry, and a final flush on close.                                                                                                                                                                                                                    |
-| Command palette | `Ctrl+K` or `Ctrl+Shift+P`. Also jumps to the open folder's conversations and recent folders. Fuzzy search that is Turkish-aware (`klasor ac` finds `Klasör aç`), grouped commands, shortcut hints.                                                                                                                                                                                                                  |
+|                              |                                                                                                                                                                            |
+| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Three agents, one window** | Claude Code, Codex and Gemini CLI, with streaming replies, thinking, tool-call cards, plans and slash commands. Stop a turn with `Esc`, or queue follow-ups while it runs. |
+| **Model, mode, effort**      | Pickers filled from what each agent reports. Hide the models you never use.                                                                                                |
+| **Hand-off**                 | Continue a conversation with another agent: a new chat opens with what happened so far, ready to send.                                                                     |
+| **Worktrees**                | Run a chat in its own git worktree on an `xora/<name>` branch, then merge its work into your branch or throw it away.                                                      |
+| **Review**                   | Permission prompts with a diff preview, a changes bar listing every file a turn touched, accept or revert per file.                                                        |
+| **Attachments**              | Drop in files, folders and screenshots, paste images, or type `@` to attach a file of the project. Pictures the agent creates show up in the chat.                         |
+| **Attention**                | When Xora is in the background, its taskbar button flashes as soon as an agent finishes or needs approval.                                                                 |
 
-## Keyboard shortcuts
+### Editor and workspace
 
-On macOS, `Cmd` also works in place of `Ctrl` for the palette, save, close tab and undo.
+|                     |                                                                                                                                                                                           |
+| ------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Editor**          | Monaco, bundled offline, lazy-loaded on the first file. Tabs, format on save, auto save, sticky scroll, bracket colors. `Ctrl+L` sends the selection to the chat with its file and lines. |
+| **Files**           | A drawer that slides out from the sidebar's edge, or pinned open. Several folders side by side as tabs, live refresh, full keyboard navigation.                                           |
+| **Go to file**      | `Ctrl+P`: fuzzy search over every file in the project, respecting `.gitignore`.                                                                                                           |
+| **Terminal**        | Integrated terminal tabs: PowerShell 7, Windows PowerShell, Command Prompt or Git Bash.                                                                                                   |
+| **Command palette** | `Ctrl+K` for every command, recent chats and folders.                                                                                                                                     |
+| **Inbox**           | Quick-capture notes for ideas that should not derail the current task; send one to the chat with `G`.                                                                                     |
 
-### Global
+### Look and feel
 
-| Shortcut                  | Action                                         |
-| ------------------------- | ---------------------------------------------- |
-| `Ctrl+K` / `Ctrl+Shift+P` | Toggle the command palette                     |
-| `Ctrl+P`                  | Go to a file of the folder by name             |
-| `Ctrl+N`                  | New chat                                       |
-| `Ctrl+L` (editor)         | Send the selection to the chat, with its place |
-| `Ctrl+B`                  | Show or hide the sidebar                       |
-| `Ctrl+Shift+H`            | Show the conversations                         |
-| `Ctrl+Shift+E`            | Pin or unpin the files drawer                  |
-| `Ctrl+Shift+N`            | Show the Inbox and focus the note composer     |
-| `Ctrl+S`                  | Save the active file                           |
-| `Ctrl+W`                  | Close the active tab                           |
-| `Ctrl+,`                  | Open or close the settings                     |
-| ``Ctrl+` ``               | Toggle the terminal                            |
+<img src="docs/assets/new-chat.webp" alt="A new chat in Xora Code over its wallpaper, drawn with the scanline effect" />
 
-### Command palette
-
-| Shortcut  | Action                |
-| --------- | --------------------- |
-| `↑` / `↓` | Move the selection    |
-| `Enter`   | Run the selected item |
-| `Esc`     | Close the palette     |
-
-### Explorer
-
-| Shortcut          | Action                                               |
-| ----------------- | ---------------------------------------------------- |
-| `↑` / `↓`         | Previous / next item                                 |
-| `→`               | Expand a folder, or move into its first child        |
-| `←`               | Collapse a folder, or move to the parent             |
-| `Home` / `End`    | First / last item                                    |
-| `Enter` / `Space` | Open a file, or expand / collapse a folder           |
-| Letters           | Type-ahead: jump to the next item starting with them |
-
-### Editor tabs
-
-| Shortcut       | Action                |
-| -------------- | --------------------- |
-| `←` / `→`      | Previous / next tab   |
-| `Home` / `End` | First / last tab      |
-| `Delete`       | Close the focused tab |
-
-### Inbox
-
-| Shortcut        | Where              | Action               |
-| --------------- | ------------------ | -------------------- |
-| `Enter`         | Composer           | Add the note         |
-| `Shift+Enter`   | Composer / editing | New line             |
-| `Esc`           | Composer           | Leave the composer   |
-| `↑` / `↓`       | Note list          | Previous / next note |
-| `Enter`         | Focused note       | Edit inline          |
-| `P`             | Focused note       | Pin / unpin          |
-| `E`             | Focused note       | Mark done / reopen   |
-| `G`             | Focused note       | Send to the chat     |
-| `Delete`        | Focused note       | Delete               |
-| `Ctrl+Z`        | Inbox panel        | Undo the last delete |
-| `Enter` / `Esc` | Inline edit        | Save / cancel        |
-
-## Roadmap
-
-The core idea is **bring your own subscription**: Xora Code talks to the official agent CLIs over the [Agent Client Protocol (ACP)](https://agentclientprotocol.com/), and you sign in through each CLI's own login flow. API-key support is out of scope for now.
-
-| Phase | Scope                                                                                                                                   |
-| ----- | --------------------------------------------------------------------------------------------------------------------------------------- |
-| 1     | **Done.** Editor foundation: layout, theme, Explorer, Monaco, Inbox, command palette.                                                   |
-| 2     | **Done.** ACP agent connection with your own subscriptions: streaming chat, permissions, diff review and revert, sandbox, file watcher. |
-| 3     | **Done.** Settings and accounts, new-chat picture and effects, integrated terminal, conversation history.                               |
-| Next  | Full Codex and Gemini runs, a Windows installer, optional managed Node.js for the Claude adapter, update notices for pinned adapters.   |
-
-## Tech stack
-
-| Layer   | Choice                                                         |
-| ------- | -------------------------------------------------------------- |
-| Shell   | [Tauri 2](https://v2.tauri.app/) (Rust core, system WebView)   |
-| UI      | React 19, TypeScript, Vite                                     |
-| Styling | Tailwind CSS v4 with design tokens in `src/styles/globals.css` |
-| State   | Zustand                                                        |
-| Editor  | Monaco (`monaco-editor` + `@monaco-editor/react`)              |
-| Layout  | `react-resizable-panels`                                       |
-| Icons   | Lucide                                                         |
-| Testing | Vitest (frontend), `cargo test` (Rust)                         |
+|                        |                                                                                                                     |
+| ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| **Wallpaper**          | A picture behind new chats, redrawn with a dither, ASCII, halftone or scanline effect, or your own image.           |
+| **See-through window** | Frosted (Windows Acrylic), clear or solid, with a darkness slider.                                                  |
+| **Settings**           | Searchable, with a reset next to anything changed from its default. Interface scale with `Ctrl +` / `Ctrl -`.       |
+| **Languages**          | English and Turkish.                                                                                                |
+| **Conversations**      | Grouped by day and project, pinned, renamed, archived, exported as Markdown, reopened with the agent's own history. |
 
 ## Getting started
 
-### Prerequisites
+1. **Download** the installer from the [latest release](https://github.com/Mavrom/xora-code/releases/latest) (`.exe` setup or `.msi`) and run it. The installer is not code-signed yet, so Windows SmartScreen may warn: choose _More info → Run anyway_.
+2. **Install [Node.js](https://nodejs.org/) 22 or newer.** The agent adapters run on it; Xora installs the pinned adapter versions itself on first use.
+3. **Open a folder and pick an agent.** Xora sets the agent up and opens its sign-in the first time.
 
-- [Node.js](https://nodejs.org/) 24 or newer (the agent adapters need Node.js 22+ at runtime; Xora installs the pinned adapter versions itself on first use)
-- [Rust](https://www.rust-lang.org/tools/install) (stable toolchain)
-- Tauri system prerequisites for your OS (on Windows: Microsoft C++ Build Tools and WebView2): see [v2.tauri.app/start/prerequisites](https://v2.tauri.app/start/prerequisites/)
+| Agent       | Status                                                                                                                           |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Claude Code | Works end to end with a Claude subscription.                                                                                     |
+| Codex       | Installs, starts and reaches ChatGPT sign-in; not yet verified end to end.                                                       |
+| Gemini CLI  | Connects, but Google has retired personal Google sign-in for Gemini CLI, so a Gemini subscription cannot be used this way today. |
 
-### Run
+Windows is the first target. The code is written to stay cross-platform; macOS and Linux builds are on the roadmap.
+
+## Keyboard shortcuts
+
+`Cmd` works in place of `Ctrl` on macOS.
+
+| Shortcut                       | Action                         |
+| ------------------------------ | ------------------------------ |
+| `Ctrl+K` / `Ctrl+Shift+P`      | Command palette                |
+| `Ctrl+P`                       | Go to a file                   |
+| `Ctrl+N`                       | New chat                       |
+| `Ctrl+L` (editor)              | Send the selection to the chat |
+| `Esc` (chat)                   | Stop the running turn          |
+| `Ctrl+B`                       | Show or hide the sidebar       |
+| `Ctrl+Shift+E`                 | Pin or unpin the files drawer  |
+| `Ctrl+Shift+H`                 | Conversations                  |
+| `Ctrl+Shift+N`                 | New Inbox note                 |
+| ``Ctrl+` ``                    | Toggle the terminal            |
+| `Ctrl+S` / `Ctrl+W`            | Save / close the active tab    |
+| `Ctrl+,`                       | Settings                       |
+| `Ctrl +` / `Ctrl -` / `Ctrl 0` | Interface scale                |
+
+Every command and its shortcut is also listed in Settings > Shortcuts.
+
+## Build from source
+
+You need [Node.js](https://nodejs.org/) 24+, [Rust](https://www.rust-lang.org/tools/install) (stable) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS (on Windows: Microsoft C++ Build Tools and WebView2).
 
 ```bash
+git clone https://github.com/Mavrom/xora-code.git
+cd xora-code
 npm install
 npm run tauri dev
 ```
 
-The first run compiles the Rust core and takes a few minutes; later runs are incremental.
+The first run compiles the Rust core and takes a few minutes. `npm run tauri build` makes the installers.
 
-No Visual Studio Build Tools on Windows? `npm run tauri dev` switches to the LLVM-MinGW toolchain automatically when it is installed (`npm run dev:mingw` forces it): install it with `rustup toolchain install stable-x86_64-pc-windows-gnullvm`, unpack a `*-ucrt-x86_64.zip` from [llvm-mingw releases](https://github.com/mstorsjo/llvm-mingw/releases) to `%LOCALAPPDATA%\xora-toolchain` (or set `XORA_LLVM_MINGW`), then run it.
+No Visual Studio Build Tools? `npm run tauri dev` switches to the LLVM-MinGW toolchain when it is installed: `rustup toolchain install stable-x86_64-pc-windows-gnullvm`, then unpack a `*-ucrt-x86_64.zip` from [llvm-mingw releases](https://github.com/mstorsjo/llvm-mingw/releases) to `%LOCALAPPDATA%\xora-toolchain` (or set `XORA_LLVM_MINGW`).
 
-### Scripts
+| Command               | What it does                                          |
+| --------------------- | ----------------------------------------------------- |
+| `npm run tauri dev`   | Run the app with hot reload                           |
+| `npm run tauri build` | Build the installers                                  |
+| `npm run check`       | Typecheck, lint, format check and tests (the CI gate) |
+| `npm test`            | Frontend tests (Vitest)                               |
 
-| Command               | What it does                                      |
-| --------------------- | ------------------------------------------------- |
-| `npm run tauri dev`   | Run the desktop app with hot reload               |
-| `npm run tauri build` | Build a release bundle                            |
-| `npm run check`       | Typecheck, lint, format check and tests (CI gate) |
-| `npm test`            | Run the Vitest suite                              |
-| `npm run lint`        | Run ESLint                                        |
-| `npm run format`      | Format the repository with Prettier               |
-| `npm run typecheck`   | Run the TypeScript compiler without emitting      |
+### Tech stack
 
-Rust checks run against `src-tauri/Cargo.toml`; see [CONTRIBUTING.md](CONTRIBUTING.md).
+[Tauri 2](https://v2.tauri.app/) (Rust core, system WebView) · React 19 · TypeScript · Vite · Tailwind CSS v4 · Zustand · Monaco · xterm.js · Agent Client Protocol
 
-## Project structure
+Read [docs/architecture.md](docs/architecture.md) for the process model, folder map and data flows.
 
-```
-src/
-  app/          App shell: layout, title bar, activity bar, UI store
-  features/     One folder per feature (agents, chat, commands, editor, files, inbox, settings, terminal, workspace)
-  shared/       Shared code: lib/ (typed IPC, path helpers), ui/ (primitives)
-  styles/       globals.css: design tokens and base styles
-src-tauri/
-  src/          Rust core: agents/ (ACP), accounts/, fs/, notes/, settings/, terminal/ (each module: mod.rs + commands.rs)
-docs/           Architecture notes and the design spec
-```
+## Roadmap
 
-Read [docs/architecture.md](docs/architecture.md) for the process model, the full folder map and data flows.
+- macOS and Linux builds
+- Signed installers and in-app update notices
+- Editable keyboard shortcuts
+- More interface languages
 
 ## Contributing
 
-Contributions are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup, quality gates and conventions.
+Issues and pull requests are welcome. Start with [CONTRIBUTING.md](CONTRIBUTING.md) for setup, quality checks and conventions.
 
 ## License
 

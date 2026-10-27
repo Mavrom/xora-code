@@ -7,7 +7,7 @@ import { SettingGroup } from "../controls/SettingRow";
 import { t } from "@/shared/i18n";
 
 /** Placeholder until the public repository exists. */
-export const REPO_URL = "https://github.com/xora-code/xora-code";
+export const REPO_URL = "https://github.com/Mavrom/xora-code";
 
 /** Main third-party pieces shipped in the app (runtime only). */
 const LICENSES: { name: string; license: string }[] = [
