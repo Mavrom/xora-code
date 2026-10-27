@@ -1,4 +1,4 @@
-import { WindowControls } from "@/app/WindowControls";
+import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET, WindowControls } from "@/app/WindowControls";
 import {
   useEffect,
   useLayoutEffect,
@@ -142,7 +142,13 @@ export default function SettingsView() {
         onKeyDown={onNavKeyDown}
         className="relative flex min-h-0 flex-col border-r border-white/[0.06] bg-black/35"
       >
-        <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center gap-1.5 px-3">
+        <div
+          data-tauri-drag-region="deep"
+          className={cn(
+            "flex h-14 shrink-0 items-center gap-1.5 px-3",
+            NATIVE_CAPTION && TRAFFIC_LIGHT_INSET,
+          )}
+        >
           <button
             type="button"
             aria-label={t("Back")}

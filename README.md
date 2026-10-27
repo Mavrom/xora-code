@@ -9,9 +9,10 @@
 [![Latest release](https://img.shields.io/github/v/release/Mavrom/xora-code?style=flat-square&color=111111&label=release)](https://github.com/Mavrom/xora-code/releases/latest)
 [![License: MIT](https://img.shields.io/badge/license-MIT-111111?style=flat-square)](LICENSE)
 ![Windows](https://img.shields.io/badge/Windows-10%20%7C%2011-111111?style=flat-square&logo=windows)
+![macOS](https://img.shields.io/badge/macOS-11%2B-111111?style=flat-square&logo=apple)
 ![Built with Tauri](https://img.shields.io/badge/built%20with-Tauri%202-111111?style=flat-square&logo=tauri)
 
-[**Download for Windows**](https://github.com/Mavrom/xora-code/releases/latest) · [Features](#features) · [Shortcuts](#keyboard-shortcuts) · [Build from source](#build-from-source)
+[**Download for Windows or macOS**](https://github.com/Mavrom/xora-code/releases/latest) · [Features](#features) · [Shortcuts](#keyboard-shortcuts) · [Build from source](#build-from-source)
 
 <br />
 
@@ -48,7 +49,7 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 | **Editor**          | Monaco, bundled offline, lazy-loaded on the first file. Tabs, format on save, auto save, sticky scroll, bracket colors. `Ctrl+L` sends the selection to the chat with its file and lines. |
 | **Files**           | A drawer that slides out from the sidebar's edge, or pinned open. Several folders side by side as tabs, live refresh, full keyboard navigation.                                           |
 | **Go to file**      | `Ctrl+P`: fuzzy search over every file in the project, respecting `.gitignore`.                                                                                                           |
-| **Terminal**        | Integrated terminal tabs: PowerShell 7, Windows PowerShell, Command Prompt or Git Bash.                                                                                                   |
+| **Terminal**        | Integrated terminal tabs: PowerShell 7, Windows PowerShell, Command Prompt or Git Bash; your login shell on macOS.                                                                        |
 | **Command palette** | `Ctrl+K` for every command, recent chats and folders.                                                                                                                                     |
 | **Inbox**           | Quick-capture notes for ideas that should not derail the current task; send one to the chat with `G`.                                                                                     |
 
@@ -59,14 +60,16 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 |                        |                                                                                                                     |
 | ---------------------- | ------------------------------------------------------------------------------------------------------------------- |
 | **Wallpaper**          | A picture behind new chats, redrawn with a dither, ASCII, halftone or scanline effect, or your own image.           |
-| **See-through window** | Frosted (Windows Acrylic), clear or solid, with a darkness slider.                                                  |
+| **See-through window** | Frosted (Windows Acrylic, macOS vibrancy), clear or solid, with a darkness slider.                                  |
 | **Settings**           | Searchable, with a reset next to anything changed from its default. Interface scale with `Ctrl +` / `Ctrl -`.       |
 | **Languages**          | English and Turkish.                                                                                                |
 | **Conversations**      | Grouped by day and project, pinned, renamed, archived, exported as Markdown, reopened with the agent's own history. |
 
 ## Getting started
 
-1. **Download** the installer from the [latest release](https://github.com/Mavrom/xora-code/releases/latest) (`.exe` setup or `.msi`) and run it. The installer is not code-signed yet, so Windows SmartScreen may warn: choose _More info → Run anyway_.
+1. **Download** the installer from the [latest release](https://github.com/Mavrom/xora-code/releases/latest).
+   - **Windows:** the `.exe` setup or `.msi`. It is not code-signed yet, so SmartScreen may warn: choose _More info → Run anyway_.
+   - **macOS 11+:** the `.dmg` (one universal build for Apple silicon and Intel). Open it and drag Xora Code into Applications. Until the app is notarized, macOS blocks the first launch: open it once, then choose _System Settings → Privacy & Security → Open Anyway_. If macOS instead says the app "is damaged", run `xattr -cr "/Applications/Xora Code.app"` in Terminal and open it again.
 2. **Install [Node.js](https://nodejs.org/) 22 or newer.** The agent adapters run on it; Xora installs the pinned adapter versions itself on first use.
 3. **Open a folder and pick an agent.** Xora sets the agent up and opens its sign-in the first time.
 
@@ -76,7 +79,7 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 | Codex       | Installs, starts and reaches ChatGPT sign-in; not yet verified end to end.                                                       |
 | Gemini CLI  | Connects, but Google has retired personal Google sign-in for Gemini CLI, so a Gemini subscription cannot be used this way today. |
 
-Windows is the first target. The code is written to stay cross-platform; macOS and Linux builds are on the roadmap.
+Windows and macOS are supported. The code is written to stay cross-platform; Linux builds are on the roadmap.
 
 ## Keyboard shortcuts
 
@@ -102,7 +105,7 @@ Every command and its shortcut is also listed in Settings > Shortcuts.
 
 ## Build from source
 
-You need [Node.js](https://nodejs.org/) 24+, [Rust](https://www.rust-lang.org/tools/install) (stable) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS (on Windows: Microsoft C++ Build Tools and WebView2).
+You need [Node.js](https://nodejs.org/) 24+, [Rust](https://www.rust-lang.org/tools/install) (stable) and the [Tauri prerequisites](https://v2.tauri.app/start/prerequisites/) for your OS (on Windows: Microsoft C++ Build Tools and WebView2; on macOS: Xcode Command Line Tools).
 
 ```bash
 git clone https://github.com/Mavrom/xora-code.git
@@ -130,7 +133,7 @@ Read [docs/architecture.md](docs/architecture.md) for the process model, folder 
 
 ## Roadmap
 
-- macOS and Linux builds
+- Linux builds
 - Signed installers and in-app update notices
 - Editable keyboard shortcuts
 - More interface languages

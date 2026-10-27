@@ -1,8 +1,19 @@
 import { Copy, Minus, Square, X, type LucideIcon } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { cn } from "@/shared/ui/cn";
+import { detectPlatform } from "@/shared/ui/keys";
 import { useIsMaximized } from "./useWindowState";
 import { t } from "@/shared/i18n";
+
+/**
+ * macOS keeps its native traffic lights (`titleBarStyle: Overlay`, see
+ * `tauri.macos.conf.json`); elsewhere the window is frameless and draws its own buttons.
+ */
+export const NATIVE_CAPTION =
+  detectPlatform(typeof navigator === "undefined" ? undefined : navigator) === "mac";
+
+/** Left padding that keeps a top bar's content clear of the macOS traffic lights. */
+export const TRAFFIC_LIGHT_INSET = "pl-[76px]!";
 
 type WindowAction = "minimize" | "toggleMaximize" | "close";
 
@@ -47,6 +58,7 @@ function CaptionButton({ icon: Icon, label, onClick, danger }: CaptionButtonProp
 
 export function WindowControls() {
   const maximized = useIsMaximized();
+  if (NATIVE_CAPTION) return null;
 
   return (
     <div className="flex h-full items-stretch">

@@ -1,0 +1,82 @@
+name: Release (macOS)
+
+# Builds the universal macOS app (Apple silicon + Intel) as a .dmg.
+# - Tag `v1.2.3` (matching the version in tauri.conf.json) or run it by hand:
+#   uploads the .dmg to a draft GitHub release, published once you review it.
+# - Pull requests that touch this file: build only, the .dmg is a workflow artifact.
+#
+# Signing: without secrets the app is ad-hoc signed (Gatekeeper asks once on first
+# launch). With these repository secrets it is signed with a Developer ID and notarized:
+# APPLE_CERTIFICATE (base64 .p12), APPLE_CERTIFICATE_PASSWORD, APPLE_SIGNING_IDENTITY,
+# APPLE_ID, APPLE_PASSWORD (app-specific password), APPLE_TEAM_ID.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+  pull_request:
+    paths: [".github/workflows/release.yml"]
+
+permissions:
+  contents: write
+
+jobs:
+  macos:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: aarch64-apple-darwin,x86_64-apple-darwin
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - run: npm ci
+
+      # Only export the signing variables that are set: an empty APPLE_CERTIFICATE
+      # would make the Tauri CLI try (and fail) to import it.
+      - name: Signing environment
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_SIGNING_IDENTITY: ${{ secrets.APPLE_SIGNING_IDENTITY }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_PASSWORD: ${{ secrets.APPLE_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
+        run: |
+          for name in APPLE_CERTIFICATE APPLE_CERTIFICATE_PASSWORD APPLE_SIGNING_IDENTITY APPLE_ID APPLE_PASSWORD APPLE_TEAM_ID; do
+            value="${!name}"
+            if [ -n "$value" ]; then
+              echo "::add-mask::$value"
+              { echo "$name<<__XORA_EOF__"; echo "$value"; echo "__XORA_EOF__"; } >> "$GITHUB_ENV"
+            fi
+          done
+
+      - name: Build
+        id: build
+        uses: tauri-apps/tauri-action@v0
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        with:
+          args: --target universal-apple-darwin
+          tagName: ${{ github.event_name != 'pull_request' && 'v__VERSION__' || '' }}
+          releaseName: ${{ github.event_name != 'pull_request' && 'Xora Code v__VERSION__' || '' }}
+          releaseDraft: true
+          prerelease: false
+          releaseBody: |
+            ### macOS
+            Download **`Xora.Code_*_universal.dmg`** (Apple silicon and Intel, macOS 11 or newer), open it and drag Xora Code into Applications.
+
+            The app is not notarized yet, so macOS blocks the first launch: open it once, then choose **System Settings → Privacy & Security → Open Anyway**. If macOS says the app "is damaged", run `xattr -cr "/Applications/Xora Code.app"` in Terminal and open it again.
+
+            Agents need [Node.js](https://nodejs.org/) 22 or newer.
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: xora-code-macos-universal
+          path: src-tauri/target/universal-apple-darwin/release/bundle/dmg/*.dmg
+          if-no-files-found: error

@@ -24,7 +24,7 @@ import {
 } from "@/features/chat/exportChat";
 import { SEPARATOR } from "@/shared/ui/menuModel";
 import { toggleFiles, useUiStore } from "./uiStore";
-import { WindowControls } from "./WindowControls";
+import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET, WindowControls } from "./WindowControls";
 import { t } from "@/shared/i18n";
 
 interface MainBarProps {
@@ -58,7 +58,12 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
       data-tauri-drag-region="deep"
       className="relative flex h-10 shrink-0 items-center gap-2"
     >
-      <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
+      <div
+        className={cn(
+          "flex min-w-0 flex-1 items-center gap-2 pl-2",
+          NATIVE_CAPTION && !sidebarOpen && TRAFFIC_LIGHT_INSET,
+        )}
+      >
         {!sidebarOpen && (
           <IconButton icon={PanelLeft} label={t("Show sidebar")} onClick={onShowSidebar} />
         )}
