@@ -100,7 +100,7 @@ fn hostname_from(var: impl Fn(&str) -> Option<String>) -> String {
 
 #[cfg(test)]
 mod tests {
-    use super::{PATH_END, PATH_START, extract_path, hostname_from, login_shell_path};
+    use super::{PATH_END, PATH_START, extract_path, hostname_from};
 
     #[test]
     fn extracts_path_between_markers_ignoring_shell_noise() {
@@ -116,7 +116,7 @@ mod tests {
     #[cfg(unix)]
     #[test]
     fn reads_path_from_a_real_login_shell() {
-        let path = login_shell_path("/bin/sh").expect("PATH from /bin/sh");
+        let path = super::login_shell_path("/bin/sh").expect("PATH from /bin/sh");
         assert!(path.contains("/usr/bin") || path.contains("/bin"), "{path}");
         assert!(!path.contains(PATH_END), "{path}");
     }
