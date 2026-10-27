@@ -2,6 +2,7 @@ import { useState, type KeyboardEvent } from "react";
 import { Minus, Plus } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { parseClamped } from "./keyboard";
+import { t } from "@/shared/i18n";
 
 interface NumberInputProps {
   value: number;
@@ -52,7 +53,7 @@ export function NumberInput({ value, min, max, onChange, labelledBy, unit }: Num
       <button
         type="button"
         tabIndex={-1}
-        aria-label={delta > 0 ? "Artır" : "Azalt"}
+        aria-label={delta > 0 ? t("Increase") : t("Decrease")}
         disabled={disabled}
         onClick={() => commit(value + delta)}
         className="grid h-full w-7 place-items-center text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg disabled:opacity-35 disabled:hover:bg-transparent"

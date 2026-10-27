@@ -11,38 +11,40 @@ import { Toggle } from "../controls/Toggle";
 import { PROVIDERS } from "../providers";
 import { useSettingsStore } from "../store";
 import type { AgentMode, ApprovalPolicy, Effort } from "../types";
+import { t } from "@/shared/i18n";
 
 const MODES: { value: AgentMode; label: string }[] = [
-  { value: "agent", label: "Ajan" },
-  { value: "plan", label: "Plan" },
-  { value: "chat", label: "Sohbet" },
+  { value: "agent", label: t("Agent") },
+  { value: "plan", label: t("Plan") },
+  { value: "chat", label: t("Chat") },
 ];
 
 const EFFORTS: { value: Effort; label: string }[] = [
-  { value: "low", label: "Düşük" },
-  { value: "medium", label: "Orta" },
-  { value: "high", label: "Yüksek" },
+  { value: "low", label: t("Low") },
+  { value: "medium", label: t("Medium") },
+  { value: "high", label: t("High") },
 ];
 
 const POLICIES: { value: ApprovalPolicy; title: string; description: string; icon: LucideIcon }[] =
   [
     {
       value: "ask",
-      title: "Her şeyi sor",
-      description: "Dosya düzenlemeleri ve komutlar için her seferinde onayınızı ister.",
+      title: t("Ask for everything"),
+      description: t("Asks for your approval on every file edit and command."),
       icon: Hand,
     },
     {
       value: "autoEdits",
-      title: "Dosya düzenlemelerini otomatik onayla",
-      description: "Çalışma klasöründeki düzenlemeler hemen uygulanır; komutlar için yine sorar.",
+      title: t("Auto-approve file edits"),
+      description: t("Edits inside the working folder apply right away; commands still ask."),
       icon: PencilLine,
     },
     {
       value: "full",
-      title: "Tam otomatik",
-      description:
-        "Ajan sormadan düzenler ve komut çalıştırır. Yalnızca güvendiğiniz projelerde açın.",
+      title: t("Fully automatic"),
+      description: t(
+        "The agent edits and runs commands without asking. Only turn this on for projects you trust.",
+      ),
       icon: Zap,
     },
   ];
@@ -56,15 +58,17 @@ export function AgentSection() {
   return (
     <>
       <SectionHeader
-        title="Agent"
-        description="Yeni bir sohbet başlarken Xora'nın hangi ajanı, hangi modda ve ne kadar serbestçe çalıştıracağını seçin."
+        title={t("Agent")}
+        description={t(
+          "Choose which agent a new chat starts with, in which mode, and how freely it may act.",
+        )}
       />
 
-      <SettingGroup title="Varsayılanlar">
+      <SettingGroup title={t("Defaults")}>
         <SettingRow
-          label="Varsayılan ajan"
+          label={t("Default agent")}
           setting="agent.defaultAgent"
-          description="Yeni sohbetler bu ajanla başlar."
+          description={t("New chats start with this agent.")}
           control={(id) => (
             <Select
               labelledBy={id}
@@ -72,16 +76,16 @@ export function AgentSection() {
               options={PROVIDERS.map((p) => ({
                 value: p.id,
                 label: p.name,
-                hint: detected && !statuses[p.id]?.path ? "kurulu değil" : undefined,
+                hint: detected && !statuses[p.id]?.path ? t("not installed") : undefined,
               }))}
               onChange={(defaultAgent) => update({ agent: { defaultAgent } })}
             />
           )}
         />
         <SettingRow
-          label="Varsayılan mod"
+          label={t("Default mode")}
           setting="agent.defaultMode"
-          description="Ajan uygular, Plan önce bir plan çıkarır, Sohbet yalnızca yanıtlar."
+          description={t("Agent acts, Plan drafts a plan first, Chat only answers.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -92,9 +96,11 @@ export function AgentSection() {
           )}
         />
         <SettingRow
-          label="Düşünme eforu"
+          label={t("Thinking effort")}
           setting="agent.defaultEffort"
-          description="Destekleyen ajanlarda uygulanır. Yüksek efor daha yavaş ama daha titizdir."
+          description={t(
+            "Applied where the agent supports it. Higher effort is slower but more thorough.",
+          )}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -111,18 +117,18 @@ export function AgentSection() {
         onChange={(hiddenModels) => update({ agent: { hiddenModels } })}
       />
 
-      <SettingGroup title="Onay politikası" setting="agent.approvalPolicy">
+      <SettingGroup title={t("Approval policy")} setting="agent.approvalPolicy">
         <PolicyPicker
           value={agent.approvalPolicy}
           onChange={(approvalPolicy) => update({ agent: { approvalPolicy } })}
         />
       </SettingGroup>
 
-      <SettingGroup title="Tanılama">
+      <SettingGroup title={t("Diagnostics")}>
         <SettingRow
-          label="Ayrıntılı ajan günlükleri"
+          label={t("Verbose agent logs")}
           setting="agent.debugLogs"
-          description="Ajanla yapılan protokol trafiğini sorun gidermek için günlüğe yazar."
+          description={t("Logs the protocol traffic with the agent, for troubleshooting.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -156,9 +162,9 @@ function ModelVisibility({
 
   if (agents.length === 0) {
     return (
-      <SettingGroup title="Görünen modeller" setting="agent.hiddenModels">
+      <SettingGroup title={t("Visible models")} setting="agent.hiddenModels">
         <p className="px-4 py-3 text-xs text-fg-subtle">
-          Bir ajanla ilk sohbeti başlattığınızda sunduğu modeller burada listelenir.
+          {t("The models an agent offers are listed here once you start your first chat with it.")}
         </p>
       </SettingGroup>
     );
@@ -169,7 +175,7 @@ function ModelVisibility({
       {agents.map((provider, i) => (
         <SettingGroup
           key={provider.id}
-          title={`Görünen modeller · ${provider.name}`}
+          title={t("Visible models · {name}", { name: provider.name })}
           setting={i === 0 ? "agent.hiddenModels" : undefined}
         >
           {catalog[provider.id]?.map((model) => {
@@ -217,7 +223,7 @@ function PolicyPicker({
   };
 
   return (
-    <div role="radiogroup" aria-label="Onay politikası" onKeyDown={onKeyDown}>
+    <div role="radiogroup" aria-label={t("Approval policy")} onKeyDown={onKeyDown}>
       {POLICIES.map((policy, i) => {
         const selected = i === index;
         const Icon = policy.icon;

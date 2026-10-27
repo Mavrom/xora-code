@@ -7,6 +7,8 @@ export type Effort = "low" | "medium" | "high";
 export type ReducedMotion = "system" | "always" | "never";
 export type RenderWhitespace = "none" | "boundary" | "all";
 export type SendKey = "enter" | "ctrlEnter";
+/** `auto` follows the system language. */
+export type Language = "auto" | "tr" | "en";
 export type AutoSave = "off" | "delay" | "focusChange";
 export type LineNumbers = "on" | "relative" | "off";
 export type CursorStyle = "line" | "block" | "underline";
@@ -14,6 +16,7 @@ export type CursorStyle = "line" | "block" | "underline";
 export type ShellKind = "auto" | "pwsh" | "powerShell" | "cmd" | "gitBash";
 
 export interface GeneralSettings {
+  language: Language;
   /** Reopen the last folder on start. */
   openLastFolder: boolean;
   /** Ask before closing a tab with unsaved changes. */
@@ -109,6 +112,7 @@ export const UI_SCALE_RANGE = { min: 80, max: 150 } as const;
 export const DEFAULT_SETTINGS: Settings = {
   version: SETTINGS_VERSION,
   general: {
+    language: "auto",
     openLastFolder: true,
     confirmDirtyClose: true,
     reducedMotion: "system",

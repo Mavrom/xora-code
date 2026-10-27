@@ -11,6 +11,7 @@ import {
   type LineNumbers,
   type RenderWhitespace,
 } from "../types";
+import { t } from "@/shared/i18n";
 
 const TAB_SIZES = [
   { value: 2, label: "2" },
@@ -19,27 +20,27 @@ const TAB_SIZES = [
 ] as const;
 
 const WHITESPACE: { value: RenderWhitespace; label: string }[] = [
-  { value: "none", label: "Yok" },
-  { value: "boundary", label: "Sınırlar" },
-  { value: "all", label: "Tümü" },
+  { value: "none", label: t("None") },
+  { value: "boundary", label: t("Boundary") },
+  { value: "all", label: t("All") },
 ];
 
 const LINE_NUMBERS: { value: LineNumbers; label: string }[] = [
-  { value: "on", label: "Açık" },
-  { value: "relative", label: "Göreli" },
-  { value: "off", label: "Kapalı" },
+  { value: "on", label: t("On") },
+  { value: "relative", label: t("Relative") },
+  { value: "off", label: t("Off") },
 ];
 
 const CURSORS: { value: CursorStyle; label: string }[] = [
-  { value: "line", label: "Çizgi" },
-  { value: "block", label: "Blok" },
-  { value: "underline", label: "Alt çizgi" },
+  { value: "line", label: t("Line") },
+  { value: "block", label: t("Block") },
+  { value: "underline", label: t("Underline") },
 ];
 
 const AUTO_SAVE: { value: AutoSave; label: string }[] = [
-  { value: "off", label: "Kapalı" },
-  { value: "delay", label: "Yazınca" },
-  { value: "focusChange", label: "Odak değişince" },
+  { value: "off", label: t("Off") },
+  { value: "delay", label: t("After a pause") },
+  { value: "focusChange", label: t("On focus change") },
 ];
 
 export function EditorSection() {
@@ -50,17 +51,19 @@ export function EditorSection() {
   return (
     <>
       <SectionHeader
-        title="Editör"
-        description="Kod editörünün görünümü ve davranışı. Değişiklikler açık sekmelere anında uygulanır."
+        title={t("Editor")}
+        description={t(
+          "How the code editor looks and behaves. Changes apply to open tabs right away.",
+        )}
       />
 
       <EditorPreview settings={editor} />
 
-      <SettingGroup title="Yazı">
+      <SettingGroup title={t("Text")}>
         <SettingRow
-          label="Yazı boyutu"
+          label={t("Font size")}
           setting="editor.fontSize"
-          description="Editördeki kod yazısının boyutu."
+          description={t("Size of the code in the editor.")}
           control={(id) => (
             <NumberInput
               labelledBy={id}
@@ -73,9 +76,9 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Ligatürler"
+          label={t("Ligatures")}
           setting="editor.ligatures"
-          description="=>, !== ve -> gibi işaretleri tek bir glif olarak çizer."
+          description={t("Draws symbols like =>, !== and -> as single glyphs.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -86,11 +89,11 @@ export function EditorSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="İmleç ve kenar">
+      <SettingGroup title={t("Cursor and gutter")}>
         <SettingRow
-          label="Satır numaraları"
+          label={t("Line numbers")}
           setting="editor.lineNumbers"
-          description="Göreli, imlecin bulunduğu satıra olan uzaklığı gösterir."
+          description={t("Relative shows the distance from the cursor's line.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -101,7 +104,7 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="İmleç biçimi"
+          label={t("Cursor style")}
           setting="editor.cursorStyle"
           control={(id) => (
             <Segmented
@@ -113,9 +116,11 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Yapışkan kaydırma"
+          label={t("Sticky scroll")}
           setting="editor.stickyScroll"
-          description="Kaydırırken içinde bulunduğun sınıf ve fonksiyon başlıkları üstte kalır."
+          description={t(
+            "Keeps the enclosing class and function headers at the top while scrolling.",
+          )}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -125,9 +130,11 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Parantez renkleri"
+          label={t("Bracket colors")}
           setting="editor.bracketColors"
-          description="Eşleşen parantezleri derinliğine göre renklendirir ve aktif çiftin kılavuzunu çizer."
+          description={t(
+            "Colors matching brackets by depth and draws a guide for the active pair.",
+          )}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -138,11 +145,11 @@ export function EditorSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Düzen">
+      <SettingGroup title={t("Layout")}>
         <SettingRow
-          label="Sekme genişliği"
+          label={t("Tab size")}
           setting="editor.tabSize"
-          description="Bir girintinin kaç boşluk sayılacağı."
+          description={t("How many spaces one indent counts as.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -153,9 +160,9 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Satır kaydırma"
+          label={t("Word wrap")}
           setting="editor.wordWrap"
-          description="Uzun satırlar yatay kaydırma yerine alt satıra geçer."
+          description={t("Long lines wrap instead of scrolling sideways.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -165,9 +172,9 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Mini harita"
+          label={t("Minimap")}
           setting="editor.minimap"
-          description="Sağ kenarda dosyanın küçük bir özetini gösterir."
+          description={t("Shows a small overview of the file on the right edge.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -177,9 +184,9 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Boşlukları göster"
+          label={t("Show whitespace")}
           setting="editor.renderWhitespace"
-          description="Boşluk ve sekme karakterlerini soluk işaretlerle çizer."
+          description={t("Draws spaces and tabs as faint marks.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -191,11 +198,13 @@ export function EditorSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Kaydetme">
+      <SettingGroup title={t("Saving")}>
         <SettingRow
-          label="Otomatik kaydet"
+          label={t("Auto save")}
           setting="editor.autoSave"
-          description="Yazınca: yazmayı bıraktıktan bir saniye sonra. Odak değişince: editörden ya da Xora'dan çıkınca. Diskte değişmiş dosyalar asla otomatik kaydedilmez."
+          description={t(
+            "After a pause: a second after you stop typing. On focus change: when you leave the editor or Xora. Files changed on disk are never auto-saved.",
+          )}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -206,9 +215,11 @@ export function EditorSection() {
           )}
         />
         <SettingRow
-          label="Kaydederken biçimlendir"
+          label={t("Format on save")}
           setting="editor.formatOnSave"
-          description="Dosyanın dili için bir biçimlendirici varsa kaydetmeden önce çalıştırır."
+          description={t(
+            "Runs the formatter for the file's language, if there is one, before saving.",
+          )}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -226,7 +237,7 @@ type Token = [kind: "kw" | "fn" | "str" | "op" | "pl" | "cm", text: string];
 
 /** A few lines of code that show size, ligatures, indentation and whitespace at a glance. */
 const SAMPLE: Token[][] = [
-  [["cm", "// Xora önizleme"]],
+  [["cm", "// Xora preview"]],
   [
     ["kw", "const "],
     ["fn", "greet"],
@@ -273,14 +284,14 @@ function EditorPreview({ settings }: { settings: EditorSettings }) {
 
   return (
     <figure
-      aria-label="Editör önizlemesi"
+      aria-label={t("Editor preview")}
       className="mt-8 overflow-hidden rounded-lg border border-border bg-bg shadow-well"
     >
       <div className="flex h-8 items-center gap-2 border-b border-border px-3">
         <span className="size-1.5 rounded-full bg-border-strong" aria-hidden />
         <span className="text-2xs text-fg-subtle">greet.ts</span>
         <span className="ml-auto text-2xs text-fg-subtle tabular-nums">
-          {settings.fontSize}px · {settings.tabSize} boşluk
+          {t("{size}px · {tab} spaces", { size: settings.fontSize, tab: settings.tabSize })}
         </span>
       </div>
       <pre

@@ -7,6 +7,7 @@ import type {
   AcpToolContent,
 } from "@/features/agents/types";
 import { imageMime } from "./attachments";
+import { t } from "@/shared/i18n";
 
 export type DiffContent = Extract<AcpToolContent, { type: "diff" }>;
 
@@ -128,10 +129,10 @@ export function defaultReject(options: AcpPermissionOption[]): AcpPermissionOpti
 }
 
 const PERMISSION_LABELS: Record<AcpPermissionOption["kind"], string> = {
-  allow_once: "İzin ver",
-  allow_always: "Hep izin ver",
-  reject_once: "Reddet",
-  reject_always: "Hep reddet",
+  allow_once: t("Allow"),
+  allow_always: t("Always allow"),
+  reject_once: t("Reject"),
+  reject_always: t("Always reject"),
 };
 
 /**

@@ -2,6 +2,7 @@ import { Copy, Minus, Square, X, type LucideIcon } from "lucide-react";
 import { getCurrentWindow } from "@tauri-apps/api/window";
 import { cn } from "@/shared/ui/cn";
 import { useIsMaximized } from "./useWindowState";
+import { t } from "@/shared/i18n";
 
 type WindowAction = "minimize" | "toggleMaximize" | "close";
 
@@ -49,13 +50,13 @@ export function WindowControls() {
 
   return (
     <div className="flex h-full items-stretch">
-      <CaptionButton icon={Minus} label="Simge durumuna küçült" onClick={() => run("minimize")} />
+      <CaptionButton icon={Minus} label={t("Minimize")} onClick={() => run("minimize")} />
       <CaptionButton
         icon={maximized ? Copy : Square}
-        label={maximized ? "Önceki boyuta getir" : "Ekranı kapla"}
+        label={maximized ? t("Restore") : t("Maximize")}
         onClick={() => run("toggleMaximize")}
       />
-      <CaptionButton icon={X} label="Kapat" danger onClick={() => run("close")} />
+      <CaptionButton icon={X} label={t("Close")} danger onClick={() => run("close")} />
     </div>
   );
 }

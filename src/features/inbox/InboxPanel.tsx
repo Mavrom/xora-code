@@ -11,6 +11,7 @@ import { saveErrorMessage, secondsUntil } from "./retryCountdown";
 import { sortNotes } from "./sortNotes";
 import { useInboxStore } from "./store";
 import { useFlushOnClose } from "./useFlushOnClose";
+import { t } from "@/shared/i18n";
 
 /** How long the "note deleted" undo bar stays up. */
 const UNDO_MS = 6_000;
@@ -59,12 +60,14 @@ export function InboxPanel() {
       className="flex h-full flex-col outline-none"
     >
       <PanelHeader
-        title="Inbox"
+        title={t("Inbox")}
         actions={
           status === "ready" && open.length > 0 ? (
             <span
               className="px-2.5 text-[11px] text-fg-subtle tabular-nums"
-              aria-label={`${open.length} açık not`}
+              aria-label={
+                open.length === 1 ? t("1 open note") : t("{n} open notes", { n: open.length })
+              }
             >
               {open.length}
             </span>
@@ -80,14 +83,14 @@ export function InboxPanel() {
           notes.length === 0 ? (
             <EmptyState
               icon={Inbox}
-              title="Inbox boş"
-              description="Aklına geleni buraya bırak; sonra dönersin."
+              title={t("Inbox is empty")}
+              description={t("Drop whatever comes to mind here and come back to it later.")}
             />
           ) : (
             <NoteLists open={open} done={done} />
           )
         ) : status === "error" ? (
-          <LoadError message={error ?? "Bilinmeyen hata"} />
+          <LoadError message={error ?? t("Unknown error")} />
         ) : (
           <LoadingRows />
         )}
@@ -112,9 +115,9 @@ function useCountdownNow(target: number | null) {
       id = undefined;
     };
     const tick = () => {
-      const t = Date.now();
-      setNow(t);
-      if (secondsUntil(target, t) === 0) stop();
+      const stamp = Date.now();
+      setNow(stamp);
+      if (secondsUntil(target, stamp) === 0) stop();
     };
     const sync = () => {
       stop();
@@ -140,7 +143,9 @@ function SaveError({ error }: { error: string }) {
   return (
     <div role="status" className="mt-2 px-1 text-[11px] leading-snug text-danger" title={error}>
       {/* Announced once; the ticking text is hidden from screen readers. */}
-      <span className="sr-only">Kaydedilemedi: {error}. Otomatik olarak yeniden denenecek.</span>
+      <span className="sr-only">
+        {t("Could not save: {error}. Retrying automatically.", { error })}
+      </span>
       <span aria-hidden className="tabular-nums">
         {saveErrorMessage(nextRetryAt, now)}
       </span>
@@ -192,15 +197,15 @@ function UndoBar({ count }: { count: number }) {
         leaving && "translate-y-1 opacity-0",
       )}
     >
-      <span>{count > 1 ? `${count} not silindi` : "Not silindi"}</span>
+      <span>{count > 1 ? t("{n} notes deleted", { n: count }) : t("Note deleted")}</span>
       <button
         type="button"
         aria-keyshortcuts="Control+Z"
-        title="Geri al (Ctrl+Z)"
+        title={t("Undo (Ctrl+Z)")}
         onClick={(e) => undoRemove(e.currentTarget.closest("[data-inbox-panel]"))}
         className="h-6 rounded-sm px-2 font-medium text-fg transition-colors duration-150 hover:bg-hover"
       >
-        Geri al
+        {t("Undo")}
       </button>
     </div>
   );
@@ -226,13 +231,13 @@ function NoteLists({ open, done }: { open: Note[]; done: Note[] }) {
   return (
     <div data-inbox-list onKeyDown={onKeyDown} className="px-1.5 pb-3">
       {open.length > 0 ? (
-        <div role="list" aria-label="Notlar" className="flex flex-col gap-px">
+        <div role="list" aria-label={t("Notes")} className="flex flex-col gap-px">
           {open.map((note) => (
             <NoteItem key={note.id} note={note} now={now} />
           ))}
         </div>
       ) : (
-        <p className="px-2.5 py-3 text-[12px] text-fg-subtle">Açık not kalmadı.</p>
+        <p className="px-2.5 py-3 text-[12px] text-fg-subtle">{t("No open notes left.")}</p>
       )}
 
       {done.length > 0 && (
@@ -254,7 +259,7 @@ function NoteLists({ open, done }: { open: Note[]; done: Note[] }) {
                 showDone && "rotate-90",
               )}
             />
-            <span className="min-w-0 truncate">Tamamlananlar</span>
+            <span className="min-w-0 truncate">{t("Done")}</span>
             <span className="shrink-0 tabular-nums">({done.length})</span>
           </button>
           {/* Collapses with grid rows (no height measuring); inert keeps hidden rows out of tab order. */}
@@ -267,7 +272,7 @@ function NoteLists({ open, done }: { open: Note[]; done: Note[] }) {
             )}
           >
             <div className="min-h-0 overflow-hidden">
-              <div role="list" aria-label="Tamamlanan notlar" className="flex flex-col gap-px">
+              <div role="list" aria-label={t("Done notes")} className="flex flex-col gap-px">
                 {done.map((note) => (
                   <NoteItem key={note.id} note={note} now={now} />
                 ))}
@@ -285,7 +290,7 @@ function LoadError({ message }: { message: string }) {
   return (
     <div role="alert" className="flex flex-col items-start gap-3 px-4 py-3">
       <p className="text-[12px] leading-relaxed break-words text-danger select-text">
-        Notlar yüklenemedi: {message}
+        {t("Could not load notes: {message}", { message })}
       </p>
       <button
         type="button"
@@ -293,7 +298,7 @@ function LoadError({ message }: { message: string }) {
         className="inline-flex h-7 items-center gap-1.5 rounded-md border border-border-strong bg-elevated px-3 text-[12px] font-medium text-fg transition-colors duration-150 hover:bg-hover"
       >
         <RotateCw size={13} strokeWidth={1.75} aria-hidden />
-        Tekrar dene
+        {t("Retry")}
       </button>
     </div>
   );
@@ -302,7 +307,7 @@ function LoadError({ message }: { message: string }) {
 /** Three calm placeholder rows with staggered widths. */
 function LoadingRows() {
   return (
-    <div aria-busy="true" aria-label="Notlar yükleniyor" className="flex flex-col gap-1 px-1.5">
+    <div aria-busy="true" aria-label={t("Loading notes")} className="flex flex-col gap-1 px-1.5">
       {["w-11/12", "w-3/4", "w-5/6"].map((width, i) => (
         <div key={width} className="rounded-md px-2.5 py-2">
           <div

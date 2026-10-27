@@ -32,11 +32,11 @@ pub async fn install(
     let npm_cli = node
         .npm_cli
         .as_ref()
-        .ok_or_else(|| "npm bulunamadı (Node.js kurulumuyla birlikte gelmeli)".to_owned())?;
+        .ok_or_else(|| "npm not found (it comes with Node.js)".to_owned())?;
     let prefix = spec.install_dir(agents_dir);
     tokio::fs::create_dir_all(&prefix)
         .await
-        .map_err(|err| format!("klasör oluşturulamadı: {err}"))?;
+        .map_err(|err| format!("could not create the folder: {err}"))?;
 
     let mut cmd = Command::new(&node.exe);
     cmd.arg(npm_cli)
@@ -49,7 +49,7 @@ pub async fn install(
     hide_console(&mut cmd);
     let mut child = cmd
         .spawn()
-        .map_err(|err| format!("npm başlatılamadı: {err}"))?;
+        .map_err(|err| format!("could not start npm: {err}"))?;
 
     let mut tail: Vec<String> = Vec::new();
     if let Some(stderr) = child.stderr.take() {
@@ -67,7 +67,7 @@ pub async fn install(
     }
     let detail = tail.join("\n");
     Err(if detail.is_empty() {
-        format!("npm install başarısız ({status})")
+        format!("npm install failed ({status})")
     } else {
         detail
     })

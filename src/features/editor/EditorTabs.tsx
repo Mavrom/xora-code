@@ -8,6 +8,7 @@ import { closeActiveTab, requestCloseTab } from "./closeTab";
 import { focusEditorSoon } from "./editorFocus";
 import { isCloseTabShortcut, isShown, revealTabScroll } from "./editorKeys";
 import { isDirty, useEditorStore, type Tab } from "./store";
+import { t } from "@/shared/i18n";
 
 /** Parent folder name, shown only when two open tabs share a file name. */
 const parentName = (path: string) => basename(path.replace(/[\\/][^\\/]*$/, ""));
@@ -23,7 +24,7 @@ export function EditorTabs() {
 
   const duplicateNames = useMemo(() => {
     const seen = new Map<string, number>();
-    for (const t of tabs) seen.set(t.name, (seen.get(t.name) ?? 0) + 1);
+    for (const tab of tabs) seen.set(tab.name, (seen.get(tab.name) ?? 0) + 1);
     return new Set([...seen].filter(([, n]) => n > 1).map(([name]) => name));
   }, [tabs]);
 
@@ -54,7 +55,7 @@ export function EditorTabs() {
     if (!el || !tab) return;
     const tabs = [...el.querySelectorAll<HTMLElement>(":scope > [data-tab]")];
     const next = revealTabScroll(
-      tabs.map((t) => ({ start: t.offsetLeft, end: t.offsetLeft + t.offsetWidth })),
+      tabs.map((el) => ({ start: el.offsetLeft, end: el.offsetLeft + el.offsetWidth })),
       tabs.indexOf(tab),
       el.scrollLeft,
       el.clientWidth,
@@ -80,7 +81,7 @@ export function EditorTabs() {
   // Left/Right/Home/End move between tabs; the focused tab becomes active.
   // Delete closes the focused tab and hands focus to the tab that takes its place.
   const onKeyDown = (e: KeyboardEvent<HTMLDivElement>) => {
-    const index = tabs.findIndex((t) => t.path === activePath);
+    const index = tabs.findIndex((item) => item.path === activePath);
     if (e.key === "Delete" && index !== -1) {
       e.preventDefault();
       const strip = e.currentTarget;
@@ -116,7 +117,7 @@ export function EditorTabs() {
     <div
       ref={scroller}
       role="tablist"
-      aria-label="Açık dosyalar"
+      aria-label={t("Open files")}
       onKeyDown={onKeyDown}
       // A vertical wheel scrolls the strip sideways, like every desktop editor.
       onWheel={(e) => {
@@ -177,7 +178,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         role="tab"
         aria-selected={active}
         tabIndex={active ? 0 : -1}
-        title={tab.diskChanged ? `${tab.path}\nDiskte değişti` : tab.path}
+        title={tab.diskChanged ? t("{path}\nChanged on disk", { path: tab.path }) : tab.path}
         aria-keyshortcuts="Delete Control+W"
         onClick={onSelect}
         className="flex h-full min-w-0 items-center gap-2 rounded-md pr-1 pl-2.5 text-xs outline-none focus-visible:bg-hover"
@@ -186,13 +187,13 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         <span className="truncate">{tab.name}</span>
         {hint && <span className="truncate text-2xs text-fg-subtle">{hint}</span>}
         {dirty && <span className="sr-only">(kaydedilmedi)</span>}
-        {tab.diskChanged && <span className="sr-only">(diskte değişti)</span>}
+        {tab.diskChanged && <span className="sr-only">{t("(changed on disk)")}</span>}
       </button>
       <button
         type="button"
         tabIndex={-1}
-        aria-label={`${tab.name} kapat`}
-        title="Kapat (Ctrl+W)"
+        aria-label={t("Close {name}", { name: tab.name })}
+        title={t("Close (Ctrl+W)")}
         onClick={() => void requestCloseTab(tab)}
         className={cn(
           "group/close mr-1 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-150 hover:bg-elevated hover:text-fg",

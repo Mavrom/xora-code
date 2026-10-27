@@ -6,6 +6,7 @@ import {
   type SessionListEntry,
 } from "@/features/agents/sessionList";
 import type { SessionView } from "@/features/agents/reducer";
+import { t } from "@/shared/i18n";
 
 /** Stable key of the open sessions that have no messages yet ("" when none). */
 export function emptySessionKey(sessions: Record<string, SessionView>): string {
@@ -61,10 +62,10 @@ export function groupByDay(entries: readonly SessionListEntry[], now = Date.now(
   const today = startOfDay(now);
   const labelFor = (e: SessionListEntry) => {
     const time = e.updatedAt ? Date.parse(e.updatedAt) : NaN;
-    if (!Number.isFinite(time) || time >= today) return "Bugün";
-    if (time >= today - DAY) return "Dün";
-    if (time >= today - 6 * DAY) return "Bu hafta";
-    return "Daha eski";
+    if (!Number.isFinite(time) || time >= today) return t("Today");
+    if (time >= today - DAY) return t("Yesterday");
+    if (time >= today - 6 * DAY) return t("This week");
+    return t("Older");
   };
   const groups: DayGroup[] = [];
   for (const entry of entries) {

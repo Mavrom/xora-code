@@ -4,6 +4,7 @@ import { FileTree } from "@/features/files/FileTree";
 import { openFolder } from "@/features/workspace/openFolder";
 import { cn } from "@/shared/ui/cn";
 import { useUiStore } from "./uiStore";
+import { t } from "@/shared/i18n";
 
 /** Grace period before a drawer the pointer left slides away (crossing a gap, overshoot). */
 const CLOSE_DELAY_MS = 300;
@@ -49,7 +50,7 @@ export function FilesDrawer({ onEdgeClick }: { onEdgeClick?: () => void }) {
       onMouseEnter={enter}
       onMouseLeave={leave}
       onClick={click}
-      title={!open && onEdgeClick ? "Kenar çubuğunu göster" : undefined}
+      title={!open && onEdgeClick ? t("Show sidebar") : undefined}
       className={cn(
         "absolute inset-y-0 left-0 z-30",
         open ? "w-[17rem]" : "w-2.5",
@@ -65,7 +66,7 @@ export function FilesDrawer({ onEdgeClick }: { onEdgeClick?: () => void }) {
         )}
       />
       <aside
-        aria-label="Dosyalar"
+        aria-label={t("Files")}
         inert={!open}
         className={cn(
           "absolute inset-y-0 left-0 w-[17rem] py-2 pl-2 transition-[translate,opacity] duration-base ease-out-quint will-change-[translate,opacity]",

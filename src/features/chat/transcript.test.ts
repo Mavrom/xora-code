@@ -33,7 +33,7 @@ describe("transcriptMarkdown", () => {
   });
 
   it("lists tool steps as one line each, grouped", () => {
-    expect(md).toContain("- `Read 'README.md'` — tamam\n- `grep` — başarısız");
+    expect(md).toContain("- `Read 'README.md'` — tamamlandı\n- `grep` — başarısız");
   });
 });
 

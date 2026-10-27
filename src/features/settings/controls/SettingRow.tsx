@@ -3,6 +3,7 @@ import { RotateCcw } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { isModified, resetPatch, type SettingPath } from "../settingPath";
 import { useSettingsStore } from "../store";
+import { t } from "@/shared/i18n";
 
 interface SettingGroupProps {
   title?: string;
@@ -69,8 +70,8 @@ export function SettingRow({ label, description, control, stacked, setting }: Se
           {modified && setting && (
             <button
               type="button"
-              title="Varsayılana döndür"
-              aria-label={`${label}: varsayılana döndür`}
+              title={t("Reset to default")}
+              aria-label={t("{label}: reset to default", { label })}
               onClick={() => useSettingsStore.getState().update(resetPatch(setting))}
               className="group/reset inline-flex h-5 items-center gap-1 rounded-md px-1 text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
             >

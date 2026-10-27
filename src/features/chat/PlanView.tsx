@@ -2,6 +2,7 @@ import { memo } from "react";
 import { Check } from "lucide-react";
 import type { AcpPlanEntry } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
+import { t } from "@/shared/i18n";
 
 /** The agent's current plan as a quiet checklist with a progress count. */
 export const PlanView = memo(function PlanView({ entries }: { entries: AcpPlanEntry[] }) {
@@ -10,11 +11,11 @@ export const PlanView = memo(function PlanView({ entries }: { entries: AcpPlanEn
 
   return (
     <section
-      aria-label="Plan"
+      aria-label={t("Plan")}
       className="rounded-lg border border-border bg-surface px-3.5 pt-2.5 pb-3"
     >
       <header className="mb-2 flex items-center justify-between">
-        <h3 className="text-2xs font-medium tracking-wide text-fg-subtle uppercase">Plan</h3>
+        <h3 className="text-2xs font-medium tracking-wide text-fg-subtle uppercase">{t("Plan")}</h3>
         <span className="text-2xs text-fg-subtle tabular-nums">
           {done}/{entries.length}
         </span>
@@ -34,7 +35,7 @@ export const PlanView = memo(function PlanView({ entries }: { entries: AcpPlanEn
             >
               {entry.content}
               {entry.priority === "high" && entry.status !== "completed" && (
-                <span className="ml-1.5 text-3xs text-fg-subtle">öncelikli</span>
+                <span className="ml-1.5 text-3xs text-fg-subtle">{t("priority")}</span>
               )}
             </span>
           </li>
@@ -45,7 +46,9 @@ export const PlanView = memo(function PlanView({ entries }: { entries: AcpPlanEn
 });
 
 function PlanMark({ status }: { status: AcpPlanEntry["status"] }) {
-  const label = { pending: "Bekliyor", in_progress: "Sürüyor", completed: "Bitti" }[status];
+  const label = { pending: t("Pending"), in_progress: t("In progress"), completed: t("Done") }[
+    status
+  ];
   return (
     <span
       role="img"

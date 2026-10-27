@@ -40,6 +40,8 @@ impl Default for Settings {
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
 #[serde(rename_all = "camelCase", default)]
 pub struct General {
+    /// Interface language; `auto` follows the system.
+    pub language: Language,
     pub open_last_folder: bool,
     pub confirm_dirty_close: bool,
     pub reduced_motion: ReducedMotion,
@@ -49,6 +51,15 @@ pub struct General {
     pub send_key: SendKey,
     /// Text size of the conversation, in px.
     pub chat_font_size: u32,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
+#[serde(rename_all = "camelCase")]
+pub enum Language {
+    #[default]
+    Auto,
+    Tr,
+    En,
 }
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
@@ -64,6 +75,7 @@ pub const CHAT_FONT_SIZE_RANGE: (u32, u32) = (12, 18);
 impl Default for General {
     fn default() -> Self {
         Self {
+            language: Language::default(),
             open_last_folder: true,
             confirm_dirty_close: true,
             reduced_motion: ReducedMotion::System,
@@ -563,6 +575,17 @@ mod tests {
         assert_eq!(wild.appearance.ui_scale, UI_SCALE_RANGE.1);
         assert_eq!(wild.editor.line_numbers, LineNumbers::Relative);
         assert_eq!(wild.editor.cursor_style, CursorStyle::Block);
+    }
+
+    #[test]
+    fn language_defaults_to_auto_and_drops_unknown_values() {
+        assert_eq!(Settings::default().general.language, Language::Auto);
+        let english = from_value(&json!({ "general": { "language": "en" } }));
+        assert_eq!(english.general.language, Language::En);
+        let unknown =
+            from_value(&json!({ "general": { "language": "klingon", "sendKey": "ctrlEnter" } }));
+        assert_eq!(unknown.general.language, Language::Auto);
+        assert_eq!(unknown.general.send_key, SendKey::CtrlEnter);
     }
 
     #[test]

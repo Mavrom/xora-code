@@ -5,6 +5,7 @@ import { highlightCodeBlocks } from "./codeHighlight";
 import { closeOpenFence, splitBlocks } from "./markdownBlocks";
 import { renderMarkdown } from "./renderMarkdown";
 import "./chat.css";
+import { t } from "@/shared/i18n";
 
 const COPIED_MS = 1400;
 const SAFE_LINK = /^(https?:|mailto:)/i;
@@ -67,10 +68,10 @@ function onMarkdownClick(event: MouseEvent<HTMLDivElement>) {
   if (copy) {
     const code = copy.closest(".md-code")?.querySelector("code")?.textContent ?? "";
     void navigator.clipboard.writeText(code).then(() => {
-      copy.textContent = "Kopyalandı";
+      copy.textContent = t("Copied");
       copy.dataset.done = "";
       window.setTimeout(() => {
-        copy.textContent = "Kopyala";
+        copy.textContent = t("Copy");
         delete copy.dataset.done;
       }, COPIED_MS);
     });

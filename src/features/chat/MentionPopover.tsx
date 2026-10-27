@@ -1,6 +1,7 @@
 import { FileRow } from "@/features/files/QuickOpen";
 import type { FileHit } from "@/features/files/fileSearch";
 import { mentionOptionId } from "./mention";
+import { t } from "@/shared/i18n";
 
 interface MentionPopoverProps {
   id: string;
@@ -27,15 +28,15 @@ export function MentionPopover({
     <div
       id={id}
       role="listbox"
-      aria-label="Dosyalar"
+      aria-label={t("Files")}
       className="absolute inset-x-0 bottom-full z-30 mb-2 max-h-72 overflow-y-auto rounded-xl border border-glass-border bg-glass-strong py-1 shadow-2xl shadow-black/60 backdrop-blur-2xl transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
     >
       <div className="px-3.5 pt-1.5 pb-1 text-3xs font-medium tracking-wide text-fg-subtle uppercase">
-        Dosya ekle
+        {t("Add file")}
       </div>
       {hits.length === 0 ? (
         <p className="px-3.5 py-2 text-xs text-fg-subtle">
-          {loading ? "Dosyalar listeleniyor…" : "Eşleşen dosya yok"}
+          {loading ? t("Listing files…") : t("No matching files")}
         </p>
       ) : (
         hits.map((hit, i) => (

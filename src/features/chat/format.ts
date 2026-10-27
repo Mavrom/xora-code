@@ -1,22 +1,23 @@
 // Small display formatters for the conversation (durations, token counts, context fill).
+import { localeOf, t } from "@/shared/i18n";
 
 /** "0,4 sn" under ten seconds, then "12 sn", "1 dk 5 sn", "2 dk". */
 export function formatDuration(ms: number): string {
   const safe = Math.max(0, ms);
   if (safe < 10_000) {
     const tenths = Math.max(1, Math.round(safe / 100)) / 10;
-    return `${tenths.toLocaleString("tr", { maximumFractionDigits: 1 })} sn`;
+    return t("{s}s", { s: tenths.toLocaleString(localeOf(), { maximumFractionDigits: 1 }) });
   }
   const seconds = Math.round(safe / 1000);
-  if (seconds < 60) return `${seconds} sn`;
+  if (seconds < 60) return t("{s}s", { s: seconds });
   const minutes = Math.floor(seconds / 60);
   const rest = seconds % 60;
-  return rest === 0 ? `${minutes} dk` : `${minutes} dk ${rest} sn`;
+  return rest === 0 ? t("{m}m", { m: minutes }) : t("{m}m {s}s", { m: minutes, s: rest });
 }
 
 /** Compact token counts: 950, 12,3k, 200k, 1,2M. */
 export function formatTokens(count: number): string {
-  const fmt = (value: number) => value.toLocaleString("tr", { maximumFractionDigits: 1 });
+  const fmt = (value: number) => value.toLocaleString(localeOf(), { maximumFractionDigits: 1 });
   if (count < 1000) return String(Math.max(0, Math.round(count)));
   if (count < 1_000_000) {
     const k = count / 1000;

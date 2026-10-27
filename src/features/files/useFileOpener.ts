@@ -5,6 +5,7 @@ import { useEditorStore } from "@/features/editor/store";
 import { reportChanged } from "@/features/workspace/fsWatch";
 import { describeFsError, parseFsError } from "./fsErrors";
 import { createLatestGate } from "./latestGate";
+import { t } from "@/shared/i18n";
 
 /** How long the "file is gone" notice stays above the tree. */
 const NOTICE_MS = 5_000;
@@ -54,7 +55,7 @@ export function useFileOpener() {
       const token = gate.begin();
       const { tabs, setActive, openFile } = useEditorStore.getState();
       // Already open: switch to it (the store would ignore re-read content anyway).
-      if (tabs.some((t) => t.path === path)) {
+      if (tabs.some((item) => item.path === path)) {
         clearErrors();
         setActive(path);
         return;
@@ -70,7 +71,9 @@ export function useFileOpener() {
         (err: unknown) => {
           if (!gate.isLatest(token)) return;
           if (parseFsError(err).code === "not_found") {
-            showNotice(`“${basename(path)}” artık yok; liste yenilendi.`);
+            showNotice(
+              t("“{path}” no longer exists; the list was refreshed.", { path: basename(path) }),
+            );
             reportChanged([path]);
           } else {
             setError(path, describeFsError(err));

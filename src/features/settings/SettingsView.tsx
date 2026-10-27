@@ -36,16 +36,17 @@ import { searchSettings, type SearchEntry } from "./searchIndex";
 import { isSidebarShortcut } from "./settingsKeys";
 import { useSettingsStore } from "./store";
 import { SETTINGS_SECTIONS, useSettingsView, type SettingsSection } from "./viewStore";
+import { t } from "@/shared/i18n";
 
 const NAV: Record<SettingsSection, { label: string; icon: LucideIcon; render: () => ReactNode }> = {
-  accounts: { label: "Hesaplar", icon: CircleUserRound, render: () => <AccountsSection /> },
-  agent: { label: "Agent", icon: Bot, render: () => <AgentSection /> },
-  editor: { label: "Editör", icon: SquareCode, render: () => <EditorSection /> },
-  general: { label: "Genel", icon: SlidersHorizontal, render: () => <GeneralSection /> },
-  appearance: { label: "Görünüm", icon: Palette, render: () => <AppearanceSection /> },
-  terminal: { label: "Terminal", icon: SquareTerminal, render: () => <TerminalSection /> },
-  shortcuts: { label: "Kısayollar", icon: Keyboard, render: () => <ShortcutsSection /> },
-  about: { label: "Hakkında", icon: Info, render: () => <AboutSection /> },
+  accounts: { label: t("Accounts"), icon: CircleUserRound, render: () => <AccountsSection /> },
+  agent: { label: t("Agent"), icon: Bot, render: () => <AgentSection /> },
+  editor: { label: t("Editor"), icon: SquareCode, render: () => <EditorSection /> },
+  general: { label: t("General"), icon: SlidersHorizontal, render: () => <GeneralSection /> },
+  appearance: { label: t("Appearance"), icon: Palette, render: () => <AppearanceSection /> },
+  terminal: { label: t("Terminal"), icon: SquareTerminal, render: () => <TerminalSection /> },
+  shortcuts: { label: t("Shortcuts"), icon: Keyboard, render: () => <ShortcutsSection /> },
+  about: { label: t("About"), icon: Info, render: () => <AboutSection /> },
 };
 
 /** Groups in the left nav; a hairline separates them. */
@@ -131,27 +132,27 @@ export default function SettingsView() {
     <div
       ref={root}
       role="region"
-      aria-label="Ayarlar"
+      aria-label={t("Settings")}
       tabIndex={-1}
       onKeyDown={onKeyDown}
       className="absolute inset-0 z-20 grid min-h-0 grid-cols-[224px_minmax(0,1fr)] overflow-hidden bg-black/75 outline-none transition-opacity duration-base ease-out-quint starting:opacity-0"
     >
       <nav
-        aria-label="Ayar bölümleri"
+        aria-label={t("Settings sections")}
         onKeyDown={onNavKeyDown}
         className="relative flex min-h-0 flex-col border-r border-white/[0.06] bg-black/35"
       >
         <div data-tauri-drag-region="deep" className="flex h-14 shrink-0 items-center gap-1.5 px-3">
           <button
             type="button"
-            aria-label="Geri"
-            title="Geri (Esc)"
+            aria-label={t("Back")}
+            title={t("Back (Esc)")}
             onClick={close}
             className="grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
           >
             <ArrowLeft size={15} strokeWidth={1.75} aria-hidden />
           </button>
-          <h1 className="text-ui font-semibold tracking-tight text-fg">Ayarlar</h1>
+          <h1 className="text-ui font-semibold tracking-tight text-fg">{t("Settings")}</h1>
         </div>
         <div className="px-2.5 pb-2">
           <label className="flex h-8 items-center gap-2 rounded-md border border-border bg-white/[0.03] px-2.5 text-fg-subtle transition-colors duration-fast focus-within:border-border-strong focus-within:text-fg-muted">
@@ -166,14 +167,14 @@ export default function SettingsView() {
                   go(results[0]);
                 }
               }}
-              placeholder="Ayarlarda ara"
-              aria-label="Ayarlarda ara"
+              placeholder={t("Search settings")}
+              aria-label={t("Search settings")}
               className="min-w-0 flex-1 bg-transparent text-ui text-fg outline-none placeholder:text-fg-subtle [&::-webkit-search-cancel-button]:hidden"
             />
             {searching && (
               <button
                 type="button"
-                aria-label="Aramayı temizle"
+                aria-label={t("Clear search")}
                 onClick={() => setQuery("")}
                 className="grid size-5 place-items-center rounded-sm hover:bg-hover hover:text-fg"
               >
@@ -227,12 +228,12 @@ export default function SettingsView() {
         </div>
         <div className="flex shrink-0 items-center gap-1.5 border-t border-border px-5 py-3 text-2xs text-fg-subtle">
           <Kbd keys="mod+," />
-          <span>ile aç</span>
+          <span>{t("to open")}</span>
           <span aria-hidden className="mx-0.5">
             ·
           </span>
           <Kbd keys="esc" />
-          <span>kapat</span>
+          <span>{t("close")}</span>
         </div>
       </nav>
 
@@ -256,7 +257,7 @@ export default function SettingsView() {
                 role="alert"
                 className="mb-6 rounded-md border border-border px-3 py-2 text-xs text-danger"
               >
-                Ayarlar kaydedilemedi: {saveError}
+                {t("Could not save settings: {error}", { error: saveError })}
               </p>
             )}
             {searching ? (
@@ -283,14 +284,18 @@ function SearchResults({
   if (results.length === 0) {
     return (
       <p className="pt-10 text-center text-ui text-fg-muted">
-        &ldquo;{query.trim()}&rdquo; ile eşleşen bir ayar yok.
+        {t("No setting matches “{query}”.", { query: query.trim() })}
       </p>
     );
   }
   return (
     <>
-      <h2 className="text-title font-semibold text-fg">Arama sonuçları</h2>
-      <p className="mt-1.5 text-ui text-fg-muted">{results.length} ayar · Enter ilkini açar</p>
+      <h2 className="text-title font-semibold text-fg">{t("Search results")}</h2>
+      <p className="mt-1.5 text-ui text-fg-muted">
+        {results.length === 1
+          ? t("1 setting · Enter opens it")
+          : t("{n} settings · Enter opens the first", { n: results.length })}
+      </p>
       <ul className="bg-surface mt-6 divide-y divide-border overflow-hidden rounded-lg border border-border">
         {results.map((entry) => {
           const Icon = NAV[entry.section].icon;

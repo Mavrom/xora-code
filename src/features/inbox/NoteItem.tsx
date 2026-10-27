@@ -8,8 +8,9 @@ import { cn } from "@/shared/ui/cn";
 import { relativeTime } from "./relativeTime";
 import { noteRows } from "./noteRows";
 import { useInboxStore } from "./store";
+import { localeOf, t } from "@/shared/i18n";
 
-const fullDate = new Intl.DateTimeFormat("tr", { dateStyle: "long", timeStyle: "short" });
+const fullDate = new Intl.DateTimeFormat(localeOf(), { dateStyle: "long", timeStyle: "short" });
 
 interface NoteItemProps {
   note: Note;
@@ -124,7 +125,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
             size={11}
             strokeWidth={2}
             role="img"
-            aria-label="Sabit"
+            aria-label={t("Pinned")}
             className="shrink-0 text-fg-muted"
           />
         )}
@@ -143,7 +144,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
               onClick={() => setExpanded((v) => !v)}
               className="rounded-sm text-fg-subtle transition-colors duration-150 hover:text-fg-muted"
             >
-              {expanded ? "daralt" : "devamı"}
+              {expanded ? t("less") : t("more")}
             </button>
           </>
         )}
@@ -161,27 +162,27 @@ export function NoteItem({ note, now }: NoteItemProps) {
             <IconButton
               size="sm"
               icon={MessageSquareShare}
-              label="Sohbete gönder (G)"
+              label={t("Send to chat (G)")}
               onClick={() => sendToChat(note.text)}
             />
             {!note.done && (
               <IconButton
                 size="sm"
                 icon={note.pinned ? PinOff : Pin}
-                label={note.pinned ? "Sabitlemeyi kaldır (P)" : "Sabitle (P)"}
+                label={note.pinned ? t("Unpin (P)") : t("Pin (P)")}
                 onClick={() => togglePin(note.id)}
               />
             )}
             <IconButton
               size="sm"
               icon={note.done ? RotateCcw : Check}
-              label={note.done ? "Geri al (E)" : "Tamamla (E)"}
+              label={note.done ? t("Reopen (E)") : t("Mark done (E)")}
               onClick={() => toggleDone(note.id)}
             />
             <IconButton
               size="sm"
               icon={Trash2}
-              label="Sil (Del)"
+              label={t("Delete (Del)")}
               onClick={() => keepFocus(() => remove(note.id))}
             />
           </div>
@@ -195,7 +196,7 @@ export function NoteItem({ note, now }: NoteItemProps) {
 function noteLabel(note: Note): string {
   const first = note.text.split("\n", 1)[0];
   const text = first.length > 80 ? `${first.slice(0, 80)}…` : first;
-  const state = [note.pinned && !note.done && "sabit", note.done && "tamamlandı"].filter(Boolean);
+  const state = [note.pinned && !note.done && t("pinned"), note.done && t("done")].filter(Boolean);
   return state.length ? `${text} (${state.join(", ")})` : text;
 }
 
@@ -228,7 +229,7 @@ function EditArea({ initial, onDone }: EditAreaProps) {
   return (
     <textarea
       autoFocus
-      aria-label="Notu düzenle"
+      aria-label={t("Edit note")}
       value={draft}
       onChange={(e) => setDraft(e.target.value)}
       onKeyDown={onKeyDown}

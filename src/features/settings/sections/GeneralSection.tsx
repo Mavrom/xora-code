@@ -3,7 +3,15 @@ import { Segmented } from "../controls/Segmented";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { Toggle } from "../controls/Toggle";
 import { useSettingsStore } from "../store";
-import { CHAT_FONT_SIZE_RANGE, type ReducedMotion, type SendKey } from "../types";
+import { CHAT_FONT_SIZE_RANGE, type Language, type ReducedMotion, type SendKey } from "../types";
+import { t } from "@/shared/i18n";
+
+// Each language is named in itself, so it can be found from either one.
+const LANGUAGES: { value: Language; label: string }[] = [
+  { value: "auto", label: t("System") },
+  { value: "en", label: "English" },
+  { value: "tr", label: "Türkçe" },
+];
 
 const SEND_KEYS: { value: SendKey; label: string }[] = [
   { value: "enter", label: "Enter" },
@@ -11,9 +19,9 @@ const SEND_KEYS: { value: SendKey; label: string }[] = [
 ];
 
 const MOTION: { value: ReducedMotion; label: string }[] = [
-  { value: "system", label: "Sistem" },
-  { value: "always", label: "Her zaman" },
-  { value: "never", label: "Asla" },
+  { value: "system", label: t("System") },
+  { value: "always", label: t("Always") },
+  { value: "never", label: t("Never") },
 ];
 
 export function GeneralSection() {
@@ -23,15 +31,33 @@ export function GeneralSection() {
   return (
     <>
       <SectionHeader
-        title="Genel"
-        description="Xora'nın açılışta ve gündelik kullanımda nasıl davrandığı."
+        title={t("General")}
+        description={t("How Xora behaves on start and day to day.")}
       />
 
-      <SettingGroup title="Başlangıç">
+      <SettingGroup title={t("Language")}>
         <SettingRow
-          label="Son klasörü aç"
+          label={t("Interface language")}
+          setting="general.language"
+          description={t(
+            "System follows your computer's language. Changing it reloads the window.",
+          )}
+          control={(id) => (
+            <Segmented
+              labelledBy={id}
+              value={general.language}
+              options={LANGUAGES}
+              onChange={(language) => update({ general: { language } })}
+            />
+          )}
+        />
+      </SettingGroup>
+
+      <SettingGroup title={t("Startup")}>
+        <SettingRow
+          label={t("Reopen last folder")}
           setting="general.openLastFolder"
-          description="Xora açıldığında en son çalıştığınız klasörle devam eder."
+          description={t("Xora opens with the folder you last worked in.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -42,14 +68,14 @@ export function GeneralSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Sohbet">
+      <SettingGroup title={t("Chat")}>
         <SettingRow
-          label="Mesajı gönder"
+          label={t("Send message with")}
           setting="general.sendKey"
           description={
             general.sendKey === "enter"
-              ? "Enter gönderir, Shift+Enter alt satıra geçer."
-              : "Ctrl+Enter gönderir, Enter alt satıra geçer. Uzun mesajlar yazarken rahat."
+              ? t("Enter sends, Shift+Enter starts a new line.")
+              : t("Ctrl+Enter sends, Enter starts a new line. Comfortable for long messages.")
           }
           control={(id) => (
             <Segmented
@@ -61,9 +87,9 @@ export function GeneralSection() {
           )}
         />
         <SettingRow
-          label="Sohbet yazı boyutu"
+          label={t("Chat text size")}
           setting="general.chatFontSize"
-          description="Mesajların ve ajan yanıtlarının yazı boyutu."
+          description={t("Text size of messages and agent replies.")}
           control={(id) => (
             <NumberInput
               labelledBy={id}
@@ -77,11 +103,13 @@ export function GeneralSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Bildirim">
+      <SettingGroup title={t("Notifications")}>
         <SettingRow
-          label="Bitince haber ver"
+          label={t("Notify when done")}
           setting="general.notifyWhenDone"
-          description="Xora arka plandayken ajan işini bitirince ya da onay isteyince görev çubuğunda yanıp söner."
+          description={t(
+            "While Xora is in the background, its taskbar button flashes when an agent finishes or asks for approval.",
+          )}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -92,11 +120,11 @@ export function GeneralSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Düzenleme">
+      <SettingGroup title={t("Editing")}>
         <SettingRow
-          label="Kaydedilmemiş sekmeyi kapatırken sor"
+          label={t("Ask before closing an unsaved tab")}
           setting="general.confirmDirtyClose"
-          description="Kapalıyken kaydedilmemiş değişiklikler sorulmadan atılır."
+          description={t("When off, unsaved changes are discarded without asking.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -107,11 +135,13 @@ export function GeneralSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Erişilebilirlik">
+      <SettingGroup title={t("Accessibility")}>
         <SettingRow
-          label="Hareketi azalt"
+          label={t("Reduce motion")}
           setting="general.reducedMotion"
-          description="Sistem, işletim sisteminin ayarını izler. Her zaman, geçiş animasyonlarını kapatır."
+          description={t(
+            "System follows the operating system's setting. Always turns transition animations off.",
+          )}
           control={(id) => (
             <Segmented
               labelledBy={id}

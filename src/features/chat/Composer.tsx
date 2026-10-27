@@ -31,6 +31,7 @@ import { absolutePath, loadFileIndex } from "@/features/files/fileIndex";
 import { searchFiles, type FileHit, type IndexedFile } from "@/features/files/fileSearch";
 import { mentionOptionId, mentionToken, removeMention } from "./mention";
 import { MentionPopover } from "./MentionPopover";
+import { t } from "@/shared/i18n";
 
 export interface ComposerHandle {
   /** Replaces the draft (e.g. from a suggestion) and focuses the field. */
@@ -303,10 +304,10 @@ export function Composer({
         )}
       >
         <label htmlFor={id} className="sr-only">
-          Mesaj
+          {t("Message")}
         </label>
         {attachments.length > 0 && (
-          <ul aria-label="Ekler" className="flex flex-wrap gap-2 px-3 pt-3">
+          <ul aria-label={t("Attachments")} className="flex flex-wrap gap-2 px-3 pt-3">
             {attachments.map((a) => (
               <li key={a.id}>
                 <AttachmentCard attachment={a} onRemove={onRemoveAttachment} />
@@ -351,10 +352,10 @@ export function Composer({
           spellCheck={false}
           placeholder={
             running
-              ? "Devam etmesi için yaz; tur bitince gönderilir…"
+              ? t("Type a follow-up; it is sent when the turn ends…")
               : hero
-                ? "Bir şey iste…"
-                : "Yanıtla ya da yeni bir görev ver…"
+                ? t("Ask for anything…")
+                : t("Reply or give a new task…")
           }
           className={cn(
             "block max-h-[40vh] w-full resize-none bg-transparent text-fg [field-sizing:content] outline-none placeholder:text-fg-subtle focus-visible:outline-none",
@@ -391,8 +392,8 @@ function AttachmentCard({
   const remove = onRemove && (
     <button
       type="button"
-      aria-label={`${a.name} ekini kaldır`}
-      title="Kaldır"
+      aria-label={t("Remove attachment {name}", { name: a.name })}
+      title={t("Remove")}
       onClick={() => onRemove(a.id)}
       className="absolute -top-1.5 -right-1.5 grid size-4.5 place-items-center rounded-full border border-white/10 bg-[#1c1c1e] text-fg-muted opacity-0 shadow-md transition-[opacity,color] duration-fast group-hover:opacity-100 group-focus-within:opacity-100 hover:text-fg"
     >
@@ -437,12 +438,12 @@ interface SendButtonProps {
 function SendButton({ running, cancelling, canSend, hasText, onSend, onStop }: SendButtonProps) {
   const stop = running && !hasText;
   const label = cancelling
-    ? "Durduruluyor…"
+    ? t("Stopping…")
     : stop
-      ? "Durdur (Esc)"
+      ? t("Stop (Esc)")
       : running
-        ? "Sıraya ekle"
-        : "Gönder";
+        ? t("Queue")
+        : t("Send");
   const enabled = stop ? !cancelling : canSend;
   return (
     <button

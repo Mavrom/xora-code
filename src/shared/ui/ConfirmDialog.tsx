@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { Button } from "./Button";
 import { Dialog } from "./Dialog";
+import { t } from "@/shared/i18n";
 
 export type ConfirmChoice = "save" | "discard" | "cancel";
 
@@ -23,9 +24,9 @@ interface ConfirmDialogProps extends ConfirmOptions {
 export function ConfirmDialog({
   title,
   message,
-  confirmLabel = "Kaydet",
-  discardLabel = "Kaydetme",
-  cancelLabel = "İptal",
+  confirmLabel = t("Save"),
+  discardLabel = t("Don't save"),
+  cancelLabel = t("Cancel"),
   onChoose,
 }: ConfirmDialogProps) {
   // A second click while the dialog animates out must not report twice.

@@ -4,6 +4,7 @@ import { COMMANDS } from "@/features/commands/registry";
 import { Kbd } from "@/shared/ui/Kbd";
 import { SectionHeader, SettingGroup } from "../controls/SettingRow";
 import { BUILTIN_SHORTCUTS, groupShortcuts } from "../shortcuts";
+import { t } from "@/shared/i18n";
 
 export function ShortcutsSection() {
   const [query, setQuery] = useState("");
@@ -12,8 +13,10 @@ export function ShortcutsSection() {
   return (
     <>
       <SectionHeader
-        title="Kısayollar"
-        description="Komut paletindeki her komut ve klavye kısayolu. Kısayolları düzenleme ileride gelecek."
+        title={t("Shortcuts")}
+        description={t(
+          "Every command in the command palette and its keyboard shortcut. Editing shortcuts is coming later.",
+        )}
       />
 
       <label className="mt-8 flex h-9 items-center gap-2.5 rounded-md border border-border-strong bg-elevated px-3 transition-[border-color,box-shadow] duration-base focus-within:border-fg-subtle/60 focus-within:shadow-halo">
@@ -22,8 +25,8 @@ export function ShortcutsSection() {
           type="search"
           value={query}
           onChange={(e) => setQuery(e.target.value)}
-          placeholder="Komut ya da tuş ara…"
-          aria-label="Kısayollarda ara"
+          placeholder={t("Search commands or keys…")}
+          aria-label={t("Search shortcuts")}
           spellCheck={false}
           className="h-full min-w-0 flex-1 bg-transparent text-ui text-fg outline-none placeholder:text-fg-subtle focus-visible:outline-none"
         />
@@ -31,7 +34,7 @@ export function ShortcutsSection() {
 
       {groups.length === 0 ? (
         <p className="py-10 text-center text-ui text-fg-muted">
-          “{query.trim()}” ile eşleşen bir komut yok.
+          {t("No command matches “{query}”.", { query: query.trim() })}
         </p>
       ) : (
         groups.map((group) => (
@@ -42,7 +45,7 @@ export function ShortcutsSection() {
                 {item.shortcut ? (
                   <Kbd keys={item.shortcut} className="shrink-0" />
                 ) : (
-                  <span className="text-2xs text-fg-subtle">Atanmamış</span>
+                  <span className="text-2xs text-fg-subtle">{t("Unassigned")}</span>
                 )}
               </div>
             ))}

@@ -18,6 +18,7 @@ import { Kbd } from "@/shared/ui/Kbd";
 import { FileIcon } from "./FileIcon";
 import { absolutePath, loadFileIndex } from "./fileIndex";
 import { searchFiles, type FileHit, type IndexedFile } from "./fileSearch";
+import { t } from "@/shared/i18n";
 
 /** Ctrl+P: open any file of the folder by typing part of its name. Mount only while open. */
 export function QuickOpen({ onClose }: { onClose: () => void }) {
@@ -79,11 +80,11 @@ export function QuickOpen({ onClose }: { onClose: () => void }) {
   };
 
   const empty = !root
-    ? "Önce bir klasör aç."
+    ? t("Open a folder first.")
     : files === null
-      ? "Dosyalar listeleniyor…"
+      ? t("Listing files…")
       : hits.length === 0
-        ? `“${query.trim()}” ile eşleşen dosya yok.`
+        ? t("No file matches “{query}”.", { query: query.trim() })
         : null;
 
   return (
@@ -96,7 +97,7 @@ export function QuickOpen({ onClose }: { onClose: () => void }) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Dosya aç"
+        aria-label={t("Open file")}
         onKeyDown={onKeyDown}
         onMouseDown={(e) => {
           if (e.target !== input.current) e.preventDefault();
@@ -124,7 +125,7 @@ export function QuickOpen({ onClose }: { onClose: () => void }) {
               setQuery(e.target.value);
               setActive(0);
             }}
-            placeholder="Dosya adı yaz…"
+            placeholder={t("Type a file name…")}
             className="h-full min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none placeholder:text-fg-subtle"
           />
           <Kbd keys="esc" />
@@ -133,7 +134,7 @@ export function QuickOpen({ onClose }: { onClose: () => void }) {
           ref={list}
           id={`${baseId}-list`}
           role="listbox"
-          aria-label="Dosyalar"
+          aria-label={t("Files")}
           className="min-h-0 flex-1 scroll-py-1.5 overflow-y-auto py-1.5"
         >
           {empty ? (

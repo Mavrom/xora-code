@@ -2,21 +2,22 @@
 // in order, tool steps as one line each, thinking left out.
 import type { ChatItem } from "@/features/agents/reducer";
 import type { AcpContentBlock } from "@/features/agents/types";
+import { localeOf, t } from "@/shared/i18n";
 
 const STATUS: Record<string, string> = {
-  completed: "tamam",
-  failed: "başarısız",
-  pending: "bekliyor",
-  in_progress: "sürüyor",
+  completed: t("done"),
+  failed: t("failed"),
+  pending: t("pending"),
+  in_progress: t("in progress"),
 };
 
 function userText(blocks: AcpContentBlock[]): string {
   return blocks
     .map((b) => {
       if (b.type === "text") return b.text;
-      if (b.type === "image") return "_[görsel]_";
-      if (b.type === "resource_link") return `_[dosya: ${b.name || b.uri}]_`;
-      return `_[ek: ${b.resource.uri}]_`;
+      if (b.type === "image") return t("_[image]_");
+      if (b.type === "resource_link") return t("_[file: {name}]_", { name: b.name || b.uri });
+      return t("_[attachment: {uri}]_", { uri: b.resource.uri });
     })
     .join("\n\n")
     .trim();
@@ -36,7 +37,7 @@ export function transcriptMarkdown(
 ): string {
   const out: string[] = [
     `# ${title}`,
-    `_${meta.agent} · ${meta.date.toLocaleString("tr-TR")} · Xora Code_`,
+    `_${meta.agent} · ${meta.date.toLocaleString(localeOf())} · Xora Code_`,
   ];
   let tools: string[] = [];
   const flushTools = () => {
@@ -92,11 +93,17 @@ export const HANDOFF_MAX = 12_000;
 export function handoffPrompt(fromAgent: string, markdown: string, max = HANDOFF_MAX): string {
   const body =
     markdown.length > max
-      ? `_(konuşmanın başı kısaltıldı)_\n\n…${markdown.slice(markdown.length - max)}`
+      ? t("_(the start of the conversation was cut)_\n\n…{tail}", {
+          tail: markdown.slice(markdown.length - max),
+        })
       : markdown;
   return [
-    `Bu konuşmayı ${fromAgent} ile yürütüyordum; buradan sen devam et.`,
-    "Önce durumu iki üç cümleyle özetle, sonra kaldığımız yerden sıradaki adımı öner.",
+    t("I was working through this conversation with {fromAgent}; take it from here.", {
+      fromAgent,
+    }),
+    t(
+      "First sum up where things stand in two or three sentences, then suggest the next step from where we left off.",
+    ),
     "",
     "---",
     "",

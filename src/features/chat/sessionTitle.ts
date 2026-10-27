@@ -1,5 +1,6 @@
 import type { SessionView } from "@/features/agents/reducer";
 import type { AcpContentBlock } from "@/features/agents/types";
+import { t } from "@/shared/i18n";
 
 /** Longest title shown before it is cut at a word boundary. */
 export const TITLE_MAX = 40;
@@ -38,7 +39,7 @@ function firstPrompt(session: SessionView): string | null {
 export function sessionTitle(session: SessionView): string {
   if (session.title) return shortTitle(session.title);
   const prompt = firstPrompt(session);
-  return prompt ? shortTitle(prompt) : "Yeni sohbet";
+  return prompt ? shortTitle(prompt) : t("New chat");
 }
 
 /** A conversation with messages (or one loading them) shows the transcript, not the hero. */

@@ -3,6 +3,7 @@ import { useAutoGrow } from "@/shared/lib/autoGrow";
 import { isImeComposing } from "@/shared/lib/ime";
 import { Kbd } from "@/shared/ui/Kbd";
 import { readDraft, writeDraft } from "./draft";
+import { t } from "@/shared/i18n";
 
 /** Lets the activity bar focus the composer for quick capture. */
 export const INBOX_COMPOSER_ID = "inbox-composer";
@@ -48,7 +49,7 @@ export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
   return (
     <div className="group/composer @container rounded-md border border-border bg-elevated transition-[border-color,box-shadow] duration-200 ease-out-quint focus-within:border-border-strong focus-within:shadow-halo has-disabled:opacity-50">
       <label htmlFor={INBOX_COMPOSER_ID} className="sr-only">
-        Yeni not
+        {t("New note")}
       </label>
       <textarea
         ref={field}
@@ -58,7 +59,7 @@ export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
         disabled={disabled}
         onChange={(e) => setValue(e.target.value)}
         onKeyDown={onKeyDown}
-        placeholder="Bir not bırak…"
+        placeholder={t("Jot a note…")}
         className="block max-h-40 w-full resize-none bg-transparent px-2.5 py-2 text-ui text-fg [field-sizing:content] outline-none placeholder:text-fg-subtle focus-visible:outline-none disabled:cursor-not-allowed"
       />
       {/* Hint unfolds only while typing, so the idle composer stays a single quiet line.
@@ -67,11 +68,11 @@ export function NoteComposer({ disabled, onSubmit }: NoteComposerProps) {
         <div className="overflow-hidden" aria-hidden>
           <div className="flex items-center gap-1 overflow-hidden px-2.5 pb-2 text-2xs whitespace-nowrap text-fg-subtle">
             <Kbd keys="enter" className="shrink-0" />
-            <span className="shrink-0">ekle</span>
+            <span className="shrink-0">{t("add")}</span>
             <span className="flex min-w-0 items-center gap-1 @max-[15rem]:hidden">
               <span className="px-0.5">·</span>
               <Kbd keys="shift+enter" className="shrink-0" />
-              <span className="truncate">yeni satır</span>
+              <span className="truncate">{t("new line")}</span>
             </span>
           </div>
         </div>

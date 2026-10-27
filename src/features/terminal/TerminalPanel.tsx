@@ -6,6 +6,7 @@ import { disposeSession } from "./session";
 import { useTerminalStore } from "./store";
 import { cycleTab, tabLabels, type TerminalTab } from "./tabs";
 import { TerminalView } from "./TerminalView";
+import { t } from "@/shared/i18n";
 
 interface TerminalPanelProps {
   /** Collapses the bottom panel (also used when the last tab closes). */
@@ -72,14 +73,14 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
 
   return (
     <section
-      aria-label="Terminal"
+      aria-label={t("Terminal")}
       onKeyDownCapture={onKeyDownCapture}
       className="flex h-full min-h-0 flex-col"
     >
       <div className="flex h-9 shrink-0 items-center gap-1 pr-1.5 pl-2">
         <div
           role="tablist"
-          aria-label="Terminaller"
+          aria-label={t("Terminals")}
           onKeyDown={onStripKeyDown}
           className="flex min-w-0 items-center gap-0.5 overflow-x-auto [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         >
@@ -87,18 +88,23 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
             <TerminalTabButton
               key={tab.key}
               tab={tab}
-              label={labels.get(tab.key) ?? "Terminal"}
+              label={labels.get(tab.key) ?? t("Terminal")}
               active={tab.key === activeKey}
               onSelect={() => select(tab.key)}
               onClose={() => closeTab(tab.key)}
             />
           ))}
         </div>
-        <IconButton icon={Plus} label="Yeni terminal (Ctrl+Shift+`)" size="sm" onClick={newTab} />
+        <IconButton
+          icon={Plus}
+          label={t("New terminal (Ctrl+Shift+`)")}
+          size="sm"
+          onClick={newTab}
+        />
         <div className="flex-1" />
         <IconButton
           icon={ChevronDown}
-          label="Terminali gizle (Ctrl+`)"
+          label={t("Hide terminal (Ctrl+`)")}
           size="sm"
           onClick={onHide}
         />
@@ -162,13 +168,13 @@ function TerminalTabButton({ tab, label, active, onSelect, onClose }: TerminalTa
         {tab.status === "failed" && (
           <span className="size-1.5 rounded-full bg-danger" aria-hidden />
         )}
-        {ended && <span className="sr-only">(sonlandı)</span>}
+        {ended && <span className="sr-only">{t("(exited)")}</span>}
       </button>
       <button
         type="button"
         tabIndex={-1}
-        aria-label={`${label} kapat`}
-        title="Kapat"
+        aria-label={t("Close {label}", { label })}
+        title={t("Close")}
         onClick={onClose}
         className={cn(
           "mr-0.5 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg",

@@ -8,6 +8,7 @@ import { DiffStat } from "./DiffPreview";
 import { diffLines, diffStats } from "./diff";
 import { canOpenDiff, openDiffInEditor, revealInEditor } from "./editorBridge";
 import { fileName } from "./toolView";
+import { t } from "@/shared/i18n";
 
 interface ChangesBarProps {
   changes: ReviewChange[];
@@ -45,7 +46,7 @@ export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
 
   return (
     <section
-      aria-label="Değişiklikler"
+      aria-label={t("Changes")}
       className="mb-2 rounded-xl border border-glass-border bg-glass backdrop-blur-xl transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
     >
       <div className="flex h-10 items-center gap-2 pr-1.5 pl-2">
@@ -63,12 +64,12 @@ export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
             className={cn("transition-transform duration-base ease-out-quint", open && "rotate-90")}
           />
           <FileDiff size={13} strokeWidth={1.75} aria-hidden className="text-fg-subtle" />
-          <span className="text-fg">Değişiklikler</span>
+          <span className="text-fg">{t("Changes")}</span>
           <span className="text-fg-subtle tabular-nums">{changes.length}</span>
         </button>
         <span className="flex-1" />
         <Button size="sm" variant="ghost" icon={Check} onClick={onAccept}>
-          Kabul et
+          {t("Accept")}
         </Button>
       </div>
       <Collapse open={open} id={id}>
@@ -122,11 +123,11 @@ function ChangeRow({
       >
         {fileName(change.path)}
       </button>
-      {change.oldText === null && <span className="text-3xs text-fg-subtle">yeni</span>}
+      {change.oldText === null && <span className="text-3xs text-fg-subtle">{t("new")}</span>}
       {stats && <DiffStat {...stats} />}
       <span className="flex-1" />
       {conflict ? (
-        <span className="text-2xs text-warning">Dosya sonra değişti</span>
+        <span className="text-2xs text-warning">{t("File changed since")}</span>
       ) : (
         <button
           type="button"
@@ -135,7 +136,7 @@ function ChangeRow({
           className="inline-flex h-6 items-center gap-1 rounded-md px-2 text-2xs text-fg-subtle opacity-0 transition-[opacity,color,background-color] duration-fast group-focus-within:opacity-100 group-hover:opacity-100 hover:bg-hover hover:text-fg disabled:opacity-60"
         >
           <Undo2 size={12} strokeWidth={1.75} aria-hidden />
-          Geri al
+          {t("Revert")}
         </button>
       )}
     </li>

@@ -22,6 +22,7 @@ import { AgentGlyph } from "./AgentGlyph";
 import { ChipMenu, type ChipOption, type ChipSection } from "./ChipMenu";
 import { effortLabel, pickerSummary, statusNote } from "./controlsView";
 import { contextRatio, formatTokens } from "./format";
+import { t } from "@/shared/i18n";
 
 type SetControl = (key: string, value: string | boolean) => void;
 
@@ -58,8 +59,8 @@ function extraSection(control: Control, onSet: SetControl): ChipSection {
       label: control.label,
       value: control.current ? "on" : "off",
       options: [
-        { value: "on", name: "Açık" },
-        { value: "off", name: "Kapalı" },
+        { value: "on", name: t("On") },
+        { value: "off", name: t("Off") },
       ],
       onSelect: (value) => onSet(control.key, value === "on"),
     };
@@ -107,7 +108,7 @@ export function ModelPicker({
   const sections: ChipSection[] = [
     {
       key: "agent",
-      label: "Agent",
+      label: t("Agent"),
       value: agentId,
       onSelect: (value) => onSelectAgent(value as AgentId),
       options: AGENT_IDS.map((id) => ({
@@ -121,14 +122,14 @@ export function ModelPicker({
   if (controls?.model) {
     const model = controls.model;
     const options = toOptions({ ...model, options: visibleModels(agentId, model, hiddenModels) });
-    sections.push(selectSection("model", "Model", model, onSetControl, options));
+    sections.push(selectSection("model", t("Model"), model, onSetControl, options));
   }
   if (controls?.effort) {
     const effort = controls.effort;
     sections.push(
       selectSection(
         "effort",
-        "Düşünme düzeyi",
+        t("Thinking level"),
         effort,
         onSetControl,
         effort.options.map((o) => ({ value: o.value, name: effortLabel(o.value, o.name) })),
@@ -136,7 +137,9 @@ export function ModelPicker({
     );
   }
   if (controls?.mode) {
-    sections.push(selectSection("mode", controls.mode.label || "Mod", controls.mode, onSetControl));
+    sections.push(
+      selectSection("mode", controls.mode.label || t("Mode"), controls.mode, onSetControl),
+    );
   }
   for (const control of controls?.extra ?? []) {
     if (!HIDDEN_EXTRAS.has(control.key)) sections.push(extraSection(control, onSetControl));
@@ -145,9 +148,9 @@ export function ModelPicker({
     // Never checked: a link to the list of models the picker shows.
     sections.push({
       key: "models",
-      label: "Liste",
+      label: t("List"),
       value: "",
-      options: [{ value: "edit", name: "Görünen modelleri seç…" }],
+      options: [{ value: "edit", name: t("Choose visible models…") }],
       onSelect: () => openSettings("agent"),
     });
   }
@@ -156,7 +159,7 @@ export function ModelPicker({
   const parts = summary.length > 1 ? summary.slice(1) : summary;
   return (
     <ChipMenu
-      label="Agent, model ve ayarlar"
+      label={t("Agent, model and settings")}
       side={side}
       defaultOpen={openChip === "picker" || openChip === "mode"}
       chevron={false}
@@ -183,12 +186,12 @@ interface AttachMenuProps {
 export function AttachMenu({ onPickFiles, onPickFolder, openFile }: AttachMenuProps) {
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const items: MenuEntry[] = [
-    { label: "Dosya…", icon: FilePlus, onSelect: onPickFiles },
-    { label: "Klasör…", icon: FolderPlus, onSelect: onPickFolder },
+    { label: t("File…"), icon: FilePlus, onSelect: onPickFiles },
+    { label: t("Folder…"), icon: FolderPlus, onSelect: onPickFolder },
   ];
   if (openFile) {
     items.push("separator", {
-      label: `Açık dosya: ${openFile.name}`,
+      label: t("Open file: {name}", { name: openFile.name }),
       icon: FileCode,
       onSelect: openFile.onAdd,
     });
@@ -197,10 +200,10 @@ export function AttachMenu({ onPickFiles, onPickFolder, openFile }: AttachMenuPr
     <>
       <button
         type="button"
-        aria-label="Ekle"
+        aria-label={t("Add")}
         aria-haspopup="menu"
         aria-expanded={at !== null}
-        title="Ekle"
+        title={t("Add")}
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           setAt(at ? null : { x: r.left, y: r.bottom + 6 });
@@ -213,7 +216,7 @@ export function AttachMenu({ onPickFiles, onPickFolder, openFile }: AttachMenuPr
         <Paperclip size={15} strokeWidth={1.75} aria-hidden />
       </button>
       {at && (
-        <ContextMenu x={at.x} y={at.y} label="Ekle" items={items} onClose={() => setAt(null)} />
+        <ContextMenu x={at.x} y={at.y} label={t("Add")} items={items} onClose={() => setAt(null)} />
       )}
     </>
   );
@@ -230,7 +233,11 @@ export function ContextMeter({ used, size }: { used: number; size: number }) {
   const percent = Math.round(ratio * 100);
   const r = 6;
   const circumference = 2 * Math.PI * r;
-  const label = `Bağlam: %${percent} · ${formatTokens(used)} / ${formatTokens(size)}`;
+  const label = t("Context: {percent}% · {used} / {size}", {
+    percent,
+    used: formatTokens(used),
+    size: formatTokens(size),
+  });
   return (
     <span role="img" aria-label={label} title={label} className="grid size-7 place-items-center">
       <svg viewBox="0 0 16 16" className="size-4 -rotate-90" aria-hidden>
@@ -256,10 +263,10 @@ export function ContextMeter({ used, size }: { used: number; size: number }) {
 
 /** Where the agent runs: this computer. The only place for now, so the menu has one entry. */
 export function HostChip({ hostname }: { hostname: string | null }) {
-  const name = hostname ?? "Bu bilgisayar";
+  const name = hostname ?? t("This computer");
   return (
     <ChipMenu
-      label="Çalışma ortamı"
+      label={t("Environment")}
       side="top"
       align="end"
       buttonClassName={cn(quietChip, "uppercase")}
@@ -268,9 +275,9 @@ export function HostChip({ hostname }: { hostname: string | null }) {
       sections={[
         {
           key: "host",
-          label: "Çalışma ortamı",
+          label: t("Environment"),
           value: "local",
-          options: [{ value: "local", name, description: "Agent bu bilgisayarda çalışır." }],
+          options: [{ value: "local", name, description: t("The agent runs on this computer.") }],
           onSelect: () => {},
         },
       ]}
@@ -290,11 +297,11 @@ export function FolderChip({
     <button
       type="button"
       onClick={onOpenFolder}
-      title={folderName ? "Başka bir klasör aç" : "Klasör aç"}
+      title={folderName ? t("Open another folder") : t("Open folder")}
       className={cn(quietChip, "shrink")}
     >
       <Folder size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
-      <span className="truncate">{folderName ?? "Klasör seç"}</span>
+      <span className="truncate">{folderName ?? t("Choose a folder")}</span>
       <ChevronDown size={12} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
     </button>
   );
@@ -321,7 +328,7 @@ export function ContextRow({ folder, checkout, branch, aside }: ContextRowProps)
       {checkout}
       {branch && (
         <span
-          title={`Git dalı: ${branch}`}
+          title={t("Git branch: {branch}", { branch })}
           className={cn(quietChip, "shrink hover:bg-transparent")}
         >
           <GitBranch size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />

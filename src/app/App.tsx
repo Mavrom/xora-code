@@ -7,6 +7,7 @@ import { installAttention } from "@/features/agents/attention";
 import { installModelCatalog } from "@/features/agents/modelCatalog";
 import { installAutoSave } from "@/features/editor/autoSave";
 import { installUiPrefs } from "./uiPrefs";
+import { installLanguage } from "./language";
 import { installWindowLook } from "./windowLook";
 import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
@@ -17,6 +18,7 @@ import { Layout } from "./Layout";
 
 // Before the first render, so it runs ahead of every feature's own shortcut listener.
 installPaletteGuard();
+installLanguage();
 installNavHistory();
 installSessionReaper();
 installModelCatalog();

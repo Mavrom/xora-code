@@ -1,5 +1,6 @@
 import type { ProviderStatus, SignIn } from "./ipc";
 import type { AgentId } from "./types";
+import { t } from "@/shared/i18n";
 
 export interface ProviderInfo {
   id: AgentId;
@@ -20,7 +21,7 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     vendor: "Anthropic",
     mark: "Cc",
     install: "npm i -g @anthropic-ai/claude-code",
-    loginHint: "Açılan pencerede /login yazın ve tarayıcıda onaylayın.",
+    loginHint: t("Type /login in the window that opens and confirm in your browser."),
   },
   {
     id: "codex",
@@ -28,7 +29,7 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     vendor: "OpenAI",
     mark: "Cx",
     install: "npm i -g @openai/codex",
-    loginHint: "Açılan pencerede ChatGPT ile giriş adımlarını izleyin.",
+    loginHint: t("Follow the ChatGPT sign-in steps in the window that opens."),
   },
   {
     id: "gemini",
@@ -36,7 +37,7 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     vendor: "Google",
     mark: "Gm",
     install: "npm i -g @google/gemini-cli",
-    loginHint: "Açılan pencerede “Login with Google” seçeneğini seçin.",
+    loginHint: t("Choose “Login with Google” in the window that opens."),
   },
 ];
 
@@ -53,9 +54,9 @@ export function providerState(status: ProviderStatus | undefined): ProviderState
 }
 
 export const SIGN_IN_LABEL: Record<SignIn, string> = {
-  signedIn: "Giriş yapılmış",
-  signedOut: "Giriş yapılmamış",
-  unknown: "Bilinmiyor",
+  signedIn: t("Signed in"),
+  signedOut: t("Signed out"),
+  unknown: t("Unknown"),
 };
 
 /** Paths longer than this lose their middle directories. */

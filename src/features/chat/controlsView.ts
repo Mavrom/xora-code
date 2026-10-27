@@ -1,17 +1,18 @@
 // Labels for the composer's agent / model / effort chip, derived from the unified controls.
 import type { SelectControl } from "@/features/agents/controls";
 import type { AgentStatus } from "@/features/agents/types";
+import { t } from "@/shared/i18n";
 
 const EFFORT_TR: Record<string, string> = {
-  none: "Kapalı",
-  off: "Kapalı",
-  minimal: "Minimal",
-  low: "Düşük",
-  medium: "Orta",
-  high: "Yüksek",
-  xhigh: "Çok yüksek",
-  max: "En yüksek",
-  default: "Varsayılan",
+  none: t("Off"),
+  off: t("Off"),
+  minimal: t("Minimal"),
+  low: t("Low"),
+  medium: t("Medium"),
+  high: t("High"),
+  xhigh: t("Very high"),
+  max: t("Max"),
+  default: t("Default"),
 };
 
 /** Turkish name for well-known effort levels; the agent's own name otherwise. */
@@ -30,7 +31,7 @@ export function currentName(control: SelectControl): string {
  */
 export function modelLabel(control: SelectControl, agentName: string): string {
   const name = currentName(control).trim();
-  if (/^default$/i.test(name) || control.current === "default") return "Varsayılan";
+  if (/^default$/i.test(name) || control.current === "default") return t("Default");
   const prefix = `${agentName} `;
   return name.toLowerCase().startsWith(prefix.toLowerCase()) ? name.slice(prefix.length) : name;
 }
@@ -54,17 +55,17 @@ export function pickerSummary(
 export function statusNote(status: AgentStatus): string {
   switch (status.state) {
     case "ready":
-      return "Hazır";
+      return t("Ready");
     case "notInstalled":
-      return status.reason === "package-missing" ? "Kurulu değil" : "Node.js gerekli";
+      return status.reason === "package-missing" ? t("Not installed") : t("Needs Node.js");
     case "installing":
-      return "Kuruluyor";
+      return t("Installing");
     case "starting":
-      return "Bağlanıyor";
+      return t("Connecting");
     case "authRequired":
-      return "Giriş gerekli";
+      return t("Sign-in needed");
     case "crashed":
-      return "Kapandı";
+      return t("Stopped");
     default:
       return "";
   }

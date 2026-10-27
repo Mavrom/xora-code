@@ -4,6 +4,7 @@
 import { invoke } from "@tauri-apps/api/core";
 import { create } from "zustand";
 import { projectKey } from "@/features/agents/sessionList";
+import { t } from "@/shared/i18n";
 
 export interface Worktree {
   path: string;
@@ -29,13 +30,17 @@ export function describeGitError(err: unknown): string {
   const code = /^\[([a-z_]+)\]/.exec(text)?.[1];
   switch (code) {
     case "no_git":
-      return "Git bulunamadı. Worktree için Git'in kurulu olması gerekiyor.";
+      return t("Git not found. Worktrees need Git installed.");
     case "dirty":
-      return "Worktree'de kaydedilmemiş değişiklikler var.";
+      return t("The worktree has uncommitted changes.");
     case "unmerged":
-      return "Worktree kaldırıldı ama branch'inde birleştirilmemiş commit'ler var; branch duruyor.";
+      return t(
+        "The worktree was removed, but its branch has unmerged commits, so the branch was kept.",
+      );
     case "not_ff":
-      return "Ana branch ilerlemiş; değişiklikler otomatik alınamadı. Önce birleştirmen gerekiyor.";
+      return t(
+        "The main branch has moved on, so the changes could not be merged automatically. Merge them first.",
+      );
     default:
       return text.replace(/^\[[a-z_]+\]\s*/, "");
   }

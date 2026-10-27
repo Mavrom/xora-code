@@ -63,34 +63,34 @@ export function withAlpha(hex: string, alpha: number): string {
  * (the same calm hues as the editor's syntax colours) so tool output never shouts.
  * Black maps to a visible grey because ANSI black on a black background would vanish.
  */
-export function buildTerminalTheme(t: ThemeTokens): ITheme {
+export function buildTerminalTheme(tokens: ThemeTokens): ITheme {
   return {
-    background: t.glass ?? t.bg,
-    foreground: t.fg,
-    cursor: t.fg,
-    cursorAccent: t.bg,
-    selectionBackground: withAlpha(t.fg, 0.22),
-    selectionInactiveBackground: withAlpha(t.fg, 0.12),
-    scrollbarSliderBackground: withAlpha(t.fg, 0.1),
-    scrollbarSliderHoverBackground: withAlpha(t.fg, 0.18),
-    scrollbarSliderActiveBackground: withAlpha(t.fg, 0.24),
+    background: tokens.glass ?? tokens.bg,
+    foreground: tokens.fg,
+    cursor: tokens.fg,
+    cursorAccent: tokens.bg,
+    selectionBackground: withAlpha(tokens.fg, 0.22),
+    selectionInactiveBackground: withAlpha(tokens.fg, 0.12),
+    scrollbarSliderBackground: withAlpha(tokens.fg, 0.1),
+    scrollbarSliderHoverBackground: withAlpha(tokens.fg, 0.18),
+    scrollbarSliderActiveBackground: withAlpha(tokens.fg, 0.24),
 
-    black: t.borderStrong,
-    red: t.danger,
+    black: tokens.borderStrong,
+    red: tokens.danger,
     green: "#a5c9a1",
-    yellow: t.warning,
+    yellow: tokens.warning,
     blue: "#9fb8d6",
     magenta: "#c3b1d4",
     cyan: "#a3c7c4",
-    white: t.fgMuted,
+    white: tokens.fgMuted,
 
-    brightBlack: t.fgSubtle,
+    brightBlack: tokens.fgSubtle,
     brightRed: "#fca5a5",
     brightGreen: "#c2dcbf",
     brightYellow: "#f0cf94",
     brightBlue: "#bfd0e4",
     brightMagenta: "#d8cae5",
     brightCyan: "#c1dbd8",
-    brightWhite: t.accent,
+    brightWhite: tokens.accent,
   };
 }

@@ -3,12 +3,13 @@ import { Select } from "../controls/Select";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { useSettingsStore } from "../store";
 import { FONT_SIZE_RANGE, type ShellKind, type TerminalSettings } from "../types";
+import { t } from "@/shared/i18n";
 
 const SHELLS: { value: ShellKind; label: string; hint?: string }[] = [
-  { value: "auto", label: "Otomatik", hint: "PowerShell 7, yoksa Windows PowerShell" },
+  { value: "auto", label: t("Automatic"), hint: t("PowerShell 7, else Windows PowerShell") },
   { value: "pwsh", label: "PowerShell 7" },
   { value: "powerShell", label: "Windows PowerShell" },
-  { value: "cmd", label: "Komut İstemi" },
+  { value: "cmd", label: t("Command Prompt") },
   { value: "gitBash", label: "Git Bash" },
 ];
 
@@ -20,15 +21,19 @@ export function TerminalSection() {
   return (
     <>
       <SectionHeader
-        title="Terminal"
-        description="Ctrl+` ile açılan yerleşik terminal. Kabuk yeni açılan terminallerde, yazı boyutu açık olanlarda da hemen uygulanır."
+        title={t("Terminal")}
+        description={t(
+          "The built-in terminal, opened with Ctrl+`. The shell applies to new terminals; the font size also applies to open ones right away.",
+        )}
       />
 
-      <SettingGroup title="Kabuk">
+      <SettingGroup title={t("Shell")}>
         <SettingRow
-          label="Varsayılan kabuk"
+          label={t("Default shell")}
           setting="terminal.shell"
-          description="Seçtiğin kabuk kurulu değilse otomatik seçime döner."
+          description={t(
+            "Falls back to the automatic choice when the selected shell is not installed.",
+          )}
           control={(id) => (
             <Select
               labelledBy={id}
@@ -40,9 +45,9 @@ export function TerminalSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Yazı">
+      <SettingGroup title={t("Text")}>
         <SettingRow
-          label="Yazı boyutu"
+          label={t("Font size")}
           setting="terminal.fontSize"
           control={(id) => (
             <NumberInput

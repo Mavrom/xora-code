@@ -36,6 +36,7 @@ import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 import { DropOverlay } from "./DropOverlay";
 import { useFileDrop } from "./useFileDrop";
+import { t } from "@/shared/i18n";
 
 const NOTICE_MS = 3200;
 
@@ -51,7 +52,7 @@ function authFailureText(err: unknown): string {
   const reason = errorMessage(err)
     .replace(/^auth_required:/, "")
     .trim();
-  return reason ? `Giriş başarısız: ${reason}` : "Giriş başarısız.";
+  return reason ? t("Sign-in failed: {reason}", { reason }) : t("Sign-in failed.");
 }
 
 // The transcript (markdown, sanitiser, code highlighting) is only needed once a chat has
@@ -135,9 +136,9 @@ export function ChatPanel() {
   const store = () => useAgentStore.getState();
 
   const blockedReason = !cwd
-    ? "Önce bir klasör aç; agent o klasörde çalışır."
+    ? t("Open a folder first; the agent works in that folder.")
     : needsStatusCard(agent.status) && agent.status.state !== "starting"
-      ? `${agent.displayName} henüz hazır değil.`
+      ? t("{name} is not ready yet.", { name: agent.displayName })
       : null;
 
   const submit = async (text: string) => {
@@ -172,12 +173,14 @@ export function ChatPanel() {
     if (id === agentId) return;
     if (running) {
       const ok = await ask(
-        `${agents[id].displayName} ile yeni bir sohbet açılacak; süren tur arka planda devam eder.`,
+        t("A new chat with {name} will open; the running turn continues in the background.", {
+          name: agents[id].displayName,
+        }),
         {
-          title: "Agent değişsin mi?",
+          title: t("Switch agent?"),
           kind: "warning",
-          okLabel: "Yeni sohbet",
-          cancelLabel: "Vazgeç",
+          okLabel: t("New chat"),
+          cancelLabel: t("Cancel"),
         },
       );
       if (!ok) return;
@@ -192,7 +195,9 @@ export function ChatPanel() {
     if (!session) return;
     store()
       .setControl(session.sessionId, key, value)
-      .catch((err: unknown) => say(`Ayar değiştirilemedi: ${errorMessage(err)}`));
+      .catch((err: unknown) =>
+        say(t("Could not change the setting: {err}", { err: errorMessage(err) })),
+      );
   };
 
   const addAttachments = async (pending: Promise<Attachment>[]) => {
@@ -207,7 +212,7 @@ export function ChatPanel() {
       ]);
       composerRef.current?.focus();
     }
-    if (failed) say(`Eklenemedi: ${errorMessage(failed.reason)}`);
+    if (failed) say(t("Could not attach: {reason}", { reason: errorMessage(failed.reason) }));
   };
 
   const attachPaths = (paths: string[], kind: "file" | "folder") =>
@@ -215,7 +220,7 @@ export function ChatPanel() {
 
   const attach = async (directory: boolean) => {
     const picked = await open({
-      title: directory ? "Klasör ekle" : "Dosya ekle",
+      title: directory ? t("Add folder") : t("Add file"),
       multiple: true,
       directory,
       defaultPath: cwd ?? undefined,
@@ -333,7 +338,7 @@ export function ChatPanel() {
         onRemoveAttachment={(id) => setAttachments((list) => list.filter((a) => a.id !== id))}
         onPasteImages={(files) =>
           void addAttachments(
-            files.map((f, i) => attachmentFromBlob(f, f.name || `ekran-goruntusu-${i + 1}.png`)),
+            files.map((f, i) => attachmentFromBlob(f, f.name || `screenshot-${i + 1}.png`)),
           )
         }
         onSubmit={(text) => void submit(text)}
@@ -365,7 +370,7 @@ export function ChatPanel() {
     return (
       <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
         <div aria-hidden className="min-h-6 flex-1" />
-        <section aria-label="Yeni sohbet" className="mx-auto w-full max-w-186 px-6">
+        <section aria-label={t("New chat")} className="mx-auto w-full max-w-186 px-6">
           {/* Where the agent will work, just above the field. */}
           <div className="mb-1 flex justify-end gap-1">
             <HostChip hostname={hostname} />
@@ -394,7 +399,7 @@ function StopHint() {
   return (
     <p className="flex items-center gap-1.5 text-2xs text-fg-subtle">
       <Kbd keys="escape" />
-      <span>durdur</span>
+      <span>{t("stop")}</span>
     </p>
   );
 }
@@ -402,7 +407,7 @@ function StopHint() {
 /** Messages typed during a running turn, sent one by one when it ends. */
 function QueuedPrompts({ session }: { session: SessionView }) {
   return (
-    <ul aria-label="Sıradaki mesajlar" className="mb-2 flex flex-col gap-1">
+    <ul aria-label={t("Queued messages")} className="mb-2 flex flex-col gap-1">
       {session.queued.map((blocks, index) => {
         const text = blocks.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ");
         return (
@@ -410,12 +415,12 @@ function QueuedPrompts({ session }: { session: SessionView }) {
             key={index}
             className="flex h-8 items-center gap-2 rounded-lg border border-glass-border bg-glass pr-1 pl-3 text-xs backdrop-blur-xl"
           >
-            <span className="shrink-0 text-2xs text-fg-subtle">Sırada</span>
+            <span className="shrink-0 text-2xs text-fg-subtle">{t("Queued")}</span>
             <span className="min-w-0 flex-1 truncate text-fg-muted">{text}</span>
             <button
               type="button"
-              aria-label="Sıradan çıkar"
-              title="Sıradan çıkar"
+              aria-label={t("Remove from queue")}
+              title={t("Remove from queue")}
               onClick={() => useAgentStore.getState().dropQueued(session.sessionId, index)}
               className="grid size-6 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
             >

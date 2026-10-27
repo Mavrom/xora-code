@@ -27,6 +27,7 @@ import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
 import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
+import { t } from "@/shared/i18n";
 
 /** Ctrl+Shift+<code> per view. Avoids WebView2's Ctrl+Shift+I/J (devtools). */
 const SHORTCUTS: Record<SidebarView, { code: string; label: string }> = {
@@ -99,11 +100,16 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         data-tauri-drag-region="deep"
         className="relative flex h-10 shrink-0 items-center gap-0.5 px-2"
       >
-        <BarButton icon={PanelLeft} label="Kenar çubuğunu gizle" onClick={onCollapse} />
-        <BarButton icon={ArrowLeft} label="Geri" disabled={!canBack} onClick={() => travel(-1)} />
+        <BarButton icon={PanelLeft} label={t("Hide sidebar")} onClick={onCollapse} />
+        <BarButton
+          icon={ArrowLeft}
+          label={t("Back")}
+          disabled={!canBack}
+          onClick={() => travel(-1)}
+        />
         <BarButton
           icon={ArrowRight}
-          label="İleri"
+          label={t("Forward")}
           disabled={!canForward}
           onClick={() => travel(1)}
         />
@@ -119,7 +125,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           className="group flex h-9 items-center gap-2.5 rounded-lg border border-white/[0.07] bg-white/[0.06] px-2.5 text-[13px] font-medium text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_1px_2px_rgb(0_0_0/0.4)] transition-colors duration-fast hover:bg-white/[0.09]"
         >
           <SquarePen size={15} strokeWidth={1.75} aria-hidden />
-          Yeni sohbet
+          {t("New chat")}
           <Kbd
             keys="mod+n"
             className="ml-auto opacity-0 transition-opacity duration-fast group-hover:opacity-100"
@@ -131,7 +137,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           className="group flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-fg-subtle transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
         >
           <Search size={15} strokeWidth={1.75} aria-hidden />
-          Ara
+          {t("Search")}
           <Kbd
             keys="mod+k"
             className="ml-auto opacity-60 transition-opacity duration-fast group-hover:opacity-100"
@@ -139,17 +145,17 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         </button>
       </div>
 
-      <nav aria-label="Kenar çubuğu görünümü" className="relative mt-3 flex flex-col gap-px px-2.5">
+      <nav aria-label={t("Sidebar view")} className="relative mt-3 flex flex-col gap-px px-2.5">
         <NavItem
           icon={MessagesSquare}
-          label="Sohbetler"
+          label={t("Chats")}
           shortcut={SHORTCUTS.sessions.label}
           active={active === "sessions"}
           onClick={() => showView("sessions")}
         />
         <NavItem
           icon={Inbox}
-          label="Inbox"
+          label={t("Inbox")}
           shortcut={SHORTCUTS.inbox.label}
           active={active === "inbox"}
           onClick={() => showView("inbox")}
@@ -225,7 +231,7 @@ function ProjectPicker() {
   const current = groups.find((g) => g.cwd === filter) ?? null;
   const options = useMemo(
     () => [
-      { value: "", name: "Tüm projeler" },
+      { value: "", name: t("All projects") },
       ...groups.map((g) => ({ value: g.cwd, name: g.name, meta: String(g.sessions.length) })),
     ],
     [groups],
@@ -234,14 +240,14 @@ function ProjectPicker() {
   return (
     <div className="flex h-8 shrink-0 items-center px-2.5">
       <ChipMenu
-        label="Proje"
+        label={t("Project")}
         side="bottom"
         buttonClassName="inline-flex h-6 min-w-0 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-fg-subtle transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
-        display={current?.name ?? "Tüm projeler"}
+        display={current?.name ?? t("All projects")}
         sections={[
           {
             key: "project",
-            label: "Proje",
+            label: t("Project"),
             value: current?.cwd ?? "",
             options,
             onSelect: (value) => useUiStore.getState().setProjectFilter(value || null),
@@ -257,9 +263,9 @@ function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
   const hostname = useHostname();
   const agentId = useAgentStore((s) => s.selectedAgent);
   const agent = useAgentStore((s) => s.agents[s.selectedAgent]);
-  const note = statusNote(agent.status) || "Hazır";
+  const note = statusNote(agent.status) || t("Ready");
   const ready = agent.status.state === "ready" || agent.status.state === "stopped";
-  const name = hostname ?? "Bu bilgisayar";
+  const name = hostname ?? t("This computer");
 
   return (
     <div className="relative shrink-0 border-t border-white/[0.05] p-2">
@@ -267,7 +273,7 @@ function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
         <button
           type="button"
           onClick={() => openSettings("accounts")}
-          title="Hesaplar"
+          title={t("Accounts")}
           className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-fast hover:bg-white/[0.04]"
         >
           <span
@@ -298,8 +304,8 @@ function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
         <button
           type="button"
           aria-pressed={settingsOpen}
-          aria-label="Ayarlar (Ctrl+,)"
-          title="Ayarlar (Ctrl+,)"
+          aria-label={t("Settings (Ctrl+,)")}
+          title={t("Settings (Ctrl+,)")}
           onClick={() => useSettingsView.getState().toggleSettings()}
           className={cn(
             "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-fast",

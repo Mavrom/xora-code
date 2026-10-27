@@ -6,6 +6,7 @@ import { EDITOR_EMPTY_ID } from "./editorKeys";
 import { EditorStatusBar } from "./EditorStatusBar";
 import { EditorTabs } from "./EditorTabs";
 import { useEditorStore } from "./store";
+import { t } from "@/shared/i18n";
 
 // Monaco is several MB: it is only fetched once the first file is opened.
 const EditorPanel = lazy(() => import("./EditorPanel").then((m) => ({ default: m.EditorPanel })));
@@ -23,7 +24,7 @@ export function EditorArea() {
         id={EDITOR_EMPTY_ID}
         tabIndex={-1}
         role="region"
-        aria-label="Editör"
+        aria-label={t("Editor")}
         data-editor-area
         className="flex h-full flex-col outline-none"
       >
@@ -31,8 +32,8 @@ export function EditorArea() {
         <div className="min-h-0 flex-1">
           <EmptyState
             icon={FileCode}
-            title="Açık dosya yok"
-            description="Dosyalar panelinden bir dosya seç."
+            title={t("No open file")}
+            description={t("Pick a file from the Files panel.")}
           />
         </div>
       </div>

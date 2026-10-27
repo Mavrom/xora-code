@@ -17,19 +17,20 @@ import {
   type WindowLook,
 } from "../types";
 import { backdropSrc, fileName, WALLPAPER_EXTENSIONS } from "../wallpaper";
+import { t } from "@/shared/i18n";
 
 const EFFECTS: { value: BackgroundEffect; label: string }[] = [
-  { value: "none", label: "Yok" },
+  { value: "none", label: t("None") },
   { value: "dither", label: "Dither" },
   { value: "ascii", label: "ASCII" },
   { value: "halftone", label: "Halftone" },
-  { value: "scanlines", label: "Tarama" },
+  { value: "scanlines", label: t("Scanlines") },
 ];
 
 const WINDOW_LOOKS: { value: WindowLook; label: string }[] = [
-  { value: "solid", label: "Opak" },
-  { value: "frosted", label: "Buzlu" },
-  { value: "clear", label: "Net" },
+  { value: "solid", label: t("Solid") },
+  { value: "frosted", label: t("Frosted") },
+  { value: "clear", label: t("Clear") },
 ];
 
 const percent = (v: number) => `${v}%`;
@@ -45,10 +46,10 @@ export function AppearanceSection() {
   const pick = async () => {
     setError(null);
     const chosen = await open({
-      title: "Görsel seç",
+      title: t("Choose a picture"),
       multiple: false,
       directory: false,
-      filters: [{ name: "Görseller", extensions: WALLPAPER_EXTENSIONS }],
+      filters: [{ name: t("Images"), extensions: WALLPAPER_EXTENSIONS }],
     }).catch(() => null);
     if (typeof chosen !== "string") return;
     setBusy(true);
@@ -73,8 +74,10 @@ export function AppearanceSection() {
   return (
     <>
       <SectionHeader
-        title="Görünüm"
-        description="Yeni sohbet ekranının üstünde Xora'nın görseli durur ve composer'ın altında onyx'e karışır. Kendi görselinizi koyabilir ya da kapatabilirsiniz."
+        title={t("Appearance")}
+        description={t(
+          "A picture sits at the top of the new-chat screen and fades into onyx below the composer. Use your own or turn it off.",
+        )}
       />
 
       <AppearancePreview appearance={appearance} busy={busy} onPick={() => void pick()} />
@@ -86,31 +89,33 @@ export function AppearanceSection() {
         >
           {hasWallpaper
             ? fileName(appearance.wallpaper ?? "")
-            : "Xora'nın görseli · kendi görseliniz: PNG, JPG, WebP, GIF, AVIF ya da BMP, en fazla 40 MB"}
+            : t("Xora's picture · your own: PNG, JPG, WebP, GIF, AVIF or BMP, up to 40 MB")}
         </p>
         <div className="flex shrink-0 items-center gap-1.5">
           {hasWallpaper && (
             <Button variant="ghost" icon={RotateCcw} onClick={reset} disabled={busy}>
-              Varsayılana dön
+              {t("Back to default")}
             </Button>
           )}
           <Button variant="secondary" icon={ImagePlus} onClick={() => void pick()} disabled={busy}>
-            {busy ? "Ekleniyor…" : hasWallpaper ? "Değiştir…" : "Kendi görselin…"}
+            {busy ? t("Adding…") : hasWallpaper ? t("Change…") : t("Your own picture…")}
           </Button>
         </div>
       </div>
 
       {error && (
         <p role="alert" className="mt-2 text-xs text-danger">
-          Görsel eklenemedi: {error}
+          {t("Could not add the picture: {error}", { error })}
         </p>
       )}
 
-      <SettingGroup title="Pencere">
+      <SettingGroup title={t("Window")}>
         <SettingRow
-          label="Arayüz ölçeği"
+          label={t("Interface scale")}
           setting="appearance.uiScale"
-          description="Bütün arayüzü büyütür ya da küçültür. Kısayol: Ctrl + / Ctrl - / Ctrl 0."
+          description={t(
+            "Makes the whole interface larger or smaller. Shortcut: Ctrl + / Ctrl - / Ctrl 0.",
+          )}
           control={(id) => (
             <Slider
               labelledBy={id}
@@ -124,9 +129,11 @@ export function AppearanceSection() {
           )}
         />
         <SettingRow
-          label="Saydamlık"
+          label={t("Transparency")}
           setting="appearance.window"
-          description="Buzlu: arkadaki uygulamalar ve masaüstü bulanık görünür. Net: bulanıklık olmadan görünür. Opak: saf onyx."
+          description={t(
+            "Frosted: the apps and desktop behind show through, blurred. Clear: they show through without blur. Solid: pure onyx.",
+          )}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -137,9 +144,9 @@ export function AppearanceSection() {
           )}
         />
         <SettingRow
-          label="Koyuluk"
+          label={t("Darkness")}
           setting="appearance.tint"
-          description="Arkası görünen pencerenin ne kadar karartılacağı; yazılar okunaklı kalsın diye."
+          description={t("How much a see-through window is darkened, so text stays readable.")}
           control={(id) => (
             <Slider
               labelledBy={id}
@@ -154,11 +161,11 @@ export function AppearanceSection() {
         />
       </SettingGroup>
 
-      <SettingGroup title="Görsel">
+      <SettingGroup title={t("Image")}>
         <SettingRow
-          label="Görsel göster"
+          label={t("Show picture")}
           setting="appearance.picture"
-          description="Kapalıyken yeni sohbet saf onyx açılır."
+          description={t("When off, a new chat opens on plain onyx.")}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -168,9 +175,9 @@ export function AppearanceSection() {
           )}
         />
         <SettingRow
-          label="Efekt"
+          label={t("Effect")}
           setting="appearance.effect"
-          description="Görseli dither, ASCII, halftone ya da tarama çizgileriyle yeniden çizer."
+          description={t("Redraws the picture with dither, ASCII, halftone or scanlines.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -181,9 +188,9 @@ export function AppearanceSection() {
           )}
         />
         <SettingRow
-          label="Karartma"
+          label={t("Dim")}
           setting="appearance.dim"
-          description="Parlak görsellerde composer'ın öne çıkması için görseli koyulaştırır."
+          description={t("Darkens bright pictures so the composer stands out.")}
           control={(id) => (
             <Slider
               labelledBy={id}
@@ -218,7 +225,7 @@ function AppearancePreview({ appearance, busy, onPick }: PreviewProps) {
 
   return (
     <figure
-      aria-label="Görünüm önizlemesi"
+      aria-label={t("Appearance preview")}
       className="relative mt-8 grid aspect-[16/8.5] grid-cols-[22%_minmax(0,1fr)] overflow-hidden rounded-lg border border-border bg-bg shadow-well"
     >
       <div aria-hidden className="flex flex-col gap-1.5 border-r border-border bg-surface p-3 pt-6">
@@ -256,7 +263,9 @@ function AppearancePreview({ appearance, busy, onPick }: PreviewProps) {
               <ImagePlus size={16} strokeWidth={1.75} aria-hidden />
             </span>
             <span className="text-xs font-medium">
-              {src && failed === src ? "Görsel açılamadı, yenisini seçin" : "Görsel seçin"}
+              {src && failed === src
+                ? t("Could not open the picture; choose another")
+                : t("Choose a picture")}
             </span>
           </button>
         )}

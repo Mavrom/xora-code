@@ -4,6 +4,7 @@ import { openUrl } from "@tauri-apps/plugin-opener";
 import { ChevronRight, ExternalLink } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { SettingGroup } from "../controls/SettingRow";
+import { t } from "@/shared/i18n";
 
 /** Placeholder until the public repository exists. */
 export const REPO_URL = "https://github.com/xora-code/xora-code";
@@ -65,7 +66,7 @@ export function AboutSection() {
         </div>
         <h2 className="relative mt-5 text-title font-semibold text-fg">Xora Code</h2>
         <p className="relative mt-1 text-ui text-fg-muted">
-          Açık kaynak, ajan öncelikli kod editörü.
+          {t("An open-source, agent-first code editor.")}
         </p>
         <p className="relative mt-4 inline-flex h-6 items-center gap-2 rounded-full border border-border px-3 font-mono text-2xs text-fg-subtle tabular-nums">
           {versions ? (
@@ -75,19 +76,19 @@ export function AboutSection() {
               <span>Tauri {versions.tauri}</span>
             </>
           ) : (
-            "Sürüm okunuyor…"
+            t("Reading version…")
           )}
         </p>
       </div>
 
       <SettingGroup>
-        <InfoRow label="Lisans" value="MIT" />
+        <InfoRow label={t("License")} value="MIT" />
         <button
           type="button"
           onClick={() => void openUrl(REPO_URL)}
           className="flex h-11 w-full items-center justify-between px-4 text-left transition-colors duration-fast hover:bg-hover/60 focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-fg-subtle"
         >
-          <span className="text-ui text-fg">Kaynak kodu</span>
+          <span className="text-ui text-fg">{t("Source code")}</span>
           <span className="flex items-center gap-1.5 text-xs text-fg-muted">
             GitHub
             <ExternalLink size={12} strokeWidth={1.75} aria-hidden />
@@ -99,7 +100,7 @@ export function AboutSection() {
           onClick={() => setLicensesOpen((o) => !o)}
           className="flex h-11 w-full items-center justify-between px-4 text-left transition-colors duration-fast hover:bg-hover/60 focus-visible:outline-1 focus-visible:-outline-offset-2 focus-visible:outline-fg-subtle"
         >
-          <span className="text-ui text-fg">Açık kaynak lisansları</span>
+          <span className="text-ui text-fg">{t("Open-source licenses")}</span>
           <ChevronRight
             size={14}
             strokeWidth={1.75}
@@ -123,7 +124,7 @@ export function AboutSection() {
       </SettingGroup>
 
       <p className="mt-8 text-center text-2xs text-fg-subtle">
-        Xora Code katkıcıları tarafından MIT lisansıyla geliştirilir.
+        {t("Built by the Xora Code contributors under the MIT license.")}
       </p>
     </>
   );

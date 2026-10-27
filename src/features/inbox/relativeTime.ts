@@ -1,10 +1,12 @@
+import { localeOf } from "@/shared/i18n";
+
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
 
-const relative = new Intl.RelativeTimeFormat("tr", { numeric: "auto" });
-const narrow = new Intl.RelativeTimeFormat("tr", { style: "narrow" });
-const dayMonth = new Intl.DateTimeFormat("tr", { day: "numeric", month: "short" });
-const dayMonthYear = new Intl.DateTimeFormat("tr", {
+const relative = new Intl.RelativeTimeFormat(localeOf(), { numeric: "auto" });
+const narrow = new Intl.RelativeTimeFormat(localeOf(), { style: "narrow" });
+const dayMonth = new Intl.DateTimeFormat(localeOf(), { day: "numeric", month: "short" });
+const dayMonthYear = new Intl.DateTimeFormat(localeOf(), {
   day: "numeric",
   month: "short",
   year: "numeric",
@@ -14,7 +16,7 @@ const dayMonthYear = new Intl.DateTimeFormat("tr", {
 const compact = (value: number, unit: "minute" | "hour") =>
   narrow
     .format(-value, unit)
-    .replace(/\s*önce$/, "")
+    .replace(/\s*(önce|ago)$/, "")
     .replace(/\.$/, "");
 
 const startOfDay = (ms: number) => new Date(ms).setHours(0, 0, 0, 0);

@@ -24,6 +24,7 @@ import { saveActiveTab } from "./saveActiveTab";
 import { useEditorStore } from "./store";
 import { EditorStatusBar } from "./EditorStatusBar";
 import { EditorTabs } from "./EditorTabs";
+import { t } from "@/shared/i18n";
 
 /** A failed save stays in the status bar this long (or until the next save). */
 const ERROR_MS = 4000;
@@ -72,7 +73,7 @@ type Cursor = { line: number; column: number };
 
 export function EditorPanel() {
   const tabs = useEditorStore((s) => s.tabs);
-  const active = useEditorStore((s) => s.tabs.find((t) => t.path === s.activePath) ?? null);
+  const active = useEditorStore((s) => s.tabs.find((item) => item.path === s.activePath) ?? null);
   const saveError = useEditorStore((s) => s.saveError);
   const updateContent = useEditorStore((s) => s.updateContent);
   const [cursor, setCursor] = useState<Cursor | null>(null);
@@ -116,7 +117,7 @@ export function EditorPanel() {
 
   // Dispose models of closed tabs so reopening a file reads fresh disk content.
   useEffect(() => {
-    const open = new Set(tabs.map((t) => modelPath(t.path)));
+    const open = new Set(tabs.map((tab) => modelPath(tab.path)));
     for (const model of monaco.editor.getModels()) {
       if (model.uri.scheme === "file" && !open.has(model.uri.toString())) model.dispose();
     }
@@ -138,7 +139,7 @@ export function EditorPanel() {
     // the chat composer with its place, ready for a question.
     editor.addAction({
       id: "xora.addToChat",
-      label: "Seçimi sohbete ekle",
+      label: t("Add selection to chat"),
       keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.KeyL],
       contextMenuGroupId: "navigation",
       contextMenuOrder: 0,
@@ -191,8 +192,8 @@ export function EditorPanel() {
     return (
       <EmptyState
         icon={FileCode}
-        title="Açık dosya yok"
-        description="Dosyalar panelinden bir dosya seç."
+        title={t("No open file")}
+        description={t("Pick a file from the Files panel.")}
       />
     );
   }

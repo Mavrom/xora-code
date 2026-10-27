@@ -13,6 +13,7 @@ import {
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { SEPARATOR, type MenuEntry } from "@/shared/ui/menuModel";
+import { t } from "@/shared/i18n";
 
 interface CheckoutChipProps {
   /** The open repository. */
@@ -87,7 +88,12 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
     run(async () => {
       const wt = await store().create(repo);
       startNewChat();
-      onNotice(`Yeni worktree: ${worktreeName(wt.path)} (${wt.branch ?? ""})`);
+      onNotice(
+        t("New worktree: {name} ({branch})", {
+          name: worktreeName(wt.path),
+          branch: wt.branch ?? "",
+        }),
+      );
     });
 
   const mergeHome = (path: string, name: string) =>
@@ -96,7 +102,9 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
       await closeChatsIn(path);
       const into = await store().merge(repo, path, chatTitle ?? `xora: ${name}`);
       startNewChat();
-      onNotice(`${name} değişiklikleri ${into} branch'ine alındı; worktree kaldırıldı.`);
+      onNotice(
+        t("Changes from {name} were merged into {into}; the worktree was removed.", { name, into }),
+      );
     });
 
   const removeWorktree = (path: string, name: string) =>
@@ -108,24 +116,24 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
       } catch (err) {
         if (!String(err).startsWith("[dirty]")) throw err;
         const sure = await ask(
-          `${name} worktree'sinde kaydedilmemiş değişiklikler var. Silinirse bunlar kaybolur.`,
+          t("The {name} worktree has uncommitted changes. Deleting it loses them.", { name }),
           {
-            title: "Worktree silinsin mi?",
+            title: t("Delete worktree?"),
             kind: "warning",
-            okLabel: "Sil",
-            cancelLabel: "Vazgeç",
+            okLabel: t("Delete"),
+            cancelLabel: t("Cancel"),
           },
         );
         if (!sure) return;
         await store().remove(repo, path, true);
       }
       startNewChat();
-      onNotice(`${name} worktree'si silindi.`);
+      onNotice(t("Deleted the {name} worktree.", { name }));
     });
 
   const items: MenuEntry[] = [
     {
-      label: "Mevcut checkout",
+      label: t("Current checkout"),
       icon: Monitor,
       hint: main.branch ?? undefined,
       checked: current === null,
@@ -141,19 +149,19 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
         onSelect: () => choose(w.path),
       })),
     SEPARATOR,
-    { label: "Yeni worktree", icon: GitBranchPlus, onSelect: () => void createWorktree() },
+    { label: t("New worktree"), icon: GitBranchPlus, onSelect: () => void createWorktree() },
   ];
   if (current) {
     const name = worktreeName(current.path);
     items.push(
       SEPARATOR,
       {
-        label: `${main.branch ?? "Ana branch"}'e al`,
+        label: t("Merge into {branch}", { branch: main.branch ?? t("main branch") }),
         icon: GitMerge,
         onSelect: () => void mergeHome(current.path, name),
       },
       {
-        label: "Worktree'yi sil",
+        label: t("Delete worktree"),
         icon: Trash2,
         danger: true,
         onSelect: () => void removeWorktree(current.path, name),
@@ -168,7 +176,7 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
         aria-haspopup="menu"
         aria-expanded={at !== null}
         disabled={busy}
-        title={current ? `Worktree: ${current.path}` : "Agent'ın çalıştığı checkout"}
+        title={current ? `Worktree: ${current.path}` : t("Checkout the agent works in")}
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           setAt(at ? null : { x: r.left, y: r.bottom + 6 });
@@ -184,11 +192,19 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
         ) : (
           <Monitor size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
         )}
-        <span className="truncate">{current ? worktreeName(current.path) : "Mevcut checkout"}</span>
+        <span className="truncate">
+          {current ? worktreeName(current.path) : t("Current checkout")}
+        </span>
         <ChevronDown size={12} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
       </button>
       {at && (
-        <ContextMenu x={at.x} y={at.y} label="Checkout" items={items} onClose={() => setAt(null)} />
+        <ContextMenu
+          x={at.x}
+          y={at.y}
+          label={t("Checkout")}
+          items={items}
+          onClose={() => setAt(null)}
+        />
       )}
     </>
   );

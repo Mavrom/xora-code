@@ -31,6 +31,7 @@ import { SEPARATOR } from "@/shared/ui/menuModel";
 import { AgentGlyph } from "./AgentGlyph";
 import { Collapse } from "./Disclosure";
 import { emptySessionKey, flatSessions, groupByDay, visibleGroups } from "./sessionListView";
+import { t } from "@/shared/i18n";
 
 /**
  * Conversation history for the sidebar: one newest-first list (or one project's, from the
@@ -83,10 +84,10 @@ export function SessionList() {
   return (
     <div className="h-full overflow-y-auto px-2 pb-3 [scrollbar-width:thin]">
       {pinned.length > 0 && (
-        <section aria-label="Sabitlenenler" className="mt-1">
+        <section aria-label={t("Pinned")} className="mt-1">
           <h3 className="flex items-center gap-1.5 px-2.5 pb-1 text-[11px] font-medium text-fg-subtle/80">
             <Pin size={10} strokeWidth={2} aria-hidden />
-            Sabitlenenler
+            {t("Pinned")}
           </h3>
           <ul className="flex flex-col gap-px">
             {pinned.map((entry) => (
@@ -105,9 +106,11 @@ export function SessionList() {
             <span className="mx-auto mb-3 grid size-9 place-items-center rounded-xl border border-white/[0.06] bg-white/[0.03]">
               <MessagesSquare size={16} strokeWidth={1.5} aria-hidden className="text-fg-subtle" />
             </span>
-            <p className="text-xs text-fg-muted">Henüz sohbet yok</p>
+            <p className="text-xs text-fg-muted">{t("No chats yet")}</p>
             <p className="mt-1 text-2xs leading-4 text-fg-subtle">
-              {root ? "İlk mesajın burada görünür." : "Bir klasör açınca sohbetler burada."}
+              {root
+                ? t("Your first message shows up here.")
+                : t("Open a folder and its chats appear here.")}
             </p>
           </div>
         )
@@ -127,7 +130,7 @@ export function SessionList() {
       )}
 
       {archived.length > 0 && (
-        <section aria-label="Arşiv" className="mt-4">
+        <section aria-label={t("Archived")} className="mt-4">
           <button
             type="button"
             aria-expanded={archiveOpen}
@@ -144,7 +147,7 @@ export function SessionList() {
                 archiveOpen && "rotate-90",
               )}
             />
-            Arşiv
+            {t("Archived")}
             <span className="tabular-nums opacity-70">{archived.length}</span>
           </button>
           <Collapse open={archiveOpen} id="sidebar-archive">
@@ -169,7 +172,7 @@ export function SessionList() {
               className="inline-flex shrink-0 items-center gap-1 text-fg-muted transition-colors duration-fast hover:text-fg"
             >
               <RotateCcw size={11} strokeWidth={1.75} aria-hidden />
-              Yenile
+              {t("Refresh")}
             </button>
           )}
         </div>
@@ -225,7 +228,7 @@ function SessionRow({
   const [confirming, setConfirming] = useState(false);
   const [renaming, setRenaming] = useState(false);
   const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
-  const title = entry.title ? shortTitle(entry.title) : "Adsız sohbet";
+  const title = entry.title ? shortTitle(entry.title) : t("Untitled chat");
 
   const onContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -248,17 +251,17 @@ function SessionRow({
     return (
       <div
         role="alertdialog"
-        aria-label={`"${title}" silinsin mi?`}
+        aria-label={t('Delete "{title}"?', { title })}
         onMouseLeave={() => setConfirming(false)}
         className="flex h-8 items-center gap-2 rounded-lg bg-red-500/[0.08] pr-1 pl-2.5 text-[12px] ring-1 ring-red-500/20 ring-inset"
       >
-        <span className="min-w-0 flex-1 truncate text-red-200/90">Silinsin mi?</span>
+        <span className="min-w-0 flex-1 truncate text-red-200/90">{t("Delete?")}</span>
         <button
           type="button"
           onClick={() => setConfirming(false)}
           className="h-6 rounded-md px-2 text-fg-muted transition-colors duration-fast hover:bg-white/[0.06] hover:text-fg"
         >
-          Vazgeç
+          {t("Cancel")}
         </button>
         <button
           type="button"
@@ -266,7 +269,7 @@ function SessionRow({
           onClick={() => void remove(entry)}
           className="h-6 rounded-md bg-red-500/80 px-2 font-medium text-white transition-colors duration-fast hover:bg-red-500"
         >
-          Sil
+          {t("Delete")}
         </button>
       </div>
     );
@@ -328,16 +331,21 @@ function SessionRow({
             {!entry.archived && (
               <RowAction
                 icon={entry.pinned ? PinOff : Pin}
-                label={entry.pinned ? "Sabitlemeyi kaldır" : "Sabitle"}
+                label={entry.pinned ? t("Unpin") : t("Pin")}
                 onClick={() => void pin(entry, !entry.pinned)}
               />
             )}
             <RowAction
               icon={entry.archived ? ArchiveRestore : Archive}
-              label={entry.archived ? "Arşivden çıkar" : "Arşivle"}
+              label={entry.archived ? t("Unarchive") : t("Archive")}
               onClick={() => void archive(entry, !entry.archived)}
             />
-            <RowAction icon={Trash2} label="Sil" danger onClick={() => setConfirming(true)} />
+            <RowAction
+              icon={Trash2}
+              label={t("Delete")}
+              danger
+              onClick={() => setConfirming(true)}
+            />
           </span>
         </span>
       </div>
@@ -348,29 +356,29 @@ function SessionRow({
           label={title}
           onClose={() => setMenu(null)}
           items={[
-            { label: "Aç", icon: MessageSquare, onSelect: () => openEntry(entry) },
-            { label: "Yeniden adlandır", icon: Pencil, onSelect: () => setRenaming(true) },
+            { label: t("Open"), icon: MessageSquare, onSelect: () => openEntry(entry) },
+            { label: t("Rename"), icon: Pencil, onSelect: () => setRenaming(true) },
             ...(entry.archived
               ? []
               : [
                   entry.pinned
                     ? {
-                        label: "Sabitlemeyi kaldır",
+                        label: t("Unpin"),
                         icon: PinOff,
                         onSelect: () => void pin(entry, false),
                       }
-                    : { label: "Sabitle", icon: Pin, onSelect: () => void pin(entry, true) },
+                    : { label: t("Pin"), icon: Pin, onSelect: () => void pin(entry, true) },
                 ]),
             SEPARATOR,
             entry.archived
               ? {
-                  label: "Arşivden çıkar",
+                  label: t("Unarchive"),
                   icon: ArchiveRestore,
                   onSelect: () => void archive(entry, false),
                 }
-              : { label: "Arşivle", icon: Archive, onSelect: () => void archive(entry, true) },
+              : { label: t("Archive"), icon: Archive, onSelect: () => void archive(entry, true) },
             SEPARATOR,
-            { label: "Sil", icon: Trash2, danger: true, onSelect: () => setConfirming(true) },
+            { label: t("Delete"), icon: Trash2, danger: true, onSelect: () => setConfirming(true) },
           ]}
         />
       )}
@@ -399,7 +407,7 @@ function RenameField({
   return (
     <input
       autoFocus
-      aria-label="Sohbetin adı"
+      aria-label={t("Chat name")}
       value={value}
       maxLength={120}
       onChange={(e) => setValue(e.target.value)}
@@ -415,7 +423,7 @@ function RenameField({
         }
       }}
       onBlur={() => finish(value.trim())}
-      placeholder="Ajanın başlığı kullanılır"
+      placeholder={t("Uses the agent's title")}
       className="h-8 w-full rounded-lg bg-white/[0.06] px-2.5 text-[13px] text-fg outline-none ring-1 ring-white/15 placeholder:text-fg-subtle"
     />
   );
@@ -447,7 +455,7 @@ function RowAction({ icon: Icon, label, danger, onClick }: RowActionProps) {
 
 function ListSkeleton() {
   return (
-    <div aria-label="Sohbetler yükleniyor" className="flex flex-col gap-3 px-2.5 pt-3">
+    <div aria-label={t("Loading chats")} className="flex flex-col gap-3 px-2.5 pt-3">
       {[70, 55, 80, 45].map((w) => (
         <div
           key={w}

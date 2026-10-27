@@ -3,6 +3,7 @@ import { EDITOR_EMPTY_ID, isShown } from "./editorKeys";
 import { confirmDirtyClose } from "./editorSettings";
 import { saveTab } from "./saveActiveTab";
 import { isDirty, useEditorStore, type Tab } from "./store";
+import { t } from "@/shared/i18n";
 
 /**
  * Closes a tab. With unsaved changes it asks first (in-app dialog): Kaydet writes the file
@@ -12,8 +13,8 @@ import { isDirty, useEditorStore, type Tab } from "./store";
 export async function requestCloseTab(tab: Tab) {
   if (isDirty(tab) && confirmDirtyClose()) {
     const choice = await confirmDialog({
-      title: "Kaydedilmemiş değişiklikler",
-      message: `${tab.name} dosyasındaki değişiklikler kaydedilmedi. Kapatmadan önce kaydedilsin mi?`,
+      title: t("Unsaved changes"),
+      message: t("{name} has unsaved changes. Save before closing?", { name: tab.name }),
     });
     if (choice === "cancel") return;
     if (choice === "save") {
@@ -50,6 +51,6 @@ function refocusAfterLastTab() {
 /** Closes the active tab (same dirty confirm); a no-op without one. */
 export function closeActiveTab() {
   const { tabs, activePath } = useEditorStore.getState();
-  const tab = tabs.find((t) => t.path === activePath);
+  const tab = tabs.find((item) => item.path === activePath);
   if (tab) void requestCloseTab(tab);
 }

@@ -1,5 +1,6 @@
 import type { DirEntry } from "@/shared/lib/ipc";
 import { fold } from "@/features/commands/fuzzy";
+import { t } from "@/shared/i18n";
 
 /** Listing state of one folder. `entries` stays populated while a refresh is loading. */
 export interface DirListing {
@@ -165,7 +166,7 @@ export function buildTreeRows(
         depth,
         ancestors,
         tone: "muted",
-        text: "Boş klasör",
+        text: t("Empty folder"),
         about: path,
         underName: false,
       });

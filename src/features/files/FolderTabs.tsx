@@ -6,6 +6,7 @@ import { samePath } from "@/features/workspace/recents";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { cn } from "@/shared/ui/cn";
 import { IconButton } from "@/shared/ui/IconButton";
+import { t } from "@/shared/i18n";
 
 /**
  * Header of the file tree: the open folders side by side (click one to show its tree),
@@ -27,7 +28,7 @@ export function FolderTabs({ onAdd }: { onAdd: () => void }) {
     <div className="flex h-10 shrink-0 items-center gap-1 border-b border-white/[0.05] pr-1 pl-1.5">
       <div
         role="tablist"
-        aria-label="Açık klasörler"
+        aria-label={t("Open folders")}
         // A vertical wheel scrolls the strip sideways, like the editor's tabs.
         onWheel={(e) => {
           if (e.deltaY !== 0 && e.deltaX === 0) e.currentTarget.scrollLeft += e.deltaY;
@@ -62,8 +63,8 @@ export function FolderTabs({ onAdd }: { onAdd: () => void }) {
               <button
                 type="button"
                 tabIndex={-1}
-                aria-label={`${name} klasörünü kapat`}
-                title="Kapat"
+                aria-label={t("Close folder {name}", { name })}
+                title={t("Close")}
                 onClick={() => useWorkspaceStore.getState().closeFolder(path)}
                 className={cn(
                   "mr-1 grid size-4.5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-fast hover:bg-elevated hover:text-fg",
@@ -76,9 +77,14 @@ export function FolderTabs({ onAdd }: { onAdd: () => void }) {
           );
         })}
       </div>
-      <IconButton icon={Plus} size="sm" label="Klasör ekle" onClick={onAdd} />
+      <IconButton icon={Plus} size="sm" label={t("Add folder")} onClick={onAdd} />
       {root && (
-        <IconButton icon={RotateCw} size="sm" label="Yenile" onClick={() => requestRefresh()} />
+        <IconButton
+          icon={RotateCw}
+          size="sm"
+          label={t("Refresh")}
+          onClick={() => requestRefresh()}
+        />
       )}
     </div>
   );

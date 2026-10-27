@@ -6,6 +6,7 @@ import { sendToChat } from "@/features/commands/events";
 import { ipc } from "@/shared/lib/ipc";
 import { sessionTitle } from "./sessionTitle";
 import { handoffPrompt, transcriptFileName, transcriptMarkdown } from "./transcript";
+import { t } from "@/shared/i18n";
 
 function activeTranscript(): { markdown: string; title: string; agent: string } | null {
   const state = useAgentStore.getState();
@@ -24,23 +25,23 @@ function activeTranscript(): { markdown: string; title: string; agent: string } 
 export const canExportChat = () => activeTranscript() !== null;
 
 export async function copyChatMarkdown(): Promise<boolean> {
-  const t = activeTranscript();
-  if (!t) return false;
-  await navigator.clipboard.writeText(t.markdown);
+  const chat = activeTranscript();
+  if (!chat) return false;
+  await navigator.clipboard.writeText(chat.markdown);
   return true;
 }
 
 /** Asks where to save, then writes the `.md` file. Resolves false when cancelled. */
 export async function exportChatMarkdown(): Promise<boolean> {
-  const t = activeTranscript();
-  if (!t) return false;
+  const chat = activeTranscript();
+  if (!chat) return false;
   const path = await save({
-    title: "Sohbeti dışa aktar",
-    defaultPath: transcriptFileName(t.title),
+    title: t("Export chat"),
+    defaultPath: transcriptFileName(chat.title),
     filters: [{ name: "Markdown", extensions: ["md"] }],
   });
   if (!path) return false;
-  await ipc.writeFile(path, t.markdown);
+  await ipc.writeFile(path, chat.markdown);
   return true;
 }
 
@@ -59,12 +60,12 @@ export function handoffTargets(): { id: AgentId; name: string }[] {
  * with what happened so far, ready to send (nothing is sent on the user's behalf).
  */
 export function handOffTo(target: AgentId): boolean {
-  const t = activeTranscript();
-  if (!t) return false;
+  const chat = activeTranscript();
+  if (!chat) return false;
   const store = useAgentStore.getState();
   store.selectAgent(target);
   store.setActiveSession(null);
   // The new chat's composer mounts on the next frame.
-  requestAnimationFrame(() => sendToChat(handoffPrompt(t.agent, t.markdown)));
+  requestAnimationFrame(() => sendToChat(handoffPrompt(chat.agent, chat.markdown)));
   return true;
 }

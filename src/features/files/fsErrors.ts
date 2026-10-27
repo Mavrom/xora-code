@@ -1,13 +1,15 @@
 /** Codes the Rust fs commands prefix their messages with (`[code] OS text`). */
+import { t } from "@/shared/i18n";
+
 export type FsErrorCode =
   "not_found" | "permission_denied" | "binary" | "too_large" | "is_dir" | "unknown";
 
 const MESSAGES: Record<Exclude<FsErrorCode, "unknown">, string> = {
-  not_found: "Dosya bulunamadı; silinmiş ya da taşınmış olabilir.",
-  permission_denied: "Erişim izni yok.",
-  binary: "Metin dosyası değil; ikili dosyalar açılamıyor.",
-  too_large: "Dosya çok büyük (16 MB üstü); açılamıyor.",
-  is_dir: "Bu bir klasör, dosya değil.",
+  not_found: t("File not found; it may have been deleted or moved."),
+  permission_denied: t("Access denied."),
+  binary: t("Not a text file; binary files cannot be opened."),
+  too_large: t("File too large (over 16 MB) to open."),
+  is_dir: t("This is a folder, not a file."),
 };
 
 const CODED = /^\[([a-z_]+)\]\s*/;

@@ -33,6 +33,7 @@ import {
   toolText,
 } from "./toolView";
 import { ToolImages } from "./ToolImages";
+import { t } from "@/shared/i18n";
 
 const KIND_ICON: Record<AcpToolKind, LucideIcon> = {
   read: FileText,
@@ -193,10 +194,10 @@ function ToolTitle({ title }: { title: string }) {
 
 function StatusMark({ status }: { status: NonNullable<AcpToolCall["status"]> }) {
   const label = {
-    pending: "Bekliyor",
-    in_progress: "Çalışıyor",
-    completed: "Tamamlandı",
-    failed: "Başarısız",
+    pending: t("Pending"),
+    in_progress: t("Running"),
+    completed: t("Completed"),
+    failed: t("Failed"),
   }[status];
   return (
     <span
@@ -244,15 +245,21 @@ function TerminalOutput({ terminal }: { terminal: TerminalView | undefined }) {
           onClick={() => setExpanded(true)}
           className="flex h-7 w-full items-center border-b border-border px-3 text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
         >
-          Tümü · {preview.hidden} satır daha
+          {preview.hidden === 1
+            ? t("All · 1 more line")
+            : t("All · {n} more lines", { n: preview.hidden })}
         </button>
       )}
       <pre className="max-h-80 overflow-auto px-3 py-2 font-mono text-2xs leading-[18px] whitespace-pre-wrap text-fg-muted select-text">
-        {preview.lines.length > 0 ? preview.lines.join("\n") : exited ? "Çıktı yok." : "…"}
+        {preview.lines.length > 0 ? preview.lines.join("\n") : exited ? t("No output.") : "…"}
       </pre>
       {exited && (
         <div className="flex h-6 items-center border-t border-border px-3 text-3xs text-fg-subtle">
-          {code === 0 ? "Çıkış kodu 0" : code === null ? "Sonlandırıldı" : `Çıkış kodu ${code}`}
+          {code === 0
+            ? t("Exit code 0")
+            : code === null
+              ? t("Terminated")
+              : t("Exit code {code}", { code })}
         </div>
       )}
     </div>

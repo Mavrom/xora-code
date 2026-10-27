@@ -3,6 +3,7 @@ import { ChevronRight } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { Collapse } from "./Disclosure";
 import { formatDuration } from "./format";
+import { t } from "@/shared/i18n";
 
 interface ThinkingBlockProps {
   text: string;
@@ -36,8 +37,10 @@ export const ThinkingBlock = memo(function ThinkingBlock({
   }, [active, text]);
 
   const label = active
-    ? "Düşünüyor…"
-    : `Düşündü${endedAt ? ` · ${formatDuration(endedAt - startedAt)}` : ""}`;
+    ? t("Thinking…")
+    : endedAt
+      ? t("Thought · {duration}", { duration: formatDuration(endedAt - startedAt) })
+      : t("Thought");
 
   return (
     <div className="text-xs">

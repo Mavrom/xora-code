@@ -1,3 +1,5 @@
+import { t } from "@/shared/i18n";
+
 export interface ShortcutSource {
   id: string;
   title: string;
@@ -12,7 +14,7 @@ export interface ShortcutGroup {
 
 /** Bindings that live outside the command registry (the palette cannot list itself). */
 export const BUILTIN_SHORTCUTS: ShortcutSource[] = [
-  { id: "palette.open", title: "Komut paleti", group: "Genel", shortcut: "mod+k" },
+  { id: "palette.open", title: t("Command palette"), group: "Genel", shortcut: "mod+k" },
 ];
 
 const normalize = (s: string) => s.toLocaleLowerCase("tr");

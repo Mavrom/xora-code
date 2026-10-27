@@ -15,6 +15,7 @@ import { setPaletteOpen } from "./paletteGuard";
 import { dynamicCommands } from "./dynamic";
 import { COMMANDS, type Command } from "./registry";
 import { flatten, moveIndex, rankCommands, type Ranked } from "./results";
+import { t } from "@/shared/i18n";
 
 interface CommandPaletteProps {
   onClose: () => void;
@@ -87,7 +88,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
       <div
         role="dialog"
         aria-modal="true"
-        aria-label="Komut paleti"
+        aria-label={t("Command palette")}
         onKeyDown={onKeyDown}
         // Clicks on padding, headers or the footer must not pull focus out of the input,
         // or Esc and the arrows would stop working.
@@ -112,7 +113,7 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
               setQuery(e.target.value);
               setActive(0);
             }}
-            placeholder="Komut, sohbet ya da klasör ara…"
+            placeholder={t("Search commands, chats or folders…")}
             className="h-full min-w-0 flex-1 bg-transparent text-[14px] text-fg outline-none placeholder:text-fg-subtle focus-visible:outline-none"
           />
           <Kbd keys="esc" />
@@ -122,14 +123,14 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
           ref={list}
           id={`${baseId}-list`}
           role="listbox"
-          aria-label="Komutlar"
+          aria-label={t("Commands")}
           className="min-h-0 flex-1 scroll-py-1.5 overflow-y-auto py-1.5"
         >
           {results.length === 0 ? (
             <div className="px-4 py-8 text-center">
-              <p className="text-[13px] text-fg">Sonuç yok</p>
+              <p className="text-[13px] text-fg">{t("No results")}</p>
               <p className="mt-1 truncate text-[12px] text-fg-muted">
-                “{query.trim()}” ile eşleşen bir komut bulunamadı.
+                {t("No command matches “{query}”.", { query: query.trim() })}
               </p>
             </div>
           ) : (
@@ -168,15 +169,15 @@ export function CommandPalette({ onClose }: CommandPaletteProps) {
           <span className="flex items-center gap-1.5">
             <Kbd keys="up" />
             <Kbd keys="down" />
-            gez
+            {t("move")}
           </span>
           <span className="flex items-center gap-1.5">
             <Kbd keys="enter" />
-            çalıştır
+            {t("run")}
           </span>
           <span className="flex items-center gap-1.5">
             <Kbd keys="esc" />
-            kapat
+            {t("close")}
           </span>
         </div>
       </div>

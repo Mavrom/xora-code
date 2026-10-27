@@ -18,6 +18,7 @@ import {
   type ProviderState,
 } from "../providers";
 import { useSettingsStore } from "../store";
+import { t } from "@/shared/i18n";
 
 export function AccountsSection() {
   const statuses = useAccountsStore((s) => s.statuses);
@@ -39,8 +40,10 @@ export function AccountsSection() {
   return (
     <>
       <SectionHeader
-        title="Hesaplar"
-        description="Xora, bilgisayarınızdaki ajan CLI'larını kendi aboneliğinizle çalıştırır. Giriş bilgileri CLI'da kalır; Xora onları hiç okumaz."
+        title={t("Accounts")}
+        description={t(
+          "Xora runs the agent CLIs on your computer with your own subscription. Sign-in details stay with the CLI; Xora never reads them.",
+        )}
         action={
           <Button
             variant="secondary"
@@ -49,14 +52,14 @@ export function AccountsSection() {
             disabled={detecting}
             className={cn(detecting && "[&>svg]:animate-spin")}
           >
-            Yenile
+            {t("Refresh")}
           </Button>
         }
       />
 
       {error && (
         <p role="alert" className="mt-4 text-xs text-danger">
-          Algılama başarısız: {error}
+          {t("Detection failed: {error}", { error })}
         </p>
       )}
 
@@ -78,11 +81,11 @@ export function AccountsSection() {
         )}
       </div>
 
-      <SettingGroup title="Varsayılan" className="mt-10">
+      <SettingGroup title={t("Default")} className="mt-10">
         <SettingRow
-          label="Varsayılan ajan"
+          label={t("Default agent")}
           setting="agent.defaultAgent"
-          description="Yeni sohbetler bu ajanla başlar."
+          description={t("New chats start with this agent.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
@@ -96,9 +99,11 @@ export function AccountsSection() {
 
       <SettingGroup title="Claude Code">
         <SettingRow
-          label="ANTHROPIC_API_KEY'i yok say"
+          label={t("Ignore ANTHROPIC_API_KEY")}
           setting="agent.claudeIgnoreApiKey"
-          description="Ortamda bir API anahtarı tanımlı olsa bile Claude Code aboneliğinizle çalışır."
+          description={t(
+            "Claude Code uses your subscription even when an API key is set in the environment.",
+          )}
           control={(id) => (
             <Toggle
               labelledBy={id}
@@ -113,10 +118,10 @@ export function AccountsSection() {
 }
 
 const STATE_LABEL: Record<ProviderState, string> = {
-  ready: "Hazır",
-  signedOut: "Giriş gerekli",
-  missing: "Kurulu değil",
-  unknown: "Durum bilinmiyor",
+  ready: t("Ready"),
+  signedOut: t("Sign-in needed"),
+  missing: t("Not installed"),
+  unknown: t("Status unknown"),
 };
 
 function StatusChip({ state }: { state: ProviderState }) {
@@ -196,7 +201,7 @@ function ProviderCard({
     try {
       await settingsIpc.login(info.id);
       awaitingFocus.current = true;
-      setNote({ text: `Konsol açıldı. ${info.loginHint}` });
+      setNote({ text: t("A console opened. {loginHint}", { loginHint: info.loginHint }) });
     } catch (err) {
       setNote({ text: String(err), error: true });
     }
@@ -205,10 +210,10 @@ function ProviderCard({
   const signIn = status?.signIn ?? "unknown";
   const meta = installed
     ? [
-        status?.version ? `v${status.version}` : "sürüm okunamadı",
+        status?.version ? `v${status.version}` : t("version unknown"),
         shortenPath(status?.path ?? "", home),
       ]
-    : ["PATH üzerinde bulunamadı"];
+    : [t("not found on PATH")];
 
   return (
     <article
@@ -223,7 +228,7 @@ function ProviderCard({
             <span className="text-2xs text-fg-subtle">{info.vendor}</span>
             {isDefault && (
               <span className="rounded-xs border border-border-strong px-1.5 text-3xs font-medium tracking-wide text-fg-muted uppercase">
-                Varsayılan
+                {t("Default")}
               </span>
             )}
           </div>
@@ -254,7 +259,7 @@ function ProviderCard({
         <div className="flex items-center gap-1.5">
           {installed && !isDefault && (
             <Button variant="ghost" size="sm" onClick={onMakeDefault}>
-              Varsayılan yap
+              {t("Make default")}
             </Button>
           )}
           {installed ? (
@@ -264,7 +269,7 @@ function ProviderCard({
               icon={LogIn}
               onClick={() => void login()}
             >
-              {signIn === "signedIn" ? "Yeniden giriş" : "Giriş yap"}
+              {signIn === "signedIn" ? t("Sign in again") : t("Sign in")}
             </Button>
           ) : (
             <Button
@@ -274,7 +279,7 @@ function ProviderCard({
               aria-expanded={installOpen}
               onClick={() => setInstallOpen((o) => !o)}
             >
-              Kur
+              {t("Install")}
             </Button>
           )}
         </div>
@@ -282,9 +287,9 @@ function ProviderCard({
 
       {!installed && installOpen && (
         <div className="border-t border-border px-4 py-3 transition-opacity duration-base starting:opacity-0">
-          <CopyField value={info.install} label="Kurulum komutunu kopyala" />
+          <CopyField value={info.install} label={t("Copy install command")} />
           <p className="mt-2 text-2xs text-fg-subtle">
-            Bir terminalde çalıştırın (Node.js 20+ gerekir), sonra Yenile'ye basın.
+            {t("Run it in a terminal (needs Node.js 20+), then press Refresh.")}
           </p>
         </div>
       )}
@@ -307,7 +312,7 @@ function ProviderCard({
 function ProviderSkeleton({ info }: { info: ProviderInfo }) {
   return (
     <div
-      aria-label={`${info.name} algılanıyor`}
+      aria-label={t("Detecting {name}", { name: info.name })}
       className="flex items-center gap-3.5 bg-surface rounded-lg border border-border px-4 py-3.5"
     >
       <ProviderMark info={info} dim />

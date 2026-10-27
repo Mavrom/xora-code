@@ -25,6 +25,7 @@ import {
 import { SEPARATOR } from "@/shared/ui/menuModel";
 import { toggleFiles, useUiStore } from "./uiStore";
 import { WindowControls } from "./WindowControls";
+import { t } from "@/shared/i18n";
 
 interface MainBarProps {
   sidebarOpen: boolean;
@@ -59,7 +60,7 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
     >
       <div className="flex min-w-0 flex-1 items-center gap-2 pl-2">
         {!sidebarOpen && (
-          <IconButton icon={PanelLeft} label="Kenar çubuğunu göster" onClick={onShowSidebar} />
+          <IconButton icon={PanelLeft} label={t("Show sidebar")} onClick={onShowSidebar} />
         )}
         {docked && (
           <>
@@ -73,7 +74,7 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
             </h2>
             <IconButton
               icon={SquarePen}
-              label="Yeni sohbet"
+              label={t("New chat")}
               size="sm"
               onClick={() => useAgentStore.getState().setActiveSession(null)}
             />
@@ -87,18 +88,14 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
           {hasFiles && (
             <IconButton
               icon={PanelRight}
-              label={editorOpen ? "Editörü gizle" : "Editörü göster"}
+              label={editorOpen ? t("Hide editor") : t("Show editor")}
               active={editorOpen}
               onClick={onToggleEditor}
             />
           )}
           <IconButton
             icon={Files}
-            label={
-              filesOpen
-                ? "Dosyaları sabitlemeyi bırak (Ctrl+Shift+E)"
-                : "Dosyaları sabitle (Ctrl+Shift+E)"
-            }
+            label={filesOpen ? t("Unpin files (Ctrl+Shift+E)") : t("Pin files (Ctrl+Shift+E)")}
             active={filesOpen}
             onClick={toggleFiles}
           />
@@ -120,7 +117,7 @@ function ChatMenu({ title }: { title: string }) {
       <span ref={anchor} className="inline-flex">
         <IconButton
           icon={Ellipsis}
-          label="Sohbet seçenekleri"
+          label={t("Chat options")}
           size="sm"
           onClick={() => {
             const r = anchor.current?.getBoundingClientRect();
@@ -136,12 +133,12 @@ function ChatMenu({ title }: { title: string }) {
           onClose={() => setAt(null)}
           items={[
             {
-              label: "Markdown olarak kopyala",
+              label: t("Copy as Markdown"),
               icon: Copy,
               onSelect: () => void copyChatMarkdown().catch(() => undefined),
             },
             {
-              label: "Dışa aktar…",
+              label: t("Export…"),
               icon: Download,
               hint: ".md",
               onSelect: () =>
@@ -150,10 +147,10 @@ function ChatMenu({ title }: { title: string }) {
                 ),
             },
             ...(targets.length > 0 ? [SEPARATOR] : []),
-            ...targets.map((t) => ({
-              label: `${t.name} ile devam et`,
+            ...targets.map((target) => ({
+              label: t("Continue with {name}", { name: target.name }),
               icon: ArrowRightLeft,
-              onSelect: () => void handOffTo(t.id),
+              onSelect: () => void handOffTo(target.id),
             })),
           ]}
         />

@@ -14,6 +14,7 @@ import type { AcpAuthMethod, AgentInfo } from "@/features/agents/types";
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/ui/cn";
 import { Collapse } from "./Disclosure";
+import { t } from "@/shared/i18n";
 
 const NODE_URL = "https://nodejs.org/";
 
@@ -46,11 +47,14 @@ export function AgentStatusCard({
         return (
           <Card
             icon={Download}
-            title={`${name} bağlayıcısı kurulu değil`}
-            body={`Xora, ${name} için resmi ACP bağlayıcısını uygulama klasörüne bir kez kurar. Hesabın ve ayarların değişmez.`}
+            title={t("The {name} adapter is not installed", { name })}
+            body={t(
+              "Xora installs the official ACP adapter for {name} into its app folder, once. Your account and settings stay as they are.",
+              { name },
+            )}
             actions={
               <Button variant="primary" icon={Download} onClick={onInstall}>
-                Kur
+                {t("Install")}
               </Button>
             }
           />
@@ -59,15 +63,17 @@ export function AgentStatusCard({
       return (
         <Card
           icon={CircleAlert}
-          title={status.reason === "node-missing" ? "Node.js bulunamadı" : "Node.js sürümü eski"}
-          body="Agent bağlayıcıları Node.js 22 veya üstüyle çalışır. Kurduktan sonra yeniden dene."
+          title={
+            status.reason === "node-missing" ? t("Node.js not found") : t("Node.js is too old")
+          }
+          body={t("Agent adapters need Node.js 22 or newer. Install it, then try again.")}
           actions={
             <>
               <Button variant="primary" onClick={() => void openUrl(NODE_URL)}>
-                Node.js indir
+                {t("Download Node.js")}
               </Button>
               <Button variant="ghost" icon={RotateCcw} onClick={onRestart}>
-                Yeniden dene
+                {t("Try again")}
               </Button>
             </>
           }
@@ -79,21 +85,21 @@ export function AgentStatusCard({
         <Card
           icon={Download}
           live
-          title={`${name} kuruluyor…`}
-          body="İlk kurulum bir dakika kadar sürebilir."
+          title={t("Installing {name}…", { name })}
+          body={t("The first install can take about a minute.")}
           footer={<Progress value={status.progress} />}
         />
       );
 
     case "starting":
-      return <Card icon={PlugZap} live title={`${name} bağlanıyor…`} />;
+      return <Card icon={PlugZap} live title={t("Connecting to {name}…", { name })} />;
 
     case "authRequired": {
       const methods = subscriptionAuthMethods(agent.id, status.authMethods);
       return (
         <Card
           icon={KeyRound}
-          title={`${name} hesabına giriş yap`}
+          title={t("Sign in to {name}", { name })}
           body={authHint(methods)}
           footer={
             authError ? (
@@ -121,11 +127,11 @@ export function AgentStatusCard({
         <Card
           icon={CircleAlert}
           tone="danger"
-          title={`${name} beklenmedik şekilde kapandı`}
-          body={status.code === null ? undefined : `Çıkış kodu ${status.code}.`}
+          title={t("{name} quit unexpectedly", { name })}
+          body={status.code === null ? undefined : t("Exit code {code}.", { code: status.code })}
           actions={
             <Button variant="primary" icon={RotateCcw} onClick={onRestart}>
-              Yeniden başlat
+              {t("Restart")}
             </Button>
           }
           footer={status.stderrTail.length > 0 ? <Details lines={status.stderrTail} /> : null}
@@ -139,8 +145,10 @@ export function AgentStatusCard({
 
 function authHint(methods: AcpAuthMethod[]): string {
   return methods.some((m) => m.type === "terminal")
-    ? "Açılan konsolda girişi tamamla; bitince sohbet kendiliğinden devam eder."
-    : "Giriş tarayıcıda açılır. Xora hiçbir parolayı ya da anahtarı görmez.";
+    ? t(
+        "Finish signing in in the console that opened; the chat picks up on its own when you are done.",
+      )
+    : t("Sign-in opens in your browser. Xora never sees a password or key.");
 }
 
 interface CardProps {
@@ -195,7 +203,7 @@ function Progress({ value }: { value: number | null }) {
   return (
     <div
       role="progressbar"
-      aria-label="Kurulum"
+      aria-label={t("Setup")}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={percent ?? undefined}
@@ -226,7 +234,7 @@ function Details({ lines }: { lines: string[] }) {
         onClick={() => setOpen((v) => !v)}
         className="text-2xs text-fg-subtle underline-offset-2 transition-colors duration-fast hover:text-fg-muted hover:underline"
       >
-        {open ? "Ayrıntıları gizle" : "Ayrıntılar"}
+        {open ? t("Hide details") : t("Details")}
       </button>
       <Collapse open={open} id={id}>
         <pre className="mt-2 max-h-48 overflow-auto rounded-md border border-border bg-bg px-3 py-2 font-mono text-3xs leading-4 whitespace-pre-wrap text-fg-muted select-text">

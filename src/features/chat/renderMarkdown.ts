@@ -3,6 +3,7 @@
 // the language and a copy button (wired up by event delegation in Markdown.tsx).
 import DOMPurify from "dompurify";
 import { Marked } from "marked";
+import { t } from "@/shared/i18n";
 
 const ESCAPES: Record<string, string> = {
   "&": "&amp;",
@@ -31,8 +32,9 @@ const marked = new Marked({
       const language = (lang ?? "").trim().split(/\s+/)[0].toLowerCase();
       return (
         `<div class="md-code" data-lang="${escapeHtml(language)}">` +
-        `<div class="md-code-head"><span>${escapeHtml(language || "metin")}</span>` +
-        `<button type="button" class="md-code-copy" data-copy aria-label="Kodu kopyala">Kopyala</button></div>` +
+        `<div class="md-code-head"><span>${escapeHtml(language || t("text"))}</span>` +
+        `<button type="button" class="md-code-copy" data-copy aria-label="${escapeHtml(t("Copy code"))}">` +
+        `${escapeHtml(t("Copy"))}</button></div>` +
         `<pre><code>${escapeHtml(text)}</code></pre></div>`
       );
     },

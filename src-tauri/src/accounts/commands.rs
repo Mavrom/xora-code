@@ -43,7 +43,7 @@ pub async fn accounts_login(app: AppHandle, provider: Provider) -> AppResult<()>
     let exe = env.locate(provider).ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::NotFound,
-            format!("{} bulunamadı; önce kurun.", provider.title()),
+            format!("{} not found; install it first.", provider.title()),
         )
     })?;
     super::open_login(&exe, provider)?;

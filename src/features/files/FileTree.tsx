@@ -37,6 +37,7 @@ import {
 import { useFileOpener } from "./useFileOpener";
 import { useTreeState } from "./useTreeState";
 import { scrollToReveal, visibleRange } from "./virtualRange";
+import { t } from "@/shared/i18n";
 
 const ROW_PADDING = 8;
 const INDENT = 14;
@@ -120,16 +121,16 @@ function ExplorerEmpty({ onOpenFolder }: { onOpenFolder: () => void }) {
   return (
     <EmptyState
       icon={FolderSearch}
-      title="Klasör açılmadı"
+      title={t("No folder open")}
       description={
         recents.length > 0
-          ? "Bir klasör aç ya da kaldığın yerden devam et."
-          : "Başlamak için bir klasör aç."
+          ? t("Open a folder or pick up where you left off.")
+          : t("Open a folder to get started.")
       }
       action={
         <>
           <Button icon={FolderOpen} onClick={onOpenFolder}>
-            Klasör aç
+            {t("Open folder")}
           </Button>
           {recents.length > 0 && (
             <section aria-labelledby={headingId} className="mt-7 w-full max-w-64 text-left">
@@ -137,7 +138,7 @@ function ExplorerEmpty({ onOpenFolder }: { onOpenFolder: () => void }) {
                 id={headingId}
                 className="px-2 pb-1.5 text-2xs font-medium tracking-wide text-fg-subtle uppercase"
               >
-                Son açılanlar
+                {t("Recent")}
               </h3>
               <ul className="flex flex-col">
                 {recents.map((path) => (
@@ -165,7 +166,7 @@ function ExplorerEmpty({ onOpenFolder }: { onOpenFolder: () => void }) {
                 ))}
               </ul>
               <p role="status" className="min-h-5 px-2 pt-1 text-2xs text-fg-subtle">
-                {gone && `“${gone}” bulunamadı; listeden çıkarıldı.`}
+                {gone && t("“{gone}” was not found and was removed from the list.", { gone })}
               </p>
             </section>
           )}

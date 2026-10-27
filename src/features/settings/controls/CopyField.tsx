@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Check, Copy } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
+import { t } from "@/shared/i18n";
 
 const COPIED_MS = 1600;
 
@@ -32,8 +33,8 @@ export function CopyField({ value, label }: { value: string; label: string }) {
       </code>
       <button
         type="button"
-        aria-label={copied ? "Kopyalandı" : label}
-        title={copied ? "Kopyalandı" : label}
+        aria-label={copied ? t("Copied") : label}
+        title={copied ? t("Copied") : label}
         onClick={() => void copy()}
         className={cn(
           "inline-flex h-6 items-center gap-1 rounded-sm px-1.5 text-2xs transition-colors duration-fast",
@@ -45,7 +46,7 @@ export function CopyField({ value, label }: { value: string; label: string }) {
         ) : (
           <Copy size={12} strokeWidth={1.75} aria-hidden />
         )}
-        <span aria-live="polite">{copied ? "Kopyalandı" : "Kopyala"}</span>
+        <span aria-live="polite">{copied ? t("Copied") : t("Copy")}</span>
       </button>
     </div>
   );

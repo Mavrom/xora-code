@@ -7,6 +7,7 @@ import { Kbd } from "@/shared/ui/Kbd";
 import type { PendingPermission } from "@/features/agents/reducer";
 import { DiffPreview } from "./DiffPreview";
 import { defaultAllow, defaultReject, permissionLabel, toolDiffs, toolText } from "./toolView";
+import { t } from "@/shared/i18n";
 
 interface PermissionPromptProps {
   request: PendingPermission;
@@ -80,7 +81,7 @@ export function PermissionPrompt({ request, queued, onRespond }: PermissionPromp
         </span>
         <div className="min-w-0 flex-1">
           <p id={titleId} className="text-ui font-medium text-fg">
-            İzin gerekiyor
+            {t("Permission needed")}
             {queued > 0 && (
               <span className="ml-2 text-2xs font-normal text-fg-subtle">+{queued} bekliyor</span>
             )}
@@ -90,7 +91,7 @@ export function PermissionPrompt({ request, queued, onRespond }: PermissionPromp
             className="mt-0.5 truncate text-xs text-fg-muted"
             title={toolCall.title ?? ""}
           >
-            {toolCall.title ?? "Agent bir işlem yapmak istiyor."}
+            {toolCall.title ?? t("The agent wants to do something.")}
           </p>
         </div>
       </div>

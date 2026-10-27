@@ -15,7 +15,7 @@ export interface TerminalTab {
 
 /** Lowest positive number not used by an open tab. */
 export function nextSeq(tabs: readonly TerminalTab[]): number {
-  const used = new Set(tabs.map((t) => t.seq));
+  const used = new Set(tabs.map((tab) => tab.seq));
   let n = 1;
   while (used.has(n)) n += 1;
   return n;
@@ -31,7 +31,7 @@ export function activeAfterClose(
   active: number | null,
 ): number | null {
   if (active !== closing) return active;
-  const index = tabs.findIndex((t) => t.key === closing);
+  const index = tabs.findIndex((tab) => tab.key === closing);
   if (index === -1) return active;
   const next = tabs[index + 1] ?? tabs[index - 1];
   return next ? next.key : null;
@@ -42,11 +42,14 @@ export function activeAfterClose(
  * same name. "Terminal" stands in until the shell is known.
  */
 export function tabLabels(tabs: readonly TerminalTab[]): Map<number, string> {
-  const name = (t: TerminalTab) => t.shell ?? "Terminal";
+  const name = (tab: TerminalTab) => tab.shell ?? "Terminal";
   const counts = new Map<string, number>();
-  for (const t of tabs) counts.set(name(t), (counts.get(name(t)) ?? 0) + 1);
+  for (const tab of tabs) counts.set(name(tab), (counts.get(name(tab)) ?? 0) + 1);
   return new Map(
-    tabs.map((t) => [t.key, (counts.get(name(t)) ?? 0) > 1 ? `${name(t)} ${t.seq}` : name(t)]),
+    tabs.map((tab) => [
+      tab.key,
+      (counts.get(name(tab)) ?? 0) > 1 ? `${name(tab)} ${tab.seq}` : name(tab),
+    ]),
   );
 }
 
@@ -59,7 +62,7 @@ export function cycleTab(
   if (tabs.length === 0) return null;
   const index = Math.max(
     0,
-    tabs.findIndex((t) => t.key === active),
+    tabs.findIndex((tab) => tab.key === active),
   );
   return tabs[(((index + delta) % tabs.length) + tabs.length) % tabs.length].key;
 }

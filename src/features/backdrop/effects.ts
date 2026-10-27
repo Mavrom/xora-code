@@ -68,13 +68,13 @@ export function ditherPixels(data: Uint8ClampedArray, width: number, levels = 6)
   const snap = (v: number) => Math.min(levels - 1, Math.max(0, Math.round(v / step))) * step;
   for (let i = 0; i < data.length; i += 4) {
     const p = i / 4;
-    const t = (BAYER_8[((Math.floor(p / width) & 7) << 3) | ((p % width) & 7)] + 0.5) / 64;
+    const threshold = (BAYER_8[((Math.floor(p / width) & 7) << 3) | ((p % width) & 7)] + 0.5) / 64;
     const r = data[i];
     const g = data[i + 1];
     const b = data[i + 2];
     // Share of lit pixels; a lit one carries 1/share of the colour so the area keeps its tone.
     const share = Math.min(1, luminance(r, g, b) * 1.3);
-    const lit = share > t;
+    const lit = share > threshold;
     const gain = lit ? 1 / Math.max(0.35, share) : 0;
     data[i] = snap(r * gain);
     data[i + 1] = snap(g * gain);

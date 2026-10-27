@@ -3,6 +3,7 @@
 // Gemini's unstable `models` field are used. Pure, no IPC.
 
 import type { AcpConfigOption, AcpSelectGroup, AcpSelectOption, SessionSetup } from "./types";
+import { t } from "@/shared/i18n";
 
 export interface SelectControl {
   /** configId, or "legacy-mode" / "legacy-model". */
@@ -97,7 +98,7 @@ export function deriveControls(source: ControlSource): SessionControls {
     out.mode = {
       key: LEGACY_MODE_KEY,
       via: "mode",
-      label: "Mod",
+      label: t("Mode"),
       current: modes.currentModeId,
       options: modes.availableModes.map((m) => option(m.id, m.name, m.description)),
     };
@@ -106,7 +107,7 @@ export function deriveControls(source: ControlSource): SessionControls {
     out.model = {
       key: LEGACY_MODEL_KEY,
       via: "model",
-      label: "Model",
+      label: t("Model"),
       current: models.currentModelId,
       options: models.availableModels.map((m) => option(m.modelId, m.name, m.description)),
     };

@@ -308,7 +308,7 @@ impl AgentManager {
             stdout,
             stderr_tail: stderr,
         } = process::spawn(&launch).map_err(|err| {
-            let message = format!("{} başlatılamadı: {err}", spec.display_name);
+            let message = format!("{} could not start: {err}", spec.display_name);
             // Never leave the UI on "connecting" after a failed start.
             self.set_status(
                 agent,
@@ -752,8 +752,9 @@ impl AgentManager {
                     .collect()
             })
             .unwrap_or_default();
-        open_console(&conn.node, &conn.entry, &args, &env, &cwd)
-            .map_err(|err| AgentError::Unavailable(format!("giriş penceresi açılamadı: {err}")))
+        open_console(&conn.node, &conn.entry, &args, &env, &cwd).map_err(|err| {
+            AgentError::Unavailable(format!("could not open the sign-in window: {err}"))
+        })
     }
 
     /// Close guard: cancel everything and kill every adapter tree.

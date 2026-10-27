@@ -1,4 +1,5 @@
 import { Paperclip } from "lucide-react";
+import { t } from "@/shared/i18n";
 
 /** Shown over the window while files are dragged in. */
 export function DropOverlay() {
@@ -11,8 +12,8 @@ export function DropOverlay() {
         <span className="grid size-11 place-items-center rounded-xl border border-white/10 bg-white/[0.06]">
           <Paperclip size={18} strokeWidth={1.75} />
         </span>
-        <p className="text-ui font-medium">Sohbete eklemek için bırak</p>
-        <p className="text-xs text-fg-muted">Dosyalar, klasörler ve görseller</p>
+        <p className="text-ui font-medium">{t("Drop to add to the chat")}</p>
+        <p className="text-xs text-fg-muted">{t("Files, folders and images")}</p>
       </div>
     </div>
   );

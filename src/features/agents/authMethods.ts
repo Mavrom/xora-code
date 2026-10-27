@@ -1,4 +1,5 @@
 import type { AcpAuthMethod, AgentId } from "./types";
+import { t } from "@/shared/i18n";
 
 /**
  * Sign-in methods that use the person's own subscription. API-key, console and
@@ -21,10 +22,10 @@ export function subscriptionAuthMethods(
 }
 
 const LABELS: Record<string, string> = {
-  "claude-ai-login": "Claude aboneliğiyle giriş yap",
-  "claude-login": "Claude ile giriş yap",
-  "chat-gpt": "ChatGPT ile giriş yap",
-  "oauth-personal": "Google ile giriş yap",
+  "claude-ai-login": t("Sign in with a Claude subscription"),
+  "claude-login": t("Sign in with Claude"),
+  "chat-gpt": t("Sign in with ChatGPT"),
+  "oauth-personal": t("Sign in with Google"),
 };
 
 /** Button text for a sign-in method (the agent's own name for unknown ones). */

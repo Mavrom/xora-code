@@ -15,6 +15,7 @@ import { terminalIpc, toBytes, type OutputMessage } from "./ipc";
 import { clipboardAction } from "./keys";
 import { buildTerminalTheme, readTokens } from "./theme";
 import { createWriteQueue, type WriteQueue } from "./writeQueue";
+import { t } from "@/shared/i18n";
 
 export interface SessionEvents {
   onStarted: (shell: string) => void;
@@ -150,7 +151,7 @@ export class TerminalSession {
       const message = err instanceof Error ? err.message : String(err);
       this.exited = true;
       if (!this.disposed) {
-        this.term.write(errorNote(`Terminal başlatılamadı: ${message}`));
+        this.term.write(errorNote(t("Could not start the terminal: {message}", { message })));
         this.events.onFailed(message);
       }
     }
@@ -161,7 +162,11 @@ export class TerminalSession {
     this.exited = true;
     if (this.disposed) return;
     if (code !== 0) {
-      this.term.write(note(`İşlem sonlandı${code === null ? "" : ` (çıkış kodu ${code})`}`));
+      this.term.write(
+        note(
+          code === null ? t("Process exited") : t("Process exited (exit code {code})", { code }),
+        ),
+      );
     }
     this.events.onExit(code);
   }

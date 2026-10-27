@@ -1,6 +1,7 @@
 import { Fragment } from "react";
 import { cn } from "@/shared/ui/cn";
 import { slashOptionId, type SlashItem } from "./slash";
+import { t } from "@/shared/i18n";
 
 interface SlashPopoverProps {
   id: string;
@@ -10,7 +11,7 @@ interface SlashPopoverProps {
   onPick: (item: SlashItem) => void;
 }
 
-const GROUP_LABEL = { agent: "Agent komutları", xora: "Xora" } as const;
+const GROUP_LABEL = { agent: t("Agent commands"), xora: t("Xora") } as const;
 
 /**
  * Command list above the composer while the message starts with "/". Focus stays in the
@@ -21,11 +22,11 @@ export function SlashPopover({ id, items, active, onHover, onPick }: SlashPopove
     <div
       id={id}
       role="listbox"
-      aria-label="Komutlar"
+      aria-label={t("Commands")}
       className="absolute inset-x-0 bottom-full z-30 mb-2 max-h-72 overflow-y-auto rounded-xl border border-glass-border bg-glass-strong p-1 shadow-2xl shadow-black/60 backdrop-blur-2xl transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
     >
       {items.length === 0 ? (
-        <p className="px-3 py-2.5 text-xs text-fg-subtle">Eşleşen komut yok</p>
+        <p className="px-3 py-2.5 text-xs text-fg-subtle">{t("No matching commands")}</p>
       ) : (
         items.map((item, index) => (
           <Fragment key={item.id}>

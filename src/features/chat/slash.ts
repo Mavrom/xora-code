@@ -2,6 +2,7 @@
 // commands plus Xora's own (which never reach the agent), fuzzy-ranked by the typed name.
 import { fuzzyMatch } from "@/features/commands/fuzzy";
 import type { AcpCommand } from "@/features/agents/types";
+import { t } from "@/shared/i18n";
 
 export type SlashGroup = "agent" | "xora";
 
@@ -20,8 +21,8 @@ export interface SlashItem {
 
 /** Xora-local commands; handled in the UI, never sent to the agent. */
 export const XORA_COMMANDS = [
-  { name: "new", description: "Yeni sohbet başlat" },
-  { name: "clear", description: "Sohbeti kapat, boş sayfaya dön" },
+  { name: "new", description: t("Start a new chat") },
+  { name: "clear", description: t("Close the chat, back to a blank page") },
 ] as const;
 
 export type XoraCommandName = (typeof XORA_COMMANDS)[number]["name"];

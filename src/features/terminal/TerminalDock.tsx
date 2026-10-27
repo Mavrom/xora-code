@@ -3,6 +3,7 @@ import { Group, Panel, Separator, useDefaultLayout } from "react-resizable-panel
 import { onCommand, TOGGLE_TERMINAL } from "@/features/commands/events";
 import { createDockController } from "./dockController";
 import { useTerminalStore } from "./store";
+import { t } from "@/shared/i18n";
 
 // xterm and the terminal UI load on first open, never in the entry chunk.
 const TerminalPanel = lazy(() => import("./TerminalPanel"));
@@ -41,7 +42,7 @@ export function TerminalDock({ children }: { children: ReactNode }) {
         {children}
       </Panel>
       <Separator
-        aria-label="Terminal yüksekliği"
+        aria-label={t("Terminal height")}
         className="h-px bg-border transition-colors duration-150 data-[separator=active]:bg-fg-muted data-[separator=focus]:bg-fg-subtle data-[separator=hover]:bg-fg-subtle"
       />
       <Panel

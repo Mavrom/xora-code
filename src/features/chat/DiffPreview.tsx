@@ -4,6 +4,7 @@ import { cn } from "@/shared/ui/cn";
 import { diffLines, diffStats, limitHunks, toHunks, type DiffLine } from "./diff";
 import { canOpenDiff, openDiffInEditor, revealInEditor } from "./editorBridge";
 import { fileName } from "./toolView";
+import { t } from "@/shared/i18n";
 
 /** Rendered rows before "show more"; long rewrites stay cheap to paint. */
 const PREVIEW_ROWS = 80;
@@ -57,7 +58,7 @@ export const DiffPreview = memo(function DiffPreview({
         </button>
         {isNew && (
           <span className="shrink-0 rounded-xs border border-border-strong px-1 text-3xs text-fg-muted">
-            yeni
+            {t("new")}
           </span>
         )}
         <DiffStat {...stats} />
@@ -69,12 +70,12 @@ export const DiffPreview = memo(function DiffPreview({
             className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
           >
             <Columns2 size={12} strokeWidth={1.75} aria-hidden />
-            Editörde aç
+            {t("Open in editor")}
           </button>
         )}
       </div>
       {hunks.length === 0 ? (
-        <p className="px-3 py-2 text-2xs text-fg-subtle">İçerik değişmedi.</p>
+        <p className="px-3 py-2 text-2xs text-fg-subtle">{t("Content unchanged.")}</p>
       ) : (
         <div className="max-h-90 overflow-auto py-1 font-mono text-2xs leading-[18px]">
           <table className="w-full border-collapse">
@@ -104,7 +105,9 @@ export const DiffPreview = memo(function DiffPreview({
               onClick={() => setExpanded(true)}
               className="mx-1 mt-1 h-6 w-[calc(100%-0.5rem)] rounded-md text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
             >
-              {total - maxRows} satır daha göster
+              {total - maxRows === 1
+                ? t("Show 1 more line")
+                : t("Show {n} more lines", { n: total - maxRows })}
             </button>
           )}
         </div>

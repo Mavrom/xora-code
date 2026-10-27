@@ -4,6 +4,7 @@ import { useWorkspaceStore } from "@/features/workspace/store";
 import { describeFsError } from "@/features/files/fsErrors";
 import { extname } from "@/shared/lib/path";
 import { useEditorStore } from "./store";
+import { t } from "@/shared/i18n";
 
 interface EditorStatusBarProps {
   path: string | null;
@@ -50,8 +51,8 @@ export function EditorStatusBar({ path, error, cursor, diskChanged }: EditorStat
         ) : diskChanged && path ? (
           <span className="flex min-w-0 items-center gap-1.5 text-warning">
             <CircleAlert size={12} strokeWidth={2} className="shrink-0" aria-hidden />
-            <span className="truncate" title="Kaydedersen diskteki sürümün üzerine yazılır.">
-              Diskte değişti; kaydedersen diskteki sürümün üzerine yazılır.
+            <span className="truncate" title={t("Saving overwrites the version on disk.")}>
+              {t("Changed on disk; saving overwrites the version on disk.")}
             </span>
             <button
               type="button"
@@ -59,7 +60,7 @@ export function EditorStatusBar({ path, error, cursor, diskChanged }: EditorStat
               className="inline-flex h-5 shrink-0 items-center gap-1 rounded-sm px-1.5 text-fg-muted transition-colors duration-fast hover:bg-hover hover:text-fg"
             >
               <RotateCcw size={11} strokeWidth={2} aria-hidden />
-              Diskten yükle
+              {t("Load from disk")}
             </button>
           </span>
         ) : (
@@ -70,7 +71,7 @@ export function EditorStatusBar({ path, error, cursor, diskChanged }: EditorStat
         {cursor && (
           <span>
             <span className="sr-only">
-              Satır {cursor.line}, sütun {cursor.column}
+              {t("Line {line}, column {column}", { line: cursor.line, column: cursor.column })}
             </span>
             <span aria-hidden>
               {cursor.line}:{cursor.column}

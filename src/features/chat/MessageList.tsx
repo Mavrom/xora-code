@@ -11,14 +11,15 @@ import { ToolCallCard } from "./ToolCallCard";
 import { fileName, imageKey, messageImagePaths, toolImages, type ToolImage } from "./toolView";
 import { ToolImages } from "./ToolImages";
 import { dataUrl } from "./attachments";
+import { t } from "@/shared/i18n";
 
 const NONE: ReadonlySet<string> = new Set();
 
 const STOP_NOTE: Partial<Record<AcpStopReason, string>> = {
   cancelled: "Durduruldu.",
-  max_tokens: "Yanıt uzunluk sınırına ulaştı.",
-  max_turn_requests: "Bu tur için istek sınırına ulaşıldı.",
-  refusal: "Agent bu isteği yanıtlamadı.",
+  max_tokens: t("The reply hit its length limit."),
+  max_turn_requests: t("This turn hit its request limit."),
+  refusal: t("The agent declined this request."),
 };
 
 interface MessageListProps {
@@ -83,7 +84,7 @@ export function MessageList({ session }: MessageListProps) {
         ref={scrollRef}
         onScroll={onScroll}
         role="log"
-        aria-label="Sohbet"
+        aria-label={t("Chat")}
         aria-live="polite"
         aria-busy={running || session.loading}
         className="h-full overflow-x-hidden overflow-y-auto [scrollbar-gutter:stable]"
@@ -102,7 +103,7 @@ export function MessageList({ session }: MessageListProps) {
           ))}
           {working && (
             <p className="mt-4 text-xs">
-              <span className="shimmer">Çalışıyor…</span>
+              <span className="shimmer">{t("Working…")}</span>
             </p>
           )}
           {stopNote && <p className="mt-3 text-2xs text-fg-subtle">{stopNote}</p>}
@@ -118,7 +119,8 @@ export function MessageList({ session }: MessageListProps) {
                 className="mt-0.5 shrink-0 text-danger"
               />
               <p className="min-w-0 text-fg-muted">
-                <span className="text-fg">Tur tamamlanamadı.</span> {session.error.message}
+                <span className="text-fg">{t("The turn could not finish.")}</span>{" "}
+                {session.error.message}
               </p>
             </div>
           )}
@@ -135,7 +137,7 @@ export function MessageList({ session }: MessageListProps) {
         )}
       >
         <ArrowDown size={12} strokeWidth={1.75} aria-hidden />
-        En alta git
+        {t("Jump to bottom")}
       </button>
     </div>
   );
@@ -206,8 +208,8 @@ function CopyReply({ text }: { text: string }) {
   return (
     <button
       type="button"
-      aria-label="Yanıtı kopyala"
-      title={copied ? "Kopyalandı" : "Yanıtı kopyala"}
+      aria-label={t("Copy reply")}
+      title={copied ? t("Copied") : t("Copy reply")}
       onClick={() =>
         void navigator.clipboard.writeText(text).then(
           () => setCopied(true),
@@ -282,7 +284,7 @@ function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
             <img
               key={i}
               src={dataUrl(img.mimeType, img.data)}
-              alt="Eklenen görsel"
+              alt={t("Attached image")}
               className="max-h-48 max-w-72 rounded-xl border border-glass-border object-cover"
             />
           ))}
@@ -330,7 +332,7 @@ function NoticeRow({ severity, title }: { severity: string; title: string }) {
 
 function ReplaySkeleton() {
   return (
-    <div aria-label="Oturum yükleniyor" className="flex flex-col gap-3">
+    <div aria-label={t("Loading session")} className="flex flex-col gap-3">
       <div className="skeleton ml-auto h-9 w-2/5 animate-skeleton rounded-2xl" />
       <div className="skeleton h-3 w-4/5 animate-skeleton rounded-full" />
       <div className="skeleton h-3 w-3/5 animate-skeleton rounded-full" />

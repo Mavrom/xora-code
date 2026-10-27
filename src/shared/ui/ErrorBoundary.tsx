@@ -1,5 +1,6 @@
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { RotateCcw, TriangleAlert } from "lucide-react";
+import { t } from "@/shared/i18n";
 
 interface ErrorBoundaryProps {
   /** What failed, for the message ("Sohbet", "Editör"). */
@@ -39,7 +40,9 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
           <span className="grid size-10 place-items-center rounded-xl border border-white/10 bg-white/[0.04] text-warning">
             <TriangleAlert size={18} strokeWidth={1.75} aria-hidden />
           </span>
-          <p className="text-ui font-medium text-fg">{this.props.area} bir hatayla karşılaştı</p>
+          <p className="text-ui font-medium text-fg">
+            {t("{area} ran into an error", { area: this.props.area })}
+          </p>
           <p className="max-h-24 overflow-auto font-mono text-2xs break-all text-fg-subtle select-text">
             {error.message}
           </p>
@@ -49,7 +52,7 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
             className="mt-1 inline-flex h-8 items-center gap-1.5 rounded-md border border-border bg-white/[0.04] px-3 text-xs text-fg transition-colors duration-fast hover:bg-white/[0.08]"
           >
             <RotateCcw size={13} strokeWidth={1.75} aria-hidden />
-            Yeniden dene
+            {t("Try again")}
           </button>
         </div>
       </div>

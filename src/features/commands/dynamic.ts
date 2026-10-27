@@ -7,6 +7,7 @@ import { samePath } from "@/features/workspace/recents";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { basename } from "@/shared/lib/path";
 import type { Command } from "./registry";
+import { t } from "@/shared/i18n";
 
 /** How many conversations / folders the palette lists before you type. */
 export const MAX_DYNAMIC = 8;
@@ -23,8 +24,8 @@ export function buildDynamicCommands(
     .slice(0, MAX_DYNAMIC)
     .map<Command>((s) => ({
       id: `session:${s.agentId}:${s.sessionId}`,
-      title: s.title?.trim() || "Adsız sohbet",
-      group: "Sohbetler",
+      title: s.title?.trim() || t("Untitled chat"),
+      group: t("Chats"),
       icon: MessageSquareText,
       run: () => actions.openSession(s),
     }));
@@ -34,7 +35,7 @@ export function buildDynamicCommands(
     .map<Command>((path) => ({
       id: `folder:${path}`,
       title: basename(path),
-      group: "Son klasörler",
+      group: t("Recent folders"),
       icon: FolderClock,
       run: () => actions.openFolder(path),
     }));

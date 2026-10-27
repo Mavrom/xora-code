@@ -7,6 +7,7 @@ import { basename } from "@/shared/lib/path";
 import { cn } from "@/shared/ui/cn";
 import { imageMime } from "./attachments";
 import type { ToolImage } from "./toolView";
+import { t } from "@/shared/i18n";
 
 /** Object URL for a picture: inline base64 decoded once, or a file read through the backend. */
 function useImageUrl(image: ToolImage): string | null | "failed" {
@@ -51,7 +52,7 @@ export function ToolImages({ images, inset = true }: { images: ToolImage[]; inse
 function ToolImageTile({ image }: { image: ToolImage }) {
   const url = useImageUrl(image);
   const [zoomed, setZoomed] = useState(false);
-  const name = image.path ? basename(image.path) : "Görsel";
+  const name = image.path ? basename(image.path) : t("Image");
 
   // A file that is gone (or never was) just does not show.
   if (url === "failed") return null;
@@ -88,13 +89,13 @@ function Lightbox({ url, image, onClose }: { url: string; image: ToolImage; onCl
   return createPortal(
     <div
       role="dialog"
-      aria-label="Görsel"
+      aria-label={t("Image")}
       onClick={onClose}
       className="fixed inset-0 z-50 grid place-items-center bg-black/80 p-10 backdrop-blur-md transition-opacity duration-base starting:opacity-0"
     >
       <img
         src={url}
-        alt={image.path ? basename(image.path) : "Görsel"}
+        alt={image.path ? basename(image.path) : t("Image")}
         onClick={(e) => e.stopPropagation()}
         className="max-h-full max-w-full rounded-xl object-contain shadow-[0_20px_80px_rgb(0_0_0/0.7)]"
       />
@@ -102,7 +103,7 @@ function Lightbox({ url, image, onClose }: { url: string; image: ToolImage; onCl
         {image.path && (
           <button
             type="button"
-            aria-label="Klasörde göster"
+            aria-label={t("Show in folder")}
             title={image.path}
             onClick={(e) => {
               e.stopPropagation();
@@ -115,7 +116,7 @@ function Lightbox({ url, image, onClose }: { url: string; image: ToolImage; onCl
         )}
         <button
           type="button"
-          aria-label="Kapat"
+          aria-label={t("Close")}
           onClick={onClose}
           className="grid size-9 place-items-center rounded-lg text-fg-muted transition-colors duration-fast hover:bg-white/10 hover:text-fg"
         >
