@@ -1,7 +1,9 @@
 // Window transparency (Settings > Görünüm > Pencere). The window is created transparent;
-// "solid" paints it onyx, "frosted" adds Windows Acrylic (what is behind, blurred) and
+// "solid" paints it onyx, "frosted" adds Windows Acrylic or macOS vibrancy (what is behind,
+// blurred) and
 // "clear" leaves it see-through. `--app-base` is the tint every surface sits on.
-import { Effect, getCurrentWindow } from "@tauri-apps/api/window";
+import { Effect, EffectState, getCurrentWindow } from "@tauri-apps/api/window";
+import { detectPlatform } from "@/shared/ui/keys";
 import { useSettingsStore } from "@/features/settings/store";
 import type { AppearanceSettings } from "@/features/settings/types";
 
@@ -20,16 +22,21 @@ function apply(look: Look) {
   root.style.setProperty("--app-base", baseColor(look));
   try {
     const win = getCurrentWindow();
-    const task =
-      look.window === "frosted"
-        ? // Acrylic's own tint: near-black, so a light desktop behind does not wash the
-          // window out to grey; `--app-base` darkens further on top.
-          win.setEffects({ effects: [Effect.Acrylic], color: [6, 6, 8, 150] })
-        : win.clearEffects();
+    const task = look.window === "frosted" ? win.setEffects(frostedEffect()) : win.clearEffects();
     task.catch((error: unknown) => console.error("Window effect failed", error));
   } catch {
     // Outside Tauri (tests, plain browser): the CSS tint alone.
   }
+}
+
+function frostedEffect() {
+  if (detectPlatform(navigator) === "mac") {
+    // The dark HUD material; Active so the blur stays when the window loses focus.
+    return { effects: [Effect.HudWindow], state: EffectState.Active };
+  }
+  // Acrylic's own tint: near-black, so a light desktop behind does not wash the
+  // window out to grey; `--app-base` darkens further on top.
+  return { effects: [Effect.Acrylic], color: [6, 6, 8, 150] as [number, number, number, number] };
 }
 
 /** Applies the window look now and whenever it changes in Settings. */

@@ -10,6 +10,7 @@ mod terminal;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
+    system::adopt_login_shell_path();
     tauri::Builder::default()
         // Must be the first plugin: a second launch only focuses the running window, so
         // two instances never share (and clobber) notes.json or the WebView2 profile.

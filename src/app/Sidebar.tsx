@@ -27,6 +27,7 @@ import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
 import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
+import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET } from "./WindowControls";
 import { t } from "@/shared/i18n";
 
 /** Ctrl+Shift+<code> per view. Avoids WebView2's Ctrl+Shift+I/J (devtools). */
@@ -98,7 +99,10 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       />
       <div
         data-tauri-drag-region="deep"
-        className="relative flex h-10 shrink-0 items-center gap-0.5 px-2"
+        className={cn(
+          "relative flex h-10 shrink-0 items-center gap-0.5 px-2",
+          NATIVE_CAPTION && TRAFFIC_LIGHT_INSET,
+        )}
       >
         <BarButton icon={PanelLeft} label={t("Hide sidebar")} onClick={onCollapse} />
         <BarButton
