@@ -1137,7 +1137,27 @@ fn open_console(
         }
         cmd.spawn().map(|_| ())
     }
-    #[cfg(not(windows))]
+    // A GUI app has no terminal of its own: a child spawned here would wait on a sign-in
+    // prompt nobody can see. Terminal.app runs it where the user can answer.
+    #[cfg(target_os = "macos")]
+    {
+        use crate::accounts::shell_quote;
+        let mut line = format!("cd {} && env", shell_quote(&cwd.to_string_lossy()));
+        for (k, v) in env {
+            line.push(' ');
+            line.push_str(&shell_quote(&format!("{k}={v}")));
+        }
+        for part in [node.as_os_str(), entry.as_os_str()] {
+            line.push(' ');
+            line.push_str(&shell_quote(&part.to_string_lossy()));
+        }
+        for arg in args {
+            line.push(' ');
+            line.push_str(&shell_quote(arg));
+        }
+        crate::accounts::open_in_mac_terminal(&line)
+    }
+    #[cfg(all(unix, not(target_os = "macos")))]
     {
         let mut cmd = std::process::Command::new(node);
         cmd.arg(entry).args(args).current_dir(cwd);

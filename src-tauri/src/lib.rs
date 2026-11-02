@@ -75,6 +75,15 @@ pub fn run() {
             git::commands::git_worktree_merge,
             git::commands::git_worktree_remove,
         ])
-        .run(tauri::generate_context!())
-        .expect("error while running tauri application");
+        .build(tauri::generate_context!())
+        .expect("error while running tauri application")
+        .run(|app, event| {
+            // Cmd+Q on macOS quits without a window close request, so the frontend's close
+            // guards never run: stop the agents and terminals here too (repeat calls are no-ops).
+            if let tauri::RunEvent::Exit = event {
+                use tauri::Manager;
+                tauri::async_runtime::block_on(app.state::<agents::AgentManager>().shutdown());
+                app.state::<terminal::TerminalManager>().kill_all();
+            }
+        });
 }

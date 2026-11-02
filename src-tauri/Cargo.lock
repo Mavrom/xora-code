@@ -5012,6 +5012,7 @@ version = "0.1.0"
 dependencies = [
  "agent-client-protocol-schema",
  "dunce",
+ "libc",
  "notify",
  "portable-pty",
  "serde",
