@@ -108,10 +108,10 @@ export function Layout() {
     [editorPanel],
   );
 
-  // Ctrl+B, like VS Code and Zed; capture phase so it also works from the editor.
+  // Ctrl+B (Cmd+B on macOS), like VS Code and Zed; capture phase so it also works from the editor.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.repeat || !e.ctrlKey || e.shiftKey || e.altKey || e.metaKey)
+      if (e.defaultPrevented || e.repeat || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey)
         return;
       if (e.code !== "KeyB") return;
       e.preventDefault();

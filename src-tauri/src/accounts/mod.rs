@@ -291,18 +291,7 @@ pub fn open_login(exe: &Path, provider: Provider) -> std::io::Result<()> {
             script.push(' ');
             script.push_str(arg);
         }
-        let apple = format!(
-            "tell application \"Terminal\" to do script \"{}\"",
-            script.replace('\\', "\\\\").replace('"', "\\\"")
-        );
-        Command::new("osascript")
-            .args([
-                "-e",
-                &apple,
-                "-e",
-                "tell application \"Terminal\" to activate",
-            ])
-            .spawn()?;
+        open_in_mac_terminal(&script)?;
     }
     #[cfg(all(unix, not(target_os = "macos")))]
     {
@@ -315,8 +304,26 @@ pub fn open_login(exe: &Path, provider: Provider) -> std::io::Result<()> {
     Ok(())
 }
 
+/// Runs a shell command line in a new Terminal.app window and brings it forward.
 #[cfg(target_os = "macos")]
-fn shell_quote(s: &str) -> String {
+pub(crate) fn open_in_mac_terminal(script: &str) -> std::io::Result<()> {
+    let apple = format!(
+        "tell application \"Terminal\" to do script \"{}\"",
+        script.replace('\\', "\\\\").replace('"', "\\\"")
+    );
+    Command::new("osascript")
+        .args([
+            "-e",
+            &apple,
+            "-e",
+            "tell application \"Terminal\" to activate",
+        ])
+        .spawn()?;
+    Ok(())
+}
+
+#[cfg(target_os = "macos")]
+pub(crate) fn shell_quote(s: &str) -> String {
     format!("'{}'", s.replace('\'', "'\\''"))
 }
 

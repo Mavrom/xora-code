@@ -106,14 +106,15 @@ export function ChatPanel() {
     [],
   );
 
-  // "Yeni sohbet" from the sidebar, or Ctrl+N anywhere.
+  // "Yeni sohbet" from the sidebar, or Ctrl+N (Cmd+N on macOS) anywhere.
   useEffect(() => {
     const start = () => {
       useAgentStore.getState().setActiveSession(null);
       requestAnimationFrame(() => composerRef.current?.focus());
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat || isPaletteOpen() || !e.ctrlKey || e.shiftKey || e.altKey) return;
+      if (e.repeat || isPaletteOpen() || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey)
+        return;
       if (e.code !== "KeyN") return;
       e.preventDefault();
       start();

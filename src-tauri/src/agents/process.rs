@@ -1,5 +1,5 @@
-//! Agent adapter child processes: hidden console, kill-on-close Job Object,
-//! and a masked stderr tail for the crash card (design doc 3.8).
+//! Agent adapter child processes: hidden console, kill-on-close Job Object (a process
+//! group off Windows), and a masked stderr tail for the crash card (design doc 3.8).
 
 use std::collections::VecDeque;
 use std::ffi::OsString;
@@ -16,23 +16,28 @@ pub const STDERR_TAIL_LINES: usize = 200;
 const STDERR_LINE_MAX: usize = 2_000;
 
 /// No console window and its own process group, so the child neither flashes
-/// a console nor receives the app's Ctrl+C. No-op off Windows.
+/// a console nor receives the app's Ctrl+C. On Unix the new group (led by the
+/// child) is what [`JobObject`] kills.
 pub fn hide_console(cmd: &mut Command) {
     #[cfg(windows)]
     {
         use windows_sys::Win32::System::Threading::{CREATE_NEW_PROCESS_GROUP, CREATE_NO_WINDOW};
         cmd.creation_flags(CREATE_NO_WINDOW | CREATE_NEW_PROCESS_GROUP);
     }
-    #[cfg(not(windows))]
-    let _ = cmd;
+    #[cfg(unix)]
+    cmd.process_group(0);
 }
 
 /// Windows Job Object with `KILL_ON_JOB_CLOSE`: dropping it (or the app
 /// dying) kills every process assigned to it, grandchildren included.
-/// Off Windows it is an inert placeholder and `kill_on_drop` does the work.
+/// On Unix it remembers the child's process group (see [`hide_console`]) and
+/// kills the whole group on `terminate` and on drop; if the app itself dies,
+/// the group outlives it.
 pub struct JobObject {
     #[cfg(windows)]
     handle: windows_sys::Win32::Foundation::HANDLE,
+    #[cfg(unix)]
+    group: std::sync::atomic::AtomicI32,
 }
 
 // SAFETY: a Job Object handle is a kernel handle usable from any thread.
@@ -69,9 +74,11 @@ impl JobObject {
         }
     }
 
-    #[cfg(not(windows))]
+    #[cfg(unix)]
     pub fn new() -> io::Result<Self> {
-        Ok(Self {})
+        Ok(Self {
+            group: std::sync::atomic::AtomicI32::new(0),
+        })
     }
 
     /// Puts a freshly spawned child into the job.
@@ -88,8 +95,15 @@ impl JobObject {
         Ok(())
     }
 
-    #[cfg(not(windows))]
-    pub fn assign(&self, _child: &Child) -> io::Result<()> {
+    /// Remembers the child's process group; the child must have been spawned
+    /// through [`hide_console`], which makes it the group's leader.
+    #[cfg(unix)]
+    pub fn assign(&self, child: &Child) -> io::Result<()> {
+        let pid = child
+            .id()
+            .ok_or_else(|| io::Error::other("child already exited"))?;
+        let pid = i32::try_from(pid).map_err(io::Error::other)?;
+        self.group.store(pid, std::sync::atomic::Ordering::Release);
         Ok(())
     }
 
@@ -99,6 +113,14 @@ impl JobObject {
         // SAFETY: valid handle owned by self.
         unsafe {
             windows_sys::Win32::System::JobObjects::TerminateJobObject(self.handle, 1);
+        }
+        #[cfg(unix)]
+        {
+            let group = self.group.swap(0, std::sync::atomic::Ordering::AcqRel);
+            if group > 0 {
+                // SAFETY: plain syscall; a negative pid addresses the process group.
+                unsafe { libc::kill(-group, libc::SIGKILL) };
+            }
         }
     }
 }
@@ -110,6 +132,9 @@ impl Drop for JobObject {
         unsafe {
             windows_sys::Win32::Foundation::CloseHandle(self.handle);
         }
+        // Same contract as KILL_ON_JOB_CLOSE: whatever is left in the group goes too.
+        #[cfg(unix)]
+        self.terminate();
     }
 }
 
@@ -353,6 +378,36 @@ mod tests {
             stderr_snapshot(&proc.stderr_tail),
             vec!["hello err".to_string()]
         );
+    }
+
+    #[cfg(unix)]
+    #[tokio::test]
+    async fn terminate_kills_grandchildren_too() {
+        let spec = LaunchSpec {
+            program: "/bin/sh".into(),
+            args: vec!["-c".into(), "sleep 30 & echo $!; wait".into()],
+            ..LaunchSpec::default()
+        };
+        let mut proc = spawn(&spec).unwrap();
+        let job = proc.job.take().expect("process group");
+        let mut line = String::new();
+        BufReader::new(&mut proc.stdout)
+            .read_line(&mut line)
+            .await
+            .unwrap();
+        let grandchild: i32 = line.trim().parse().unwrap();
+
+        job.terminate();
+        let _ = proc.child.wait().await;
+        // SAFETY: signal 0 only probes whether the pid still exists.
+        let alive = || unsafe { libc::kill(grandchild, 0) } == 0;
+        for _ in 0..100 {
+            if !alive() {
+                return;
+            }
+            tokio::time::sleep(std::time::Duration::from_millis(20)).await;
+        }
+        panic!("grandchild {grandchild} survived terminate");
     }
 
     fn which_node() -> Option<PathBuf> {
