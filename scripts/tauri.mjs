@@ -65,6 +65,16 @@ if (wantsMingw) {
     }
     // No fallback available: let the Tauri CLI report the missing MSVC linker itself.
   } else {
+    // A MinGW build needs libunwind.dll and WebView2Loader.dll next to the exe, and the
+    // installer does not ship them: the installed app would not start. Fine for `dev`.
+    if (cliArgs[0] === "build" && !forceMingw) {
+      console.error(
+        "[xora] Refusing to build installers with LLVM-MinGW: the installed app would need\n" +
+          "libunwind.dll and WebView2Loader.dll. Install the MSVC Build Tools, or run the\n" +
+          "Release workflow on GitHub. (`--mingw` overrides this for local experiments.)",
+      );
+      process.exit(1);
+    }
     console.log(`[xora] MSVC linker not used; building with LLVM-MinGW (${llvmMingw}).`);
     env = {
       ...process.env,
