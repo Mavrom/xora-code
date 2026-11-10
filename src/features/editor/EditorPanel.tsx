@@ -10,7 +10,7 @@ import { onCommand, SAVE_ACTIVE_FILE, sendToChat } from "@/features/commands/eve
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { chatSnippet } from "./chatSnippet";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
-import { registerEditorFocus } from "./editorFocus";
+import { registerEditorFocus, registerEditorSelection } from "./editorFocus";
 import { isSaveShortcut } from "./editorKeys";
 import {
   formatOnSave,
@@ -69,6 +69,29 @@ function optionsFor(s: EditorSettings): monaco.editor.IStandaloneEditorConstruct
 /** Model URI for a file path; a proper file URI keeps Windows drive letters intact. */
 const modelPath = (path: string) => monaco.Uri.file(path).toString();
 
+/** Selects the store's pending reveal once the editor shows its file, then clears it. */
+function applyReveal(editor: monaco.editor.IStandaloneCodeEditor | null) {
+  const { reveal, setReveal } = useEditorStore.getState();
+  const model = editor?.getModel();
+  if (!editor || !reveal || !model || model.uri.toString() !== modelPath(reveal.path)) return;
+  const { line, column, endLine, endColumn } = reveal.range;
+  // The file may have changed since the position was found; clamp it to the text.
+  const range = model.validateRange(new monaco.Range(line, column, endLine, endColumn));
+  editor.setSelection(range);
+  editor.revealRangeInCenterIfOutsideViewport(range, monaco.editor.ScrollType.Immediate);
+  editor.focus();
+  setReveal(null);
+}
+
+/** The selected text when the editor has focus and the selection is one non-empty line. */
+function singleLineSelection(editor: monaco.editor.IStandaloneCodeEditor): string | null {
+  const model = editor.getModel();
+  const selection = editor.getSelection();
+  if (!editor.hasTextFocus() || !model || !selection || selection.isEmpty()) return null;
+  if (selection.startLineNumber !== selection.endLineNumber) return null;
+  return model.getValueInRange(selection);
+}
+
 type Cursor = { line: number; column: number };
 
 export function EditorPanel() {
@@ -123,7 +146,19 @@ export function EditorPanel() {
     }
   }, [tabs]);
 
-  useEffect(() => () => registerEditorFocus(null), []);
+  useEffect(
+    () => () => {
+      registerEditorFocus(null);
+      registerEditorSelection(null);
+    },
+    [],
+  );
+
+  // A search result or tool call link asked for a position: apply it once its tab shows.
+  // The Editor child swaps the model in its own effect, which runs before this one.
+  const reveal = useEditorStore((s) => s.reveal);
+  const activePath = active?.path ?? null;
+  useEffect(() => applyReveal(editorRef.current), [reveal, activePath]);
 
   const onMount: OnMount = (editor, m) => {
     editorRef.current = editor;
@@ -174,9 +209,12 @@ export function EditorPanel() {
     editor.onDidBlurEditorText(saveOnFocusChange);
     syncCursor();
     registerEditorFocus(() => editor.focus());
+    registerEditorSelection(() => singleLineSelection(editor));
     // Monaco measures glyphs once; re-measure after the web font actually arrives.
     void document.fonts.load(`13px "${FONT}"`).then(() => m.editor.remeasureFonts());
     editor.focus();
+    // The first file opened from a search result: Monaco mounts after the reveal was asked.
+    applyReveal(editor);
   };
 
   // Edits always belong to the active tab: the editor only ever shows its model.

@@ -1,6 +1,6 @@
 // The Monaco instance lives inside the lazily loaded EditorPanel. It registers a focus
-// function here so other parts of the UI (the tab strip) can hand focus to the editor
-// without importing Monaco.
+// function (and a selection reader) here so other parts of the UI (the tab strip, find in
+// files) can hand focus to the editor or read its selection without importing Monaco.
 
 let focusTarget: (() => void) | null = null;
 
@@ -12,6 +12,21 @@ export function registerEditorFocus(target: (() => void) | null) {
 /** Focuses the code editor on the next frame (after React shows the new model). */
 export function focusEditorSoon() {
   requestAnimationFrame(() => focusTarget?.());
+}
+
+let selectionReader: (() => string | null) | null = null;
+
+/** Called by EditorPanel with a reader of its selected text, and with `null` on unmount. */
+export function registerEditorSelection(reader: (() => string | null) | null) {
+  selectionReader = reader;
+}
+
+/**
+ * The text selected in the code editor while it has focus, when the selection is non-empty
+ * and on one line (e.g. to seed find in files); otherwise `null`.
+ */
+export function focusedEditorSelection(): string | null {
+  return selectionReader?.() ?? null;
 }
 
 /** Marks the editor slot (tabs, Monaco, status bar, empty state) for focus checks. */

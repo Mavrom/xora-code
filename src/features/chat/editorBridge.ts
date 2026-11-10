@@ -1,12 +1,10 @@
-// Chat -> editor hand-offs. `openDiff` and `revealLocation` are package Q's editor store
-// additions (design §5.3); they are feature-detected so the chat works before and after
-// they land, falling back to a plain open.
+// Chat -> editor hand-offs. `openDiff` is package Q's editor store addition (design §5.3);
+// it is feature-detected so the chat works before and after it lands.
 import { ipc } from "@/shared/lib/ipc";
-import { useEditorStore } from "@/features/editor/store";
+import { useEditorStore, type EditorRange } from "@/features/editor/store";
 
 interface EditorExtras {
   openDiff?: (path: string, oldText: string | null, newText: string) => void;
-  revealLocation?: (path: string, line?: number | null) => void;
 }
 
 const extras = () => useEditorStore.getState() as unknown as EditorExtras;
@@ -24,20 +22,24 @@ export function openDiffInEditor(path: string, oldText: string | null, newText: 
   return true;
 }
 
-/** Opens `path` in the editor, at `line` when the editor supports it. */
-export function revealInEditor(path: string, line?: number | null): void {
-  const reveal = extras().revealLocation;
-  if (reveal) {
-    reveal(path, line);
-    return;
-  }
-  const { tabs, setActive, openFile } = useEditorStore.getState();
+/**
+ * Opens `path` in the editor. With `at`, the editor then puts the cursor on that line or
+ * selects that range (the editor panel applies it once the file shows).
+ */
+export function revealInEditor(path: string, at?: number | EditorRange | null): void {
+  const { tabs, setActive, openFile, setReveal } = useEditorStore.getState();
+  const range =
+    typeof at === "number" ? { line: at, column: 1, endLine: at, endColumn: 1 } : (at ?? null);
+  setReveal(range ? { path, range } : null);
   if (tabs.some((t) => t.path === path)) {
     setActive(path);
     return;
   }
   ipc.readFile(path).then(
     (content) => openFile(path, content),
-    (err: unknown) => console.warn("chat: could not open", path, err),
+    (err: unknown) => {
+      if (useEditorStore.getState().reveal?.path === path) setReveal(null);
+      console.warn("chat: could not open", path, err);
+    },
   );
 }

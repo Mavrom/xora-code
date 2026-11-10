@@ -19,10 +19,27 @@ export interface SaveError {
   message: string;
 }
 
+/** A range in Monaco's terms: 1-based lines, 1-based UTF-16 columns, end exclusive. */
+export interface EditorRange {
+  line: number;
+  column: number;
+  endLine: number;
+  endColumn: number;
+}
+
+/** A selection to show once `path` is the active tab (search results, tool call links). */
+export interface PendingReveal {
+  path: string;
+  range: EditorRange;
+}
+
 interface EditorState {
   tabs: Tab[];
   activePath: string | null;
   saveError: SaveError | null;
+  /** Applied and cleared by the editor panel when it shows `reveal.path`. */
+  reveal: PendingReveal | null;
+  setReveal: (reveal: PendingReveal | null) => void;
   openFile: (path: string, content: string) => void;
   updateContent: (path: string, content: string) => void;
   markSaved: (path: string, content: string) => void;
@@ -49,6 +66,9 @@ export const useEditorStore = create<EditorState>((set) => ({
   tabs: [],
   activePath: null,
   saveError: null,
+  reveal: null,
+
+  setReveal: (reveal) => set({ reveal }),
 
   openFile: (path, content) =>
     set((state) => {
