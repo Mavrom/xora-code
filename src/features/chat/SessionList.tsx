@@ -31,6 +31,8 @@ import { SEPARATOR } from "@/shared/ui/menuModel";
 import { AgentGlyph } from "./AgentGlyph";
 import { Collapse } from "./Disclosure";
 import { emptySessionKey, flatSessions, groupByDay, visibleGroups } from "./sessionListView";
+import { sessionStatus, type SessionStatus } from "./sessionStatus";
+import { useUnreadStore } from "./unread";
 import { t } from "@/shared/i18n";
 
 /**
@@ -187,6 +189,22 @@ function openEntry(entry: SessionListEntry) {
   else void store.loadSession(entry.agentId, entry.sessionId, entry.cwd);
 }
 
+/** The row's state in words, for its tooltip and accessible name; `undefined` when idle. */
+function rowNote(status: SessionStatus, title: string): string | undefined {
+  switch (status) {
+    case "approval":
+      return t("{title}, waiting for approval", { title });
+    case "running":
+      return t("{title}, working", { title });
+    case "failed":
+      return t("{title}, stopped with an error", { title });
+    case "unread":
+      return t("{title}, new reply", { title });
+    case "idle":
+      return undefined;
+  }
+}
+
 const archive = (entry: SessionListEntry, archived: boolean) =>
   useAgentStore
     .getState()
@@ -229,6 +247,9 @@ function SessionRow({
   const [renaming, setRenaming] = useState(false);
   const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
   const title = entry.title ? shortTitle(entry.title) : t("Untitled chat");
+  const unread = useUnreadStore((s) => s.ids.has(entry.sessionId));
+  const status = useAgentStore((s) => sessionStatus(s.sessions[entry.sessionId], unread));
+  const note = rowNote(status, entry.title ?? title);
 
   const onContextMenu = (e: MouseEvent) => {
     e.preventDefault();
@@ -291,14 +312,27 @@ function SessionRow({
           type="button"
           onClick={() => openEntry(entry)}
           aria-current={entry.active ? "page" : undefined}
-          title={entry.title ?? undefined}
+          aria-label={note && (worktree ? `${note} ${worktreeName(worktree.path)}` : note)}
+          title={note ?? entry.title ?? undefined}
           className="flex h-full min-w-0 flex-1 items-center gap-2.5 rounded-lg pl-2.5 text-left text-[13px]"
         >
-          {entry.running ? (
+          {status === "running" ? (
             // Working: a soft pulse in place of the agent mark.
             <span aria-hidden className="relative grid size-3.5 shrink-0 place-items-center">
               <span className="absolute size-2 animate-ping rounded-full bg-fg/40" />
               <span className="size-1.5 rounded-full bg-fg" />
+            </span>
+          ) : status !== "idle" ? (
+            // Waiting, failed or unread: a still dot in the same place, so rows never shift.
+            <span aria-hidden className="grid size-3.5 shrink-0 place-items-center">
+              <span
+                className={cn(
+                  "size-1.5 rounded-full",
+                  status === "approval" && "bg-warning ring-2 ring-warning/25",
+                  status === "failed" && "bg-danger",
+                  status === "unread" && "bg-fg",
+                )}
+              />
             </span>
           ) : (
             <AgentGlyph
@@ -311,7 +345,15 @@ function SessionRow({
               )}
             />
           )}
-          <span className={cn("min-w-0 flex-1 truncate", entry.running && "shimmer")}>{title}</span>
+          <span
+            className={cn(
+              "min-w-0 flex-1 truncate",
+              status === "running" && "shimmer",
+              (status === "approval" || status === "unread") && "text-fg",
+            )}
+          >
+            {title}
+          </span>
           {worktree && (
             <span
               title={`Worktree: ${worktree.branch ?? worktree.path}`}
@@ -322,7 +364,7 @@ function SessionRow({
           )}
         </button>
         <span className="relative mr-1.5 ml-1 flex h-full shrink-0 items-center">
-          {!entry.running && Number.isFinite(updated) && (
+          {status !== "running" && status !== "approval" && Number.isFinite(updated) && (
             <span className="text-[11px] text-fg-subtle/70 tabular-nums transition-opacity duration-fast group-focus-within:opacity-0 group-hover:opacity-0">
               {relativeTime(updated)}
             </span>

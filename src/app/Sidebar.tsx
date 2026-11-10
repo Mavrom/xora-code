@@ -18,6 +18,8 @@ import { ChipMenu } from "@/features/chat/ChipMenu";
 import { statusNote } from "@/features/chat/controlsView";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
 import { SessionList } from "@/features/chat/SessionList";
+import { attentionCount } from "@/features/chat/sessionStatus";
+import { useUnreadStore } from "@/features/chat/unread";
 import { emitCommand, NEW_CHAT, OPEN_PALETTE } from "@/features/commands/events";
 import { changeCount } from "@/features/git/changes";
 import { CHANGES_PANEL_ID, ChangesPanel } from "@/features/git/ChangesPanel";
@@ -67,6 +69,8 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const settingsOpen = useSettingsView((s) => s.open);
   const badge = useInboxStore((s) => openCount(s.notes));
   const changes = useChangesStore((s) => changeCount(s.status));
+  const unread = useUnreadStore((s) => s.ids);
+  const waiting = useAgentStore((s) => attentionCount(s.sessions, unread));
   const canBack = useNavHistory((s) => canTravel(s, -1));
   const canForward = useNavHistory((s) => canTravel(s, 1));
   const active = settingsOpen ? null : view;
@@ -168,6 +172,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           shortcut={SHORTCUTS.sessions.label}
           active={active === "sessions"}
           onClick={() => showView("sessions")}
+          meta={<CountBadge count={waiting} />}
         />
         <NavItem
           icon={Inbox}

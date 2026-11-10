@@ -226,6 +226,10 @@ export const TR: Record<string, string> = {
   "Chat name": "Sohbetin adı",
   "Uses the agent's title": "Ajanın başlığı kullanılır",
   "Loading chats": "Sohbetler yükleniyor",
+  "{title}, waiting for approval": "{title}, onay bekliyor",
+  "{title}, working": "{title}, çalışıyor",
+  "{title}, stopped with an error": "{title}, bir hatayla durdu",
+  "{title}, new reply": "{title}, yeni yanıt var",
   // features/chat/sessionListView.ts
   Today: "Bugün",
   Yesterday: "Dün",
