@@ -108,7 +108,7 @@ These are the defaults; change any of them in Settings > Shortcuts. On macOS `Cm
 | `Ctrl +` / `Ctrl -` / `Ctrl 0` | Interface scale                |
 | `Alt+F5` / `Shift+Alt+F5`      | Next / previous change (diff)  |
 
-Every command and its shortcut is also listed in Settings > Shortcuts, where you can change or remove a shortcut and put them back to these defaults.
+Every command and its shortcut is also listed in Settings > Shortcuts, where you can change or remove a shortcut, give one to any command in the command palette, and put them all back to these defaults.
 
 ## Build from source
 
