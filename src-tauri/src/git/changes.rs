@@ -28,7 +28,7 @@ pub struct Diff {
 }
 
 /// A path relative to the repository root that stays inside it: no root, drive or `..`.
-fn checked(path: &str) -> Result<&str> {
+pub(super) fn checked(path: &str) -> Result<&str> {
     let inside = !path.is_empty()
         && Path::new(path)
             .components()

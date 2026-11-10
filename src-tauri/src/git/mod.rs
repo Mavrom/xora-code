@@ -1,6 +1,6 @@
 //! Git for Xora, through the `git` binary. This file: the runner, the error type and
 //! worktrees for agent chats (a chat can run in its own checkout on its own branch, leaving
-//! the user's working tree alone). `status` and `changes` back the Changes panel.
+//! the user's working tree alone). `status`, `changes` and `show` back the Changes panel.
 //!
 //! Errors carry a `[code]` prefix the frontend maps to a message (see [`GitError`]); `git`
 //! is anything else, with git's own text.
@@ -8,6 +8,7 @@
 pub mod changes;
 pub mod commands;
 mod deadline;
+pub mod show;
 pub mod status;
 
 use serde::Serialize;
@@ -42,6 +43,10 @@ pub enum GitError {
     NotRepo,
     #[error("[bad_path] {0}")]
     BadPath(String),
+    #[error("[binary] the file is binary")]
+    Binary,
+    #[error("[too_large] the file is {0} bytes")]
+    TooLarge(u64),
     #[error("[conflicted] resolve the merge conflicts first")]
     Conflicted,
     #[error("[nothing_staged] nothing is staged to commit")]

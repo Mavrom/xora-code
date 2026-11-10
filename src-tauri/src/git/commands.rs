@@ -1,5 +1,6 @@
 use super::Worktree;
 use super::changes::Diff;
+use super::show::Revision;
 use super::status::Status;
 use crate::error::AppResult;
 use std::path::PathBuf;
@@ -78,6 +79,12 @@ pub async fn git_diff(
     staged: bool,
 ) -> AppResult<Diff> {
     blocking(move || super::changes::diff(&dir, &path, orig_path.as_deref(), staged)).await
+}
+
+/// A file's text in HEAD or the index; `null` when it does not exist there.
+#[tauri::command]
+pub async fn git_show(dir: PathBuf, path: String, rev: Revision) -> AppResult<Option<String>> {
+    blocking(move || super::show::show(&dir, &path, rev)).await
 }
 
 #[tauri::command]
