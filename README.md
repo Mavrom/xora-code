@@ -26,7 +26,7 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 
 - **Your subscription, not ours.** Xora drives the official agent CLIs (Claude Code, Codex, Gemini CLI) over the [Agent Client Protocol](https://agentclientprotocol.com/). You sign in through each CLI's own login. Xora has no AI billing of its own, asks for no API keys, and never sees your credentials.
 - **You stay in control.** Edits and commands ask first, with a diff. Every file a turn touched can be accepted or reverted. Agents can only reach the folder you opened.
-- **Light and quiet.** A native Tauri app with a small footprint, an onyx/AMOLED look, a see-through window if you want it, and no telemetry.
+- **Light and quiet.** A native Tauri app with a small footprint, an onyx/AMOLED look, a see-through window if you want it, and no telemetry. The one thing it asks the internet on its own is GitHub, once a day, whether a newer release is out; turn that off in Settings > General > Check for updates.
 
 ## Features
 
@@ -138,7 +138,7 @@ Read [docs/architecture.md](docs/architecture.md) for the process model, folder 
 ## Roadmap
 
 - Linux builds
-- Signed installers and in-app update notices
+- Signed installers
 - Editable keyboard shortcuts
 - More interface languages
 

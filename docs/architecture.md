@@ -169,6 +169,7 @@ Each feature folder co-locates its components, its Zustand store, pure logic, an
 | `workspace` | The open folder: `store.ts`, `openFolder.ts`, recents, restoring tabs, `fsWatch.ts`, `useWorkspaceLifecycle.ts`.                                                                                                                                                               |
 | `commands`  | Command palette: `registry.ts`, `dynamic.ts` (conversations and folders), `fuzzy.ts` (Turkish folding), `events.ts` (command bus), shortcut hooks.                                                                                                                             |
 | `backdrop`  | The wallpaper behind a new chat and the readability scrim behind a conversation (`effects.ts`, `scrim.ts`).                                                                                                                                                                    |
+| `updates`   | The once-a-day "newer release?" check: `version.ts` (parse, compare), `releaseCheck.ts` (when to ask, the GitHub request, reading the answer), `saved.ts` (last check, latest release seen, dismissed version in `localStorage`), `store.ts`, `updateCheck.ts` (`installUpdateCheck`), `UpdateNotice`. A notice only; nothing is downloaded. |
 
 ### Shared (`src/shared/`)
 
@@ -184,7 +185,7 @@ Each feature folder co-locates its components, its Zustand store, pure logic, an
 
 ### Fixture mode
 
-`npm run dev` serves the UI in a plain browser, where no Rust command exists. In a DEV build, `?fixture=<scenario>` (`streaming`, `toolDiff`, `permission`, `plan`, `terminal`, `toolRun`; or `welcome` for no session) swaps the agent IPC for a fake (`setAgentIpc`) and plays a scripted turn through the real store and reducer; `&agent=codex` and `&status=crashed` pick the agent and its status. See `src/features/agents/fixtureMode.ts`. Production builds drop the fixture code.
+`npm run dev` serves the UI in a plain browser, where no Rust command exists. In a DEV build, `?fixture=<scenario>` (`streaming`, `toolDiff`, `permission`, `plan`, `terminal`, `toolRun`; or `welcome` for no session) swaps the agent IPC for a fake (`setAgentIpc`) and plays a scripted turn through the real store and reducer; `&agent=codex` and `&status=crashed` pick the agent and its status. `&update=0.9.0` shows the update notice for that version without any request. See `src/features/agents/fixtureMode.ts`. Production builds drop the fixture code.
 
 ## IPC surface
 
@@ -312,6 +313,7 @@ WebView:
 
 - Capabilities (`src-tauri/capabilities/default.json`) grant the main window `core:default`, specific window permissions (dragging, minimize, maximize, close, destroy, effects, user attention), webview zoom, `opener:default` and `dialog:default`. Custom commands are not gated by capabilities: every registered command is callable from the window.
 - The asset protocol is scoped to `$APPDATA/wallpapers/*`.
+- The UI makes one network request of its own: while Settings > General > Check for updates is on, `features/updates` sends an unauthenticated `GET` to `api.github.com/repos/Mavrom/xora-code/releases/latest` from the WebView's `fetch`, at most once a day (no cookies, no referrer; failures are silent). The release link it shows is opened only if it is an `https://github.com/Mavrom/xora-code/` URL. Turned off, no request is made.
 - There is no Content Security Policy (`"csp": null` in `tauri.conf.json`). Agent Markdown is sanitized with DOMPurify (`chat/renderMarkdown.ts`) before it is rendered.
 
 Not sandboxed, stated plainly: the adapters and everything they start, ACP terminal commands, the integrated terminal, and the UI's file commands.
@@ -360,6 +362,7 @@ Top level and the parts a newcomer needs (`node_modules`, `target`, `dist` and `
 │   │   ├── search/            Find in files
 │   │   ├── settings/          Settings view, store, controls, sections
 │   │   ├── terminal/          Terminal dock and xterm sessions
+│   │   ├── updates/           Daily newer-release check and its notice
 │   │   └── workspace/         Open folder, recents, restore, file watcher
 │   ├── shared/
 │   │   ├── i18n/              t(), msg(), Turkish catalog
