@@ -9,13 +9,13 @@ import {
   type ReactNode,
   type Ref,
 } from "react";
-import { ArrowUp, FileText, Folder, Square, X } from "lucide-react";
 import type { TurnState } from "@/features/agents/reducer";
 import type { AcpCommand } from "@/features/agents/types";
 import { useAutoGrow } from "@/shared/lib/autoGrow";
 import { useSettingsStore } from "@/features/settings/store";
 import { cn } from "@/shared/ui/cn";
-import { dataUrl, type Attachment } from "./attachments";
+import { AttachmentCard } from "./AttachmentCard";
+import type { Attachment } from "./attachments";
 import { getComposerKeyAction } from "./composerKeys";
 import {
   applySlash,
@@ -31,8 +31,8 @@ import { absolutePath, loadFileIndex } from "@/features/files/fileIndex";
 import { searchFiles, type FileHit, type IndexedFile } from "@/features/files/fileSearch";
 import { mentionOptionId, mentionToken, removeMention } from "./mention";
 import { MentionPopover } from "./MentionPopover";
-import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
-import { describeShortcut } from "@/shared/ui/keys";
+import { matchesAction } from "@/features/keymap/keymap";
+import { SendButton } from "./SendButton";
 import { t } from "@/shared/i18n";
 
 export interface ComposerHandle {
@@ -378,109 +378,5 @@ export function Composer({
         </div>
       </div>
     </div>
-  );
-}
-
-/** One attachment above the field: a thumbnail for pictures, a name card for the rest. */
-function AttachmentCard({
-  attachment: a,
-  onRemove,
-}: {
-  attachment: Attachment;
-  onRemove?: (id: string) => void;
-}) {
-  const remove = onRemove && (
-    <button
-      type="button"
-      aria-label={t("Remove attachment {name}", { name: a.name })}
-      title={t("Remove")}
-      onClick={() => onRemove(a.id)}
-      className="absolute -top-1.5 -right-1.5 grid size-4.5 place-items-center rounded-full border border-white/10 bg-[#1c1c1e] text-fg-muted opacity-0 shadow-md transition-[opacity,color] duration-fast group-hover:opacity-100 group-focus-within:opacity-100 hover:text-fg"
-    >
-      <X size={10} strokeWidth={2.25} aria-hidden />
-    </button>
-  );
-  if (a.kind === "image" && a.data && a.mimeType) {
-    return (
-      <span className="group relative block" title={a.name}>
-        <img
-          src={dataUrl(a.mimeType, a.data)}
-          alt={a.name}
-          className="size-14 rounded-lg border border-white/10 object-cover"
-        />
-        {remove}
-      </span>
-    );
-  }
-  const Icon = a.kind === "folder" ? Folder : FileText;
-  return (
-    <span
-      title={a.path ?? a.name}
-      className="group relative flex h-9 max-w-56 items-center gap-2 rounded-lg border border-white/[0.08] bg-white/[0.04] pr-3 pl-2.5 text-xs text-fg-muted"
-    >
-      <Icon size={14} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
-      <span className="truncate">{a.name}</span>
-      {remove}
-    </span>
-  );
-}
-
-interface SendButtonProps {
-  running: boolean;
-  cancelling: boolean;
-  canSend: boolean;
-  hasText: boolean;
-  onSend: () => void;
-  onStop: () => void;
-}
-
-/** Send while idle; a square Stop while the agent works (text typed then still queues on Enter). */
-function SendButton({ running, cancelling, canSend, hasText, onSend, onStop }: SendButtonProps) {
-  const stop = running && !hasText;
-  const stopKeys = useShortcut("chat.stop");
-  const label = cancelling
-    ? t("Stopping…")
-    : stop
-      ? stopKeys
-        ? t("Stop ({keys})", { keys: describeShortcut(stopKeys, PLATFORM) })
-        : t("Stop")
-      : running
-        ? t("Queue")
-        : t("Send");
-  const enabled = stop ? !cancelling : canSend;
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={!enabled}
-      onClick={stop ? onStop : onSend}
-      className={cn(
-        "relative grid size-7 shrink-0 place-items-center rounded-full bg-fg text-bg transition-[opacity,background-color] duration-base ease-out-quint disabled:cursor-not-allowed",
-        enabled ? "hover:bg-white" : "opacity-55",
-      )}
-    >
-      {/* Both icons stay mounted and cross-fade, so the swap never jumps. */}
-      <ArrowUp
-        size={15}
-        strokeWidth={2.25}
-        aria-hidden
-        className={cn(
-          "col-start-1 row-start-1 transition-[opacity,scale] duration-fast ease-out-quint",
-          stop ? "scale-75 opacity-0" : "scale-100 opacity-100",
-        )}
-      />
-      <Square
-        size={11}
-        strokeWidth={0}
-        fill="currentColor"
-        aria-hidden
-        className={cn(
-          "col-start-1 row-start-1 transition-[opacity,scale] duration-fast ease-out-quint",
-          stop ? "scale-100 opacity-100" : "scale-75 opacity-0",
-          cancelling && "animate-pulse",
-        )}
-      />
-    </button>
   );
 }
