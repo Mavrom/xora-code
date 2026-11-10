@@ -1,7 +1,7 @@
 import { Fragment, memo, useMemo, useState } from "react";
 import { Columns2 } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
-import { diffLines, diffStats, limitHunks, toHunks, type DiffLine } from "./diff";
+import { diffLines, diffStats, limitHunks, toHunks, type DiffHunk, type DiffLine } from "./diff";
 import { canOpenDiff, openDiffInEditor, revealInEditor } from "./editorBridge";
 import { fileName } from "./toolView";
 import { t } from "@/shared/i18n";
@@ -36,14 +36,11 @@ export const DiffPreview = memo(function DiffPreview({
   maxRows = PREVIEW_ROWS,
   className,
 }: DiffPreviewProps) {
-  const [expanded, setExpanded] = useState(false);
   const { hunks, stats } = useMemo(() => {
     const lines = diffLines(oldText, newText);
     return { hunks: toHunks(lines), stats: diffStats(lines) };
   }, [oldText, newText]);
   const isNew = oldText === null || oldText === undefined;
-  const total = hunks.reduce((sum, h) => sum + h.lines.length, 0);
-  const visible = expanded ? hunks : limitHunks(hunks, maxRows);
 
   return (
     <div className={cn("overflow-hidden rounded-lg border border-border bg-surface", className)}>
@@ -77,44 +74,61 @@ export const DiffPreview = memo(function DiffPreview({
       {hunks.length === 0 ? (
         <p className="px-3 py-2 text-2xs text-fg-subtle">{t("Content unchanged.")}</p>
       ) : (
-        <div className="max-h-90 overflow-auto py-1 font-mono text-2xs leading-[18px]">
-          <table className="w-full border-collapse">
-            <tbody>
-              {visible.map((hunk, index) => {
-                const rows = hunk.lines;
-                return (
-                  <Fragment key={`${hunk.oldStart}:${hunk.newStart}`}>
-                    {index > 0 && (
-                      <tr aria-hidden>
-                        <td colSpan={3} className="h-5 px-3 text-fg-subtle/70 select-none">
-                          ⋯
-                        </td>
-                      </tr>
-                    )}
-                    {rows.map((line, i) => (
-                      <DiffRow key={i} line={line} />
-                    ))}
-                  </Fragment>
-                );
-              })}
-            </tbody>
-          </table>
-          {!expanded && total > maxRows && (
-            <button
-              type="button"
-              onClick={() => setExpanded(true)}
-              className="mx-1 mt-1 h-6 w-[calc(100%-0.5rem)] rounded-md text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-            >
-              {total - maxRows === 1
-                ? t("Show 1 more line")
-                : t("Show {n} more lines", { n: total - maxRows })}
-            </button>
-          )}
-        </div>
+        <DiffBody hunks={hunks} maxRows={maxRows} />
       )}
     </div>
   );
 });
+
+/** The hunk rows of a diff, cut at `maxRows` behind a "show more" row. */
+export function DiffBody({
+  hunks,
+  maxRows = PREVIEW_ROWS,
+}: {
+  hunks: DiffHunk[];
+  maxRows?: number;
+}) {
+  const [expanded, setExpanded] = useState(false);
+  const total = hunks.reduce((sum, h) => sum + h.lines.length, 0);
+  const visible = expanded ? hunks : limitHunks(hunks, maxRows);
+
+  return (
+    <div className="max-h-90 overflow-auto py-1 font-mono text-2xs leading-[18px]">
+      <table className="w-full border-collapse">
+        <tbody>
+          {visible.map((hunk, index) => {
+            const rows = hunk.lines;
+            return (
+              <Fragment key={`${hunk.oldStart}:${hunk.newStart}`}>
+                {index > 0 && (
+                  <tr aria-hidden>
+                    <td colSpan={3} className="h-5 px-3 text-fg-subtle/70 select-none">
+                      ⋯
+                    </td>
+                  </tr>
+                )}
+                {rows.map((line, i) => (
+                  <DiffRow key={i} line={line} />
+                ))}
+              </Fragment>
+            );
+          })}
+        </tbody>
+      </table>
+      {!expanded && total > maxRows && (
+        <button
+          type="button"
+          onClick={() => setExpanded(true)}
+          className="mx-1 mt-1 h-6 w-[calc(100%-0.5rem)] rounded-md text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+        >
+          {total - maxRows === 1
+            ? t("Show 1 more line")
+            : t("Show {n} more lines", { n: total - maxRows })}
+        </button>
+      )}
+    </div>
+  );
+}
 
 const SIGN: Record<DiffLine["type"], string> = { add: "+", del: "−", context: " " };
 
