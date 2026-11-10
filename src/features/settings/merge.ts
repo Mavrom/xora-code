@@ -1,6 +1,6 @@
 import type { Settings, SettingsPatch } from "./types";
 
-const SECTIONS = ["general", "agent", "editor", "appearance"] as const;
+const SECTIONS = ["general", "agent", "editor", "terminal", "appearance"] as const;
 
 /** Returns `settings` with `patch` applied per section; untouched sections keep their identity. */
 export function applyPatch(settings: Settings, patch: SettingsPatch): Settings {

@@ -11,6 +11,15 @@ describe("applyPatch", () => {
     expect(next.editor).not.toBe(DEFAULT_SETTINGS.editor);
   });
 
+  it("applies every section, the terminal included", () => {
+    const next = applyPatch(DEFAULT_SETTINGS, { terminal: { shell: "cmd", fontSize: 15 } });
+    expect(next.terminal).toEqual({ shell: "cmd", fontSize: 15 });
+    expect(isEmptyPatch({ terminal: { fontSize: 15 } })).toBe(false);
+    expect(mergePatches({ terminal: { shell: "cmd" } }, { terminal: { fontSize: 15 } })).toEqual({
+      terminal: { shell: "cmd", fontSize: 15 },
+    });
+  });
+
   it("returns the same object when nothing changes", () => {
     expect(applyPatch(DEFAULT_SETTINGS, {})).toBe(DEFAULT_SETTINGS);
     expect(applyPatch(DEFAULT_SETTINGS, { editor: { fontSize: 13 } })).toBe(DEFAULT_SETTINGS);
