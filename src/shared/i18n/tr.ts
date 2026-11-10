@@ -341,6 +341,7 @@ export const TR: Record<string, string> = {
   // features/editor/EditorPanel.tsx
   "Add selection to chat": "Seçimi sohbete ekle",
   // features/editor/EditorStatusBar.tsx
+  "Could not save: {error}": "Kaydedilemedi: {error}",
   "Saving overwrites the version on disk.": "Kaydedersen diskteki sürümün üzerine yazılır.",
   "Changed on disk; saving overwrites the version on disk.":
     "Diskte değişti; kaydedersen diskteki sürümün üzerine yazılır.",
@@ -349,6 +350,7 @@ export const TR: Record<string, string> = {
   // features/editor/EditorTabs.tsx
   "Open files": "Açık dosyalar",
   "{path}\nChanged on disk": "{path}\nDiskte değişti",
+  "(unsaved)": "(kaydedilmedi)",
   "(changed on disk)": "(diskte değişti)",
   "Close {name}": "{name} kapat",
   "Close (Ctrl+W)": "Kapat (Ctrl+W)",

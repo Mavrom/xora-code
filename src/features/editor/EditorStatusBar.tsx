@@ -37,7 +37,7 @@ export function EditorStatusBar({ path, error, cursor, diskChanged }: EditorStat
         {error ? (
           <span className="flex min-w-0 items-center gap-1.5 text-danger">
             <CircleAlert size={12} strokeWidth={2} className="shrink-0" aria-hidden />
-            <span className="truncate">Kaydedilemedi: {error}</span>
+            <span className="truncate">{t("Could not save: {error}", { error })}</span>
           </span>
         ) : diskChanged && path ? (
           <span className="flex min-w-0 items-center gap-1.5 text-warning">

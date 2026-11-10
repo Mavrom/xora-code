@@ -205,7 +205,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         )}
         <span className="truncate">{label}</span>
         {hint && <span className="truncate text-2xs text-fg-subtle">{hint}</span>}
-        {dirty && <span className="sr-only">(kaydedilmedi)</span>}
+        {dirty && <span className="sr-only">{t("(unsaved)")}</span>}
         {tab.diskChanged && <span className="sr-only">{t("(changed on disk)")}</span>}
       </button>
       <button
