@@ -130,7 +130,8 @@ export const TR: Record<string, string> = {
   "Remove attachment {name}": "{name} ekini kaldır",
   Remove: "Kaldır",
   "Stopping…": "Durduruluyor…",
-  "Stop (Esc)": "Durdur (Esc)",
+  "Stop ({keys})": "Durdur ({keys})",
+  Stop: "Durdur",
   Queue: "Sıraya ekle",
   Send: "Gönder",
   // features/chat/ComposerToolbar.tsx
@@ -730,11 +731,38 @@ export const TR: Record<string, string> = {
   "System follows the operating system's setting. Always turns transition animations off.":
     "Sistem, işletim sisteminin ayarını izler. Her zaman, geçiş animasyonlarını kapatır.",
   // features/settings/sections/ShortcutsSection.tsx
-  "Every command in the command palette and its keyboard shortcut. Editing shortcuts is coming later.":
-    "Komut paletindeki her komut ve klavye kısayolu. Kısayolları düzenleme ileride gelecek.",
+  "Every command in the command palette and its keyboard shortcut. Click a shortcut to change it.":
+    "Komut paletindeki her komut ve klavye kısayolu. Değiştirmek için bir kısayola tıkla.",
+  "Reset all shortcuts": "Tüm kısayolları sıfırla",
+  "Reset all shortcuts?": "Tüm kısayollar sıfırlansın mı?",
+  "Every shortcut goes back to its default.": "Her kısayol varsayılanına döner.",
+  "Reset all": "Tümünü sıfırla",
+  "Esc cancels, Backspace removes the shortcut.": "Esc vazgeçer, Backspace kısayolu kaldırır.",
+  "{title}: {keys}. Change shortcut": "{title}: {keys}. Kısayolu değiştir",
+  "{title}: no shortcut. Set shortcut": "{title}: kısayol yok. Kısayol ata",
+  "Press keys…": "Tuşlara bas…",
+  "Already used by: {title}": "Şunda kullanılıyor: {title}",
+  Reassign: "Buna ata",
   "Search commands or keys…": "Komut ya da tuş ara…",
   "Search shortcuts": "Kısayollarda ara",
   Unassigned: "Atanmamış",
+  // features/keymap/capture.ts
+  "The Windows key belongs to the system.": "Windows tuşu sisteme ait.",
+  "This combination types a character on your keyboard (AltGr).":
+    "Bu tuş birleşimi klavyende bir karakter yazıyor (AltGr).",
+  "Kept for copy, paste, cut, select all, undo and redo.":
+    "Kopyala, yapıştır, kes, tümünü seç, geri al ve yinele için ayrıldı.",
+  "Kept for find in the file.": "Dosyada bul için ayrıldı.",
+  "Opens the WebView's developer tools.": "WebView'in geliştirici araçlarını açar.",
+  "Closes the window.": "Pencereyi kapatır.",
+  "Switches windows.": "Pencereler arasında geçer.",
+  "Belongs to macOS.": "macOS'a ait.",
+  "Add ⌘, ⌃ or ⌥: a single key would get in the way of typing.":
+    "⌘, ⌃ ya da ⌥ ekle: tek bir tuş yazmanın önüne geçer.",
+  "Add Ctrl or Alt: a single key would get in the way of typing.":
+    "Ctrl ya da Alt ekle: tek bir tuş yazmanın önüne geçer.",
+  "This key is needed for typing and moving around.": "Bu tuş yazmak ve gezinmek için gerekli.",
+  "The editor cannot use this key.": "Editör bu tuşu kullanamıyor.",
   // features/keymap/actions.ts
   "New terminal": "Yeni terminal",
   "Zoom in": "Yakınlaştır",
@@ -769,7 +797,6 @@ export const TR: Record<string, string> = {
   "Terminal height": "Terminal yüksekliği",
   // features/terminal/TerminalPanel.tsx
   Terminals: "Terminaller",
-  "New terminal (Ctrl+Shift+`)": "Yeni terminal (Ctrl+Shift+`)",
   "Hide terminal (Ctrl+`)": "Terminali gizle (Ctrl+`)",
   "(exited)": "(sonlandı)",
   "Close {label}": "{label} kapat",

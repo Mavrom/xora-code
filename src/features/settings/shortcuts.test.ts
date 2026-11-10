@@ -1,31 +1,30 @@
 import { describe, expect, it } from "vitest";
-import { groupShortcuts, shortcutSources } from "./shortcuts";
+import { groupShortcuts, shortcutSources, type ShortcutSource } from "./shortcuts";
 
-const commands = [
-  { id: "a", title: "Klasör aç", group: "Dosya" },
-  { id: "b", title: "Kaydet", group: "Dosya", shortcut: "mod+s" },
-  { id: "c", title: "Inbox'a geç", group: "Görünüm", shortcut: "ctrl+shift+n" },
+const rows: ShortcutSource[] = [
+  { id: "a", title: "Klasör aç", group: "Dosya", shortcuts: [] },
+  { id: "b", title: "Kaydet", group: "Dosya", shortcuts: ["mod+s"] },
+  { id: "c", title: "Inbox'a geç", group: "Görünüm", shortcuts: ["ctrl+shift+n"] },
 ];
 
 describe("groupShortcuts", () => {
-  it("groups in registry order and keeps unbound commands", () => {
-    expect(groupShortcuts(commands)).toEqual([
-      {
-        group: "Dosya",
-        items: [
-          { id: "a", title: "Klasör aç", shortcut: null },
-          { id: "b", title: "Kaydet", shortcut: "mod+s" },
-        ],
-      },
-      { group: "Görünüm", items: [{ id: "c", title: "Inbox'a geç", shortcut: "ctrl+shift+n" }] },
+  it("groups in order and keeps unbound rows", () => {
+    expect(groupShortcuts(rows)).toEqual([
+      { group: "Dosya", items: [rows[0], rows[1]] },
+      { group: "Görünüm", items: [rows[2]] },
     ]);
   });
 
   it("filters by title, group or key, case-insensitively in Turkish", () => {
-    expect(groupShortcuts(commands, "KLASÖR")[0].items.map((i) => i.id)).toEqual(["a"]);
-    expect(groupShortcuts(commands, "görünüm")[0].items.map((i) => i.id)).toEqual(["c"]);
-    expect(groupShortcuts(commands, "mod+s")[0].items.map((i) => i.id)).toEqual(["b"]);
-    expect(groupShortcuts(commands, "yok")).toEqual([]);
+    expect(groupShortcuts(rows, "KLASÖR")[0].items.map((i) => i.id)).toEqual(["a"]);
+    expect(groupShortcuts(rows, "görünüm")[0].items.map((i) => i.id)).toEqual(["c"]);
+    expect(groupShortcuts(rows, "mod+s")[0].items.map((i) => i.id)).toEqual(["b"]);
+    expect(groupShortcuts(rows, "yok")).toEqual([]);
+  });
+
+  it("finds a row by the label shown for its keys", () => {
+    const label = (s: string) => s.replace("mod", "Ctrl");
+    expect(groupShortcuts(rows, "ctrl+s", label)[0].items.map((i) => i.id)).toEqual(["b"]);
   });
 });
 
@@ -36,17 +35,28 @@ describe("shortcutSources", () => {
   ];
 
   it("puts the palette first, then the commands, then the other bindable actions", () => {
-    const rows = shortcutSources(registry, {});
-    expect(rows[0]).toMatchObject({ id: "palette.open", shortcut: "mod+k" });
-    expect(rows[1]).toEqual({ ...registry[0], shortcut: undefined });
-    expect(rows[2]).toEqual({ ...registry[1], shortcut: "mod+s" });
-    expect(rows.map((r) => r.id)).toContain("view.zoomIn");
-    expect(rows.filter((r) => r.id === "editor.save")).toHaveLength(1);
+    const list = shortcutSources(registry, {});
+    expect(list[0]).toMatchObject({ id: "palette.open", shortcuts: ["mod+k", "mod+shift+p"] });
+    expect(list[1]).toEqual({ ...registry[0], shortcuts: [] });
+    expect(list[2]).toEqual({
+      ...registry[1],
+      shortcuts: ["mod+s"],
+      action: "editor.save",
+      modified: false,
+    });
+    expect(list.map((r) => r.id)).toContain("view.zoomIn");
+    expect(list.filter((r) => r.id === "editor.save")).toHaveLength(1);
   });
 
-  it("shows the effective binding", () => {
-    const rows = shortcutSources(registry, { "editor.save": "mod+alt+s", "palette.open": null });
-    expect(rows.find((r) => r.id === "editor.save")?.shortcut).toBe("mod+alt+s");
-    expect(rows.find((r) => r.id === "palette.open")?.shortcut).toBeUndefined();
+  it("shows the effective binding and marks changed rows", () => {
+    const list = shortcutSources(registry, { "editor.save": "mod+alt+s", "palette.open": null });
+    expect(list.find((r) => r.id === "editor.save")).toMatchObject({
+      shortcuts: ["mod+alt+s"],
+      modified: true,
+    });
+    expect(list.find((r) => r.id === "palette.open")).toMatchObject({
+      shortcuts: [],
+      modified: true,
+    });
   });
 });

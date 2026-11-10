@@ -223,7 +223,16 @@ export const SEARCH_INDEX: SearchEntry[] = [
     setting: "terminal.fontSize",
     keywords: "font terminal",
   },
-  { section: "shortcuts", label: t("Shortcuts"), keywords: "kısayol tuş keyboard shortcut" },
+  {
+    section: "shortcuts",
+    label: t("Shortcuts"),
+    keywords: "kısayol tuş keyboard shortcut keybinding değiştir düzenle ata rebind",
+  },
+  {
+    section: "shortcuts",
+    label: t("Reset all shortcuts"),
+    keywords: "kısayol varsayılan sıfırla default keybinding",
+  },
   { section: "about", label: t("About"), keywords: "sürüm version lisans güncelle" },
 ];
 

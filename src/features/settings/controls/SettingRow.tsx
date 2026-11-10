@@ -1,9 +1,8 @@
 import { useId, type ReactNode } from "react";
-import { RotateCcw } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { isModified, resetPatch, type SettingPath } from "../settingPath";
 import { useSettingsStore } from "../store";
-import { t } from "@/shared/i18n";
+import { ResetButton } from "./ResetButton";
 
 interface SettingGroupProps {
   title?: string;
@@ -68,24 +67,10 @@ export function SettingRow({ label, description, control, stacked, setting }: Se
             {label}
           </div>
           {modified && setting && (
-            <button
-              type="button"
-              title={t("Reset to default")}
-              aria-label={t("{label}: reset to default", { label })}
-              onClick={() => useSettingsStore.getState().update(resetPatch(setting))}
-              className="group/reset inline-flex h-5 items-center gap-1 rounded-md px-1 text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-            >
-              <span
-                aria-hidden
-                className="size-1.5 rounded-full bg-fg-muted group-hover/reset:hidden"
-              />
-              <RotateCcw
-                size={11}
-                strokeWidth={2}
-                aria-hidden
-                className="hidden group-hover/reset:block"
-              />
-            </button>
+            <ResetButton
+              label={label}
+              onReset={() => useSettingsStore.getState().update(resetPatch(setting))}
+            />
           )}
         </div>
         {description && <p className="mt-0.5 text-xs text-pretty text-fg-muted">{description}</p>}

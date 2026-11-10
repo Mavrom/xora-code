@@ -16,13 +16,19 @@ import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
 import { installUnread } from "@/features/chat/unread";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
+import { installCaptureGuard } from "@/features/keymap/captureGuard";
+import { installKeymap } from "@/features/keymap/settingsSync";
+import { installSettingsFixture } from "@/features/settings/sections/shortcutsFixture";
 import { installUpdateCheck } from "@/features/updates/updateCheck";
 import { installContextMenuGuard } from "@/shared/ui/menuModel";
 import { isQuickOpenShortcut, usePaletteShortcut } from "@/features/commands/usePaletteShortcut";
 import { Layout } from "./Layout";
 
-// Before the first render, so it runs ahead of every feature's own shortcut listener.
+// Before the first render, so they run ahead of every feature's own shortcut listener:
+// recording a shortcut in Settings takes every key, then the open palette swallows some.
+installCaptureGuard();
 installPaletteGuard();
+installKeymap();
 installLanguage();
 installNavHistory();
 installSessionReaper();
@@ -34,6 +40,7 @@ installUiPrefs();
 installAutoSave();
 installContextMenuGuard();
 installUpdateCheck();
+if (import.meta.env.DEV) installSettingsFixture();
 
 /** The overlay dialogs; at most one is open, and each shortcut toggles its own. */
 type Overlay = "palette" | "quickOpen" | "find";

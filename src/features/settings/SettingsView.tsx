@@ -36,6 +36,7 @@ import { searchSettings, type SearchEntry } from "./searchIndex";
 import { isSidebarShortcut } from "./settingsKeys";
 import { useSettingsStore } from "./store";
 import { SETTINGS_SECTIONS, useSettingsView, type SettingsSection } from "./viewStore";
+import { useShortcut } from "@/features/keymap/keymap";
 import { t } from "@/shared/i18n";
 
 const NAV: Record<SettingsSection, { label: string; icon: LucideIcon; render: () => ReactNode }> = {
@@ -64,6 +65,7 @@ export default function SettingsView() {
   const section = useSettingsView((s) => s.section);
   const setSection = useSettingsView((s) => s.setSection);
   const close = useSettingsView((s) => s.closeSettings);
+  const openKeys = useShortcut("settings.open");
   const saveError = useSettingsStore((s) => (s.status === "ready" ? s.error : null));
   const root = useRef<HTMLDivElement>(null);
   const [query, setQuery] = useState("");
@@ -233,11 +235,15 @@ export default function SettingsView() {
           ))}
         </div>
         <div className="flex shrink-0 items-center gap-1.5 border-t border-border px-5 py-3 text-2xs text-fg-subtle">
-          <Kbd keys="mod+," />
-          <span>{t("to open")}</span>
-          <span aria-hidden className="mx-0.5">
-            ·
-          </span>
+          {openKeys && (
+            <>
+              <Kbd keys={openKeys} />
+              <span>{t("to open")}</span>
+              <span aria-hidden className="mx-0.5">
+                ·
+              </span>
+            </>
+          )}
           <Kbd keys="esc" />
           <span>{t("close")}</span>
         </div>

@@ -12,7 +12,7 @@ import { chatSnippet } from "./chatSnippet";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { registerEditorFocus, registerEditorSelection } from "./editorFocus";
 import { isSaveShortcut } from "./editorKeys";
-import { monacoKeybindings } from "@/features/keymap/keymap";
+import { monacoKeybindings, useKeymap } from "@/features/keymap/keymap";
 import { formatOnSave, useEditorSettings } from "./editorSettings";
 import { EDITOR_FONT, editorOptionsFor } from "./editorOptions";
 import { XORA_THEME } from "./monaco/theme";
@@ -144,8 +144,6 @@ export function EditorPanel() {
 
   const onMount: OnMount = (editor, m) => {
     editorRef.current = editor;
-    for (const keybinding of monacoKeybindings("editor.save", m))
-      editor.addCommand(keybinding, save);
     const syncCursor = () => {
       const position = editor.getPosition();
       setCursor(position ? { line: position.lineNumber, column: position.column } : null);
@@ -153,41 +151,31 @@ export function EditorPanel() {
     editor.onDidChangeCursorPosition(syncCursor);
     // Switching tabs swaps the model; its own saved cursor is restored, so read it again.
     editor.onDidChangeModel(syncCursor);
-    // Ctrl+L by default (also in the right-click menu): the selection, or the current line,
-    // goes to the chat composer with its place, ready for a question.
-    editor.addAction({
-      id: "xora.addToChat",
-      label: t("Add selection to chat"),
-      keybindings: monacoKeybindings("editor.addToChat", m),
-      contextMenuGroupId: "navigation",
-      contextMenuOrder: 0,
-      run: (ed) => {
-        const model = ed.getModel();
-        const selection = ed.getSelection();
-        const path = fileKey(useEditorStore.getState().activePath);
-        if (!model || !selection || !path) return;
-        const whole = selection.isEmpty();
-        const startLine = selection.startLineNumber;
-        // A selection ending at column 1 of a line does not include that line.
-        const endLine =
-          !whole && selection.endColumn === 1 && selection.endLineNumber > startLine
-            ? selection.endLineNumber - 1
-            : selection.endLineNumber;
-        const code = whole ? model.getLineContent(startLine) : model.getValueInRange(selection);
-        if (!code.trim()) return;
-        sendToChat(
-          chatSnippet({
-            path,
-            root: useWorkspaceStore.getState().root,
-            startLine,
-            endLine,
-            language: model.getLanguageId(),
-            code,
-          }),
-          { append: true },
-        );
-      },
+    // The keymap's editor bindings, registered again whenever the keymap changes: save, and
+    // add to chat (Ctrl+L by default, also in the right-click menu).
+    const register = () => [
+      editor.addAction({
+        id: "xora.save",
+        label: t("Save active file"),
+        keybindings: monacoKeybindings("editor.save", m),
+        run: () => save(),
+      }),
+      editor.addAction({
+        id: "xora.addToChat",
+        label: t("Add selection to chat"),
+        keybindings: monacoKeybindings("editor.addToChat", m),
+        contextMenuGroupId: "navigation",
+        contextMenuOrder: 0,
+        run: addSelectionToChat,
+      }),
+    ];
+    let actions = register();
+    const offKeymap = useKeymap.subscribe((state, previous) => {
+      if (state.overrides === previous.overrides) return;
+      for (const action of actions) action.dispose();
+      actions = register();
     });
+    editor.onDidDispose(offKeymap);
     // Settings > Editör > Otomatik kaydet: "Odak değişince".
     editor.onDidBlurEditorText(saveOnFocusChange);
     syncCursor();
@@ -255,5 +243,36 @@ export function EditorPanel() {
         />
       )}
     </div>
+  );
+}
+
+/**
+ * The selection, or the current line, goes to the chat composer with its file and lines,
+ * ready for a question.
+ */
+function addSelectionToChat(ed: monaco.editor.ICodeEditor) {
+  const model = ed.getModel();
+  const selection = ed.getSelection();
+  const path = fileKey(useEditorStore.getState().activePath);
+  if (!model || !selection || !path) return;
+  const whole = selection.isEmpty();
+  const startLine = selection.startLineNumber;
+  // A selection ending at column 1 of a line does not include that line.
+  const endLine =
+    !whole && selection.endColumn === 1 && selection.endLineNumber > startLine
+      ? selection.endLineNumber - 1
+      : selection.endLineNumber;
+  const code = whole ? model.getLineContent(startLine) : model.getValueInRange(selection);
+  if (!code.trim()) return;
+  sendToChat(
+    chatSnippet({
+      path,
+      root: useWorkspaceStore.getState().root,
+      startLine,
+      endLine,
+      language: model.getLanguageId(),
+      code,
+    }),
+    { append: true },
   );
 }

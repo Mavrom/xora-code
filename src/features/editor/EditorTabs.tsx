@@ -8,6 +8,8 @@ import { closeActiveTab, requestCloseTab } from "./closeTab";
 import { focusEditorSoon } from "./editorFocus";
 import { isCloseTabShortcut, isShown, revealTabScroll } from "./editorKeys";
 import { isDiffTab, isDirty, useEditorStore, type Tab } from "./store";
+import { PLATFORM, useShortcut } from "@/features/keymap/keymap";
+import { describeShortcut } from "@/shared/ui/keys";
 import { tabFile } from "./tabKind";
 import { t } from "@/shared/i18n";
 
@@ -159,6 +161,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
   const marked = dirty || !!tab.diskChanged;
   const diff = isDiffTab(tab);
   const label = tabLabel(tab);
+  const closeKeys = useShortcut("editor.closeTab");
 
   const onMouseDown = (e: MouseEvent) => {
     // Middle button: suppress the autoscroll cursor, close on auxclick.
@@ -191,7 +194,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
               ? t("{path}\nChanged on disk", { path: tab.path })
               : tab.path
         }
-        aria-keyshortcuts="Delete Control+W"
+        aria-keyshortcuts={closeKeys ? `Delete ${describeShortcut(closeKeys, PLATFORM)}` : "Delete"}
         onClick={onSelect}
         className="flex h-full min-w-0 items-center gap-2 rounded-md pr-1 pl-2.5 text-xs outline-none focus-visible:bg-hover"
       >

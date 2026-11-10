@@ -40,7 +40,7 @@ import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 import { DropOverlay } from "./DropOverlay";
 import { useFileDrop } from "./useFileDrop";
-import { matchesAction } from "@/features/keymap/keymap";
+import { matchesAction, useShortcut } from "@/features/keymap/keymap";
 import { t } from "@/shared/i18n";
 
 const NOTICE_MS = 3200;
@@ -442,9 +442,11 @@ export function ChatPanel() {
 }
 
 function StopHint() {
+  const keys = useShortcut("chat.stop");
+  if (!keys) return null;
   return (
     <p className="flex items-center gap-1.5 text-2xs text-fg-subtle">
-      <Kbd keys="escape" />
+      <Kbd keys={keys} />
       <span>{t("stop")}</span>
     </p>
   );

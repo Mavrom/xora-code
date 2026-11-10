@@ -6,6 +6,7 @@ import { disposeSession } from "./session";
 import { useTerminalStore } from "./store";
 import { cycleTab, tabLabels, type TerminalTab } from "./tabs";
 import { TerminalView } from "./TerminalView";
+import { useShortcut } from "@/features/keymap/keymap";
 import { t } from "@/shared/i18n";
 
 interface TerminalPanelProps {
@@ -20,6 +21,7 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
   const open = useTerminalStore((s) => s.open);
   const labels = useMemo(() => tabLabels(tabs), [tabs]);
 
+  const newTerminalKeys = useShortcut("terminal.new");
   const newTab = useCallback(() => {
     const { addTab, requestFocus } = useTerminalStore.getState();
     addTab();
@@ -97,7 +99,8 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
         </div>
         <IconButton
           icon={Plus}
-          label={t("New terminal (Ctrl+Shift+`)")}
+          label={t("New terminal")}
+          shortcut={newTerminalKeys}
           size="sm"
           onClick={newTab}
         />

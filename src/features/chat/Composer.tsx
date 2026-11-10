@@ -31,7 +31,8 @@ import { absolutePath, loadFileIndex } from "@/features/files/fileIndex";
 import { searchFiles, type FileHit, type IndexedFile } from "@/features/files/fileSearch";
 import { mentionOptionId, mentionToken, removeMention } from "./mention";
 import { MentionPopover } from "./MentionPopover";
-import { matchesAction } from "@/features/keymap/keymap";
+import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
+import { describeShortcut } from "@/shared/ui/keys";
 import { t } from "@/shared/i18n";
 
 export interface ComposerHandle {
@@ -436,10 +437,13 @@ interface SendButtonProps {
 /** Send while idle; a square Stop while the agent works (text typed then still queues on Enter). */
 function SendButton({ running, cancelling, canSend, hasText, onSend, onStop }: SendButtonProps) {
   const stop = running && !hasText;
+  const stopKeys = useShortcut("chat.stop");
   const label = cancelling
     ? t("Stopping…")
     : stop
-      ? t("Stop (Esc)")
+      ? stopKeys
+        ? t("Stop ({keys})", { keys: describeShortcut(stopKeys, PLATFORM) })
+        : t("Stop")
       : running
         ? t("Queue")
         : t("Send");
