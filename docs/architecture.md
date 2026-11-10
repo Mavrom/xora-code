@@ -72,9 +72,10 @@ The Inbox. `mod.rs` has `Note`, `load` (missing file is an empty list, a corrupt
 
 ### `settings`
 
-Every persisted preference (`general`, `agent`, `editor`, `terminal`, `appearance`) in `settings.json` in the app data folder.
+Every persisted preference (`general`, `agent`, `editor`, `terminal`, `appearance`, and the shortcut overrides in `keybindings`) in `settings.json` in the app data folder.
 
 - `mod.rs`: the `Settings` struct with defaults; `from_value` keeps each valid field and falls back to the default per field, so a typo never resets the rest; `apply_patch` deep-merges a JSON patch and sanitizes it; `load` moves invalid JSON aside to `settings.json.corrupt` (earlier ones shift to `.corrupt.1` … `.corrupt.4`, `CORRUPT_BACKUPS` in all) and returns defaults; `save` is atomic like the notes.
+- `keybindings.rs`: the shortcut overrides, action id to a binding in canonical form (`"mod+shift+g"`) or `null` for unbound. `sanitize` drops unknown action ids (`ACTION_IDS`, mirrored from the UI's keymap and checked by a test) and unreadable bindings one entry at a time; a patch replaces the map whole.
 - `wallpaper.rs`: copies a picked image into `<app data>/wallpapers/` (`WALLPAPER_DIR`, 40 MB cap, image extensions only) and removes old ones.
 - `commands.rs`: `settings_get`, `settings_update` (returns the sanitized result), `settings_wallpaper_import`, `settings_wallpaper_remove`. `SettingsLock` serializes read-modify-write. `commands::read` lets other modules read settings; the agent core uses it at spawn time.
 - **Errors:** `SettingsError` messages, no codes. **Events:** none; the UI owns the live copy.
@@ -168,7 +169,8 @@ Each feature folder co-locates its components, its Zustand store, pure logic, an
 | `settings`  | `SettingsView` and its sections, form controls, `store.ts` (`useSettingsStore`), the accounts store, settings search, shortcuts.                                                                                                                                               |
 | `inbox`     | Notes: `InboxPanel`, `NoteComposer`, `NoteItem`, `store.ts` (debounced save with retry), `useFlushOnClose`.                                                                                                                                                                    |
 | `workspace` | The open folder: `store.ts`, `openFolder.ts`, recents, restoring tabs, `fsWatch.ts`, `useWorkspaceLifecycle.ts`.                                                                                                                                                               |
-| `commands`  | Command palette: `registry.ts`, `dynamic.ts` (conversations and folders), `fuzzy.ts` (Turkish folding), `events.ts` (command bus), shortcut hooks.                                                                                                                             |
+| `commands`  | Command palette: `registry.ts`, `dynamic.ts` (conversations and folders), `fuzzy.ts` (Turkish folding), `events.ts` (command bus), shortcut hooks, `paletteGuard.ts`.                                                                                                         |
+| `keymap`    | The app-level shortcuts: `actions.ts` (bindable actions, default bindings, scopes), `binding.ts` (parse, format, match), `keymap.ts` (effective keymap, `matchesAction`, `resolve`, Monaco keybindings), `capture.ts` (recording, reserved keys, conflicts), `captureGuard.ts`, `settingsSync.ts`. |
 | `backdrop`  | The wallpaper behind a new chat and the readability scrim behind a conversation (`effects.ts`, `scrim.ts`).                                                                                                                                                                    |
 | `updates`   | The once-a-day "newer release?" check: `version.ts` (parse, compare), `releaseCheck.ts` (when to ask, the GitHub request, reading the answer), `saved.ts` (last check, latest release seen, dismissed version in `localStorage`), `store.ts`, `updateCheck.ts` (`installUpdateCheck`), `UpdateNotice`. A notice only; nothing is downloaded. |
 
@@ -184,9 +186,17 @@ Each feature folder co-locates its components, its Zustand store, pure logic, an
 
 `src/styles/globals.css` defines the design tokens in Tailwind v4's `@theme` and the base styles; components use the generated utilities. Two features add their own CSS: `chat/chat.css` and `terminal/terminal.css`.
 
+### Shortcuts: from key press to action
+
+Every app-level shortcut is an action in `features/keymap/actions.ts` with its default bindings (`mod+k`, `ctrl+shift+g`, `alt+f5`; `mod` is Ctrl on Windows and Linux and Cmd on macOS, `ctrl` the Control key on every platform). The effective keymap is those defaults overlaid with `settings.keybindings`, kept in `useKeymap` by `installKeymap`, so a change in Settings > Shortcuts applies at once.
+
+The handlers stay where they always were, with their own phase and guards: window or document capture listeners (palette, quick open, find in files, new chat, sidebar and its views, terminal, close tab, settings, interface scale, diff navigation), a bubble listener for save, the composer's own key handler for stop, and Monaco keybindings for the editor's add to chat and save (built with `monacoKeybindings` and registered again when the keymap changes). Each asks `matchesAction(event, id)` instead of naming keys. Letters and digits match the character typed, falling back to the physical key (`KeyboardEvent.code`) when the key types no Latin letter or digit; `` ` `` always matches the physical key, `+` and `-` ignore Shift. Two guards run first, both installed at module load in `App.tsx`: `captureGuard` hands every key to Settings while a row records a new binding, and `paletteGuard` swallows the close-tab, save and sidebar actions while the palette is open.
+
+Deliberately not in the keymap: text editing in the composer (`chat/composerKeys.ts`), list and dialog navigation (arrows, Enter, Esc, Tab), Monaco's own bindings, terminal key handling (`terminal/keys.ts` clipboard keys, Ctrl+PageUp/PageDown), and dialog-local keys (Alt+C/W/R in find in files, Ctrl+Enter in the commit box, Ctrl+Z in the Inbox). Recording refuses typing keys without Ctrl/Cmd/Alt, reserved combinations (copy and paste, undo, find in file, devtools, Alt+F4, Cmd+Q …) and AltGr characters, and asks before taking a binding another action uses in an overlapping scope (`findConflict`).
+
 ### Fixture mode
 
-`npm run dev` serves the UI in a plain browser, where no Rust command exists. In a DEV build, `?fixture=<scenario>` (`streaming`, `toolDiff`, `permission`, `plan`, `terminal`, `toolRun`; or `welcome` for no session) swaps the agent IPC for a fake (`setAgentIpc`) and plays a scripted turn through the real store and reducer; `&agent=codex` and `&status=crashed` pick the agent and its status; `&branch=1` sends a second message and then edits and retries it (a fork for Claude and Codex, the summary fallback for Gemini). `&update=0.9.0` shows the update notice for that version without any request. See `src/features/agents/fixtureMode.ts`. Production builds drop the fixture code.
+`npm run dev` serves the UI in a plain browser, where no Rust command exists. In a DEV build, `?fixture=<scenario>` (`streaming`, `toolDiff`, `permission`, `plan`, `terminal`, `toolRun`; or `welcome` for no session) swaps the agent IPC for a fake (`setAgentIpc`) and plays a scripted turn through the real store and reducer; `&agent=codex` and `&status=crashed` pick the agent and its status; `&branch=1` sends a second message and then edits and retries it (a fork for Claude and Codex, the summary fallback for Gemini). `&update=0.9.0` shows the update notice for that version without any request. `?settings=<section>` opens Settings on that section; on `shortcuts`, `&keys=capture` or `&keys=conflict` seeds a row recording keys or holding a conflict (`settings/sections/shortcutsFixture.ts`). See `src/features/agents/fixtureMode.ts`. Production builds drop the fixture code.
 
 ## IPC surface
 
@@ -370,6 +380,7 @@ Top level and the parts a newcomer needs (`node_modules`, `target`, `dist` and `
 │   │   ├── files/             Explorer tree, quick open, file index
 │   │   ├── git/               Changes panel, worktrees
 │   │   ├── inbox/             Notes
+│   │   ├── keymap/            App shortcuts: actions, bindings, capture, conflicts
 │   │   ├── search/            Find in files
 │   │   ├── settings/          Settings view, store, controls, sections
 │   │   ├── terminal/          Terminal dock and xterm sessions

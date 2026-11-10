@@ -86,7 +86,7 @@ Windows and macOS are supported. The code is written to stay cross-platform; Lin
 
 ## Keyboard shortcuts
 
-`Cmd` works in place of `Ctrl` on macOS.
+These are the defaults; change any of them in Settings > Shortcuts. On macOS `Cmd` works in place of `Ctrl`, except for the sidebar views (`Ctrl+Shift+E/H/N/G`) and the terminal (``Ctrl+` ``), which use the Control key, as in VS Code.
 
 | Shortcut                       | Action                         |
 | ------------------------------ | ------------------------------ |
@@ -102,11 +102,13 @@ Windows and macOS are supported. The code is written to stay cross-platform; Lin
 | `Ctrl+Shift+N`                 | New Inbox note                 |
 | `Ctrl+Shift+G`                 | Changes: stage, commit, push   |
 | ``Ctrl+` ``                    | Toggle the terminal            |
+| ``Ctrl+Shift+` ``              | New terminal                   |
 | `Ctrl+S` / `Ctrl+W`            | Save / close the active tab    |
 | `Ctrl+,`                       | Settings                       |
 | `Ctrl +` / `Ctrl -` / `Ctrl 0` | Interface scale                |
+| `Alt+F5` / `Shift+Alt+F5`      | Next / previous change (diff)  |
 
-Every command and its shortcut is also listed in Settings > Shortcuts.
+Every command and its shortcut is also listed in Settings > Shortcuts, where you can change or remove a shortcut and put them back to these defaults.
 
 ## Build from source
 
@@ -140,7 +142,6 @@ Read [docs/architecture.md](docs/architecture.md) for the process model, folder 
 
 - Linux builds
 - Signed installers
-- Editable keyboard shortcuts
 - More interface languages
 
 ## Contributing
