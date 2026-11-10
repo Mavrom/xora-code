@@ -13,6 +13,7 @@ import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { isDocked, sessionTitle } from "@/features/chat/sessionTitle";
 import { useEditorStore } from "@/features/editor/store";
+import { useShortcut } from "@/features/keymap/keymap";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { IconButton } from "@/shared/ui/IconButton";
@@ -52,6 +53,7 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
   const title = docked ? customTitle || sessionTitle(session) : null;
   const hasFiles = useEditorStore((s) => s.tabs.length > 0);
   const filesOpen = useUiStore((s) => s.filesOpen);
+  const filesKeys = useShortcut("view.explorer");
 
   return (
     <header
@@ -100,7 +102,8 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
           )}
           <IconButton
             icon={Files}
-            label={filesOpen ? t("Unpin files (Ctrl+Shift+E)") : t("Pin files (Ctrl+Shift+E)")}
+            label={filesOpen ? t("Unpin files") : t("Pin files")}
+            shortcut={filesKeys}
             active={filesOpen}
             onClick={toggleFiles}
           />

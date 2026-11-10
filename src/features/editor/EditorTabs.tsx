@@ -212,7 +212,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         type="button"
         tabIndex={-1}
         aria-label={t("Close {name}", { name: label })}
-        title={t("Close (Ctrl+W)")}
+        title={closeKeys ? `${t("Close")} (${describeShortcut(closeKeys, PLATFORM)})` : t("Close")}
         onClick={() => void requestCloseTab(tab)}
         className={cn(
           "group/close mr-1 grid size-5 shrink-0 place-items-center rounded-sm text-fg-subtle transition-colors duration-150 hover:bg-elevated hover:text-fg",

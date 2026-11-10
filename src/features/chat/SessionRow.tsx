@@ -182,7 +182,7 @@ export function SessionRow({
           </span>
           {worktree && (
             <span
-              title={`Worktree: ${worktree.branch ?? worktree.path}`}
+              title={t("Worktree: {name}", { name: worktree.branch ?? worktree.path })}
               className="shrink-0 rounded-md bg-white/[0.06] px-1.5 font-mono text-[10px] leading-4 text-fg-subtle"
             >
               {worktreeName(worktree.path)}

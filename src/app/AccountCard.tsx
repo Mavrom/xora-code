@@ -1,5 +1,7 @@
 import { Settings } from "lucide-react";
 import { useAgentStore } from "@/features/agents/store";
+import { PLATFORM, useShortcut } from "@/features/keymap/keymap";
+import { describeShortcut } from "@/shared/ui/keys";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { statusNote } from "@/features/chat/controlsView";
 import { openSettings, useSettingsView } from "@/features/settings/viewStore";
@@ -16,6 +18,9 @@ export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
   const note = statusNote(agent.status) || t("Ready");
   const ready = agent.status.state === "ready" || agent.status.state === "stopped";
   const name = hostname ?? t("This computer");
+  const shortcut = useShortcut("settings.open");
+  const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
+  const settingsLabel = t("Settings");
 
   return (
     <div className="relative shrink-0 border-t border-white/[0.05] p-2">
@@ -55,8 +60,9 @@ export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
         <button
           type="button"
           aria-pressed={settingsOpen}
-          aria-label={t("Settings (Ctrl+,)")}
-          title={t("Settings (Ctrl+,)")}
+          aria-label={settingsLabel}
+          aria-keyshortcuts={keys}
+          title={keys ? `${settingsLabel} (${keys})` : settingsLabel}
           onClick={() => useSettingsView.getState().toggleSettings()}
           className={cn(
             "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-fast",

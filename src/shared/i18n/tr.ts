@@ -25,8 +25,8 @@ export const TR: Record<string, string> = {
   "New chat": "Yeni sohbet",
   "Hide editor": "Editörü gizle",
   "Show editor": "Editörü göster",
-  "Unpin files (Ctrl+Shift+E)": "Dosyaları sabitlemeyi bırak (Ctrl+Shift+E)",
-  "Pin files (Ctrl+Shift+E)": "Dosyaları sabitle (Ctrl+Shift+E)",
+  "Unpin files": "Dosyaları sabitlemeyi bırak",
+  "Pin files": "Dosyaları sabitle",
   "Chat options": "Sohbet seçenekleri",
   "Copy as Markdown": "Markdown olarak kopyala",
   "Export…": "Dışa aktar…",
@@ -43,7 +43,6 @@ export const TR: Record<string, string> = {
   Ready: "Hazır",
   "This computer": "Bu bilgisayar",
   Accounts: "Hesaplar",
-  "Settings (Ctrl+,)": "Ayarlar (Ctrl+,)",
   // app/WindowControls.tsx
   Minimize: "Simge durumuna küçült",
   Restore: "Önceki boyuta getir",
@@ -106,6 +105,7 @@ export const TR: Record<string, string> = {
   Queued: "Sırada",
   "Remove from queue": "Sıradan çıkar",
   // features/chat/CheckoutChip.tsx
+  "Worktree: {name}": "Worktree: {name}",
   "New worktree: {name} ({branch})": "Yeni worktree: {name} ({branch})",
   "Changes from {name} were merged into {into}; the worktree was removed.":
     "{name} değişiklikleri {into} branch'ine alındı; worktree kaldırıldı.",
@@ -353,7 +353,6 @@ export const TR: Record<string, string> = {
   "(unsaved)": "(kaydedilmedi)",
   "(changed on disk)": "(diskte değişti)",
   "Close {name}": "{name} kapat",
-  "Close (Ctrl+W)": "Kapat (Ctrl+W)",
   "{name} (diff)": "{name} (fark)",
   // features/editor/DiffView.tsx
   "Previous change": "Önceki değişiklik",
@@ -800,7 +799,7 @@ export const TR: Record<string, string> = {
   "Terminal height": "Terminal yüksekliği",
   // features/terminal/TerminalPanel.tsx
   Terminals: "Terminaller",
-  "Hide terminal (Ctrl+`)": "Terminali gizle (Ctrl+`)",
+  "Hide terminal": "Terminali gizle",
   "(exited)": "(sonlandı)",
   "Close {label}": "{label} kapat",
   // features/updates/UpdateNotice.tsx

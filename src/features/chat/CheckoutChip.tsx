@@ -176,7 +176,9 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
         aria-haspopup="menu"
         aria-expanded={at !== null}
         disabled={busy}
-        title={current ? `Worktree: ${current.path}` : t("Checkout the agent works in")}
+        title={
+          current ? t("Worktree: {name}", { name: current.path }) : t("Checkout the agent works in")
+        }
         onClick={(e) => {
           const r = e.currentTarget.getBoundingClientRect();
           setAt(at ? null : { x: r.left, y: r.bottom + 6 });

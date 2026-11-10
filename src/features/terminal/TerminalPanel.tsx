@@ -22,6 +22,7 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
   const labels = useMemo(() => tabLabels(tabs), [tabs]);
 
   const newTerminalKeys = useShortcut("terminal.new");
+  const toggleKeys = useShortcut("view.toggleTerminal");
   const newTab = useCallback(() => {
     const { addTab, requestFocus } = useTerminalStore.getState();
     addTab();
@@ -107,7 +108,8 @@ export default function TerminalPanel({ onHide }: TerminalPanelProps) {
         <div className="flex-1" />
         <IconButton
           icon={ChevronDown}
-          label={t("Hide terminal (Ctrl+`)")}
+          label={t("Hide terminal")}
+          shortcut={toggleKeys}
           size="sm"
           onClick={onHide}
         />
