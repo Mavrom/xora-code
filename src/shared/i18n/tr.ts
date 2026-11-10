@@ -417,6 +417,8 @@ export const TR: Record<string, string> = {
     "Branch'in ile upstream'i ayrışmış; pull fast-forward yapamıyor.",
   "Could not reach the remote. Check your connection.":
     "Remote'a ulaşılamadı. Bağlantını kontrol et.",
+  "The remote did not answer within 2 minutes, so Git was stopped. If it needs an SSH passphrase or a host key confirmation, answer that once in a terminal.":
+    "Remote 2 dakika içinde yanıt vermedi, Git durduruldu. SSH parolası ya da host key onayı gerekiyorsa bunu bir kez terminalde yanıtla.",
   "Open a folder to see its changes and commit them.":
     "Değişikliklerini görmek ve commit etmek için bir klasör aç.",
   "Not a git repository": "Git deposu değil",

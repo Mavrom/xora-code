@@ -177,6 +177,10 @@ export function describeChangesError(err: unknown): string {
       return t("Your branch and its upstream have diverged; pull cannot fast-forward.");
     case "offline":
       return t("Could not reach the remote. Check your connection.");
+    case "timeout":
+      return t(
+        "The remote did not answer within 2 minutes, so Git was stopped. If it needs an SSH passphrase or a host key confirmation, answer that once in a terminal.",
+      );
     default:
       return detail;
   }

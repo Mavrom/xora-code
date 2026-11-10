@@ -107,6 +107,26 @@ impl JobObject {
         Ok(())
     }
 
+    /// [`assign`](Self::assign) for a `std::process::Child`, for blocking callers (git's
+    /// remote commands). Off Windows the child must lead its own process group.
+    #[cfg(windows)]
+    pub fn assign_std(&self, child: &std::process::Child) -> io::Result<()> {
+        use std::os::windows::io::AsRawHandle;
+        use windows_sys::Win32::System::JobObjects::AssignProcessToJobObject;
+        // SAFETY: both handles are valid for the duration of the call.
+        if unsafe { AssignProcessToJobObject(self.handle, child.as_raw_handle().cast()) } == 0 {
+            return Err(io::Error::last_os_error());
+        }
+        Ok(())
+    }
+
+    #[cfg(unix)]
+    pub fn assign_std(&self, child: &std::process::Child) -> io::Result<()> {
+        let pid = i32::try_from(child.id()).map_err(io::Error::other)?;
+        self.group.store(pid, std::sync::atomic::Ordering::Release);
+        Ok(())
+    }
+
     /// Kills every process in the job now.
     pub fn terminate(&self) {
         #[cfg(windows)]

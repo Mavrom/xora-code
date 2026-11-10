@@ -3,13 +3,18 @@
 //! `status` reports them); every command runs from that root, with `--` before the paths.
 
 use super::status::{STATUS_ARGS, StatusEntry, parse_status, toplevel};
-use super::{GitError, Result, failure, git, run};
+use super::{GitError, Result, failure, git, git_within, run};
 use serde::Serialize;
 use std::collections::HashSet;
 use std::path::{Component, Path, PathBuf};
+use std::time::Duration;
 
 /// Diff text past this is cut at a line end (`truncated` is set); the panel is a preview.
 pub const MAX_DIFF_BYTES: usize = 256 * 1024;
+
+/// Push and pull give up after this: an SSH passphrase or host-key prompt cannot be
+/// answered without a terminal, and a stalled network must not hold the panel forever.
+pub const REMOTE_TIMEOUT: Duration = Duration::from_secs(120);
 
 /// Paths per git invocation, so a long "stage all" stays under Windows' command line limit.
 const PATHS_PER_CALL: usize = 100;
@@ -241,17 +246,21 @@ pub fn push(dir: &Path) -> Result<()> {
     let status = parse_status(&git(&root, STATUS_ARGS)?);
     let branch = status.branch.ok_or(GitError::Detached)?;
     if status.upstream.is_some() {
-        return remote_op(git(&root, &["push"]));
+        return remote_op(git_within(&root, &["push"], REMOTE_TIMEOUT));
     }
     let remotes = git(&root, &["remote"])?;
     let remote = pick_remote(&remotes).ok_or(GitError::NoRemote)?;
-    remote_op(git(&root, &["push", "--set-upstream", remote, &branch]))
+    remote_op(git_within(
+        &root,
+        &["push", "--set-upstream", remote, &branch],
+        REMOTE_TIMEOUT,
+    ))
 }
 
 /// Pulls the upstream into the current branch, fast-forward only (never a merge commit).
 pub fn pull(dir: &Path) -> Result<()> {
     let root = PathBuf::from(toplevel(dir)?);
-    remote_op(git(&root, &["pull", "--ff-only"]))
+    remote_op(git_within(&root, &["pull", "--ff-only"], REMOTE_TIMEOUT))
 }
 
 #[cfg(test)]

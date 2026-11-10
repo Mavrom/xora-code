@@ -7,6 +7,7 @@
 
 pub mod changes;
 pub mod commands;
+mod deadline;
 pub mod status;
 
 use serde::Serialize;
@@ -63,16 +64,18 @@ pub enum GitError {
     Diverged(String),
     #[error("[offline] {0}")]
     Offline(String),
+    #[error("[timeout] the remote did not answer in {0} seconds")]
+    Timeout(u64),
     #[error("[git] {0}")]
     Failed(String),
 }
 
 type Result<T> = std::result::Result<T, GitError>;
 
-/// Runs `git -C dir <args>` without a console window and returns whatever it produced.
-/// Never prompts (no terminal to answer in), takes pathspecs literally (a file named `*.ts`
-/// is that file, not a glob) and reports in English, so the error codes can be matched.
-fn run(dir: &Path, args: &[&str]) -> Result<Output> {
+/// `git -C dir <args>` without a console window. Never prompts (no terminal to answer
+/// in), takes pathspecs literally (a file named `*.ts` is that file, not a glob) and
+/// reports in English, so the error codes can be matched.
+fn command(dir: &Path, args: &[&str]) -> Command {
     let mut command = Command::new("git");
     command
         .arg("-C")
@@ -88,7 +91,24 @@ fn run(dir: &Path, args: &[&str]) -> Result<Output> {
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
-    command.output().map_err(GitError::Missing)
+    command
+}
+
+/// Runs git (see [`command`]) and returns whatever it produced.
+fn run(dir: &Path, args: &[&str]) -> Result<Output> {
+    command(dir, args).output().map_err(GitError::Missing)
+}
+
+/// [`git`] with a time limit; past it git and whatever it started are killed.
+fn git_within(dir: &Path, args: &[&str], timeout: std::time::Duration) -> Result<String> {
+    let out = deadline::output_with_deadline(command(dir, args), timeout)
+        .map_err(GitError::Missing)?
+        .ok_or(GitError::Timeout(timeout.as_secs()))?;
+    if out.status.success() {
+        Ok(String::from_utf8_lossy(&out.stdout).trim_end().to_owned())
+    } else {
+        Err(failure(args, &out))
+    }
 }
 
 /// The error for a failed run: `[not_repo]` when git says so, else git's own text.

@@ -163,6 +163,9 @@ describe("describeChangesError", () => {
     expect(describeChangesError(new Error("[rejected] ! [rejected] main"))).toBe(
       "Remote'ta sende olmayan commit'ler var. Önce pull, sonra push et.",
     );
+    expect(describeChangesError("[timeout] the remote did not answer in 120 seconds")).toContain(
+      "2 dakika",
+    );
     expect(describeChangesError("[git] fatal: something odd")).toBe("fatal: something odd");
   });
 });
