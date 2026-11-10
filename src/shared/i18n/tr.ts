@@ -410,6 +410,8 @@ export const TR: Record<string, string> = {
   "Loading diff…": "Fark yükleniyor…",
   "Binary file; no preview.": "İkili dosya; önizleme yok.",
   "No line changes.": "Satır değişikliği yok.",
+  "Open diff": "Farkı aç",
+  "The file is too large to show as a diff.": "Dosya fark olarak gösterilemeyecek kadar büyük.",
   "The diff is too long to show in full; open the file to see the rest.":
     "Fark tamamı gösterilemeyecek kadar uzun; geri kalanı için dosyayı aç.",
   'Discard changes to "{name}"?': "“{name}” dosyasındaki değişiklikler atılsın mı?",

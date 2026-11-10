@@ -1,10 +1,11 @@
 import { useEffect, useId, useRef, useState } from "react";
-import { ExternalLink, Minus, Plus, Undo2, type LucideIcon } from "lucide-react";
+import { ExternalLink, FileDiff, Minus, Plus, Undo2, type LucideIcon } from "lucide-react";
 import { DiffBody } from "@/features/chat/DiffPreview";
 import { revealInEditor } from "@/features/chat/editorBridge";
 import { FileIcon } from "@/features/files/FileIcon";
 import { cn } from "@/shared/ui/cn";
 import {
+  changesErrorCode,
   describeChangesError,
   filePath,
   splitPath,
@@ -16,12 +17,14 @@ import {
 import { useChangesStore } from "./changesStore";
 import { confirmDiscard } from "./confirmDiscard";
 import { gitIpc } from "./ipc";
+import { openRowDiff } from "./openRowDiff";
 import { parseUnifiedDiff, type ParsedDiff } from "./unifiedDiff";
 import { t } from "@/shared/i18n";
 
 /**
  * One changed file: icon, name, dimmed folder and status letter. Activating it unfolds its
- * diff; hover or keyboard focus reveals stage / unstage / discard and "open file".
+ * diff; hover or keyboard focus reveals "open diff" (an editor tab), "open file" and
+ * stage / unstage / discard.
  */
 export function ChangeRow({ row, root }: { row: Row; root: string }) {
   const [open, setOpen] = useState(false);
@@ -54,6 +57,18 @@ export function ChangeRow({ row, root }: { row: Row; root: string }) {
     });
   };
 
+  // A binary or oversized file says so under the branch line instead of opening a tab.
+  const openDiff = () => {
+    const dir = store().dir;
+    if (!dir) return;
+    openRowDiff(dir, root, row).catch((err: unknown) =>
+      store().setNotice({
+        text: describeChangesError(err),
+        error: changesErrorCode(err) !== "binary",
+      }),
+    );
+  };
+
   const discard = () =>
     act(async () => {
       if (await confirmDiscard([row])) await store().discard([row.path]);
@@ -77,7 +92,8 @@ export function ChangeRow({ row, root }: { row: Row; root: string }) {
           <span className="min-w-0 truncate">{name}</span>
           {dir && <span className="min-w-0 flex-1 truncate text-2xs text-fg-subtle">{dir}</span>}
         </button>
-        <span className="flex max-w-0 shrink-0 items-center gap-0.5 overflow-hidden group-focus-within:max-w-24 group-hover:max-w-24">
+        <span className="flex max-w-0 shrink-0 items-center gap-0.5 overflow-hidden group-focus-within:max-w-32 group-hover:max-w-32">
+          <RowAction icon={FileDiff} label={t("Open diff")} onClick={openDiff} />
           {row.kind !== "deleted" && (
             <RowAction
               icon={ExternalLink}

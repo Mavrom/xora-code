@@ -3,7 +3,9 @@ import {
   activeCheckout,
   changeCount,
   commitBlocker,
+  changesErrorCode,
   describeChangesError,
+  diffSides,
   discardPrompt,
   filePath,
   groupChanges,
@@ -167,5 +169,55 @@ describe("describeChangesError", () => {
       "2 dakika",
     );
     expect(describeChangesError("[git] fatal: something odd")).toBe("fatal: something odd");
+    expect(describeChangesError("[binary] the file is binary")).toBe("İkili dosya; önizleme yok.");
+  });
+
+  it("reads the code of an error", () => {
+    expect(changesErrorCode("[binary] x")).toBe("binary");
+    expect(changesErrorCode(new Error("[too_large] 9 bytes"))).toBe("too_large");
+    expect(changesErrorCode("plain")).toBeUndefined();
+  });
+});
+
+describe("diffSides", () => {
+  const head = (path: string) => ({ from: "git", rev: "head", path });
+  const index = (path: string) => ({ from: "git", rev: "index", path });
+  const disk = { from: "disk" };
+  const none = { from: "none" };
+
+  it("compares HEAD with the index for a staged row", () => {
+    expect(diffSides(row({ path: "a.ts", staged: true }))).toEqual({
+      left: head("a.ts"),
+      right: index("a.ts"),
+    });
+    expect(diffSides(row({ path: "a.ts", kind: "added", staged: true }))).toEqual({
+      left: none,
+      right: index("a.ts"),
+    });
+    expect(diffSides(row({ path: "a.ts", kind: "deleted", staged: true }))).toEqual({
+      left: head("a.ts"),
+      right: none,
+    });
+  });
+
+  it("reads a staged rename's HEAD side at its old path", () => {
+    const renamed = row({ path: "new.ts", origPath: "old.ts", kind: "renamed", staged: true });
+    expect(diffSides(renamed)).toEqual({ left: head("old.ts"), right: index("new.ts") });
+  });
+
+  it("compares the index with the disk for an unstaged row", () => {
+    expect(diffSides(row({ path: "a.ts" }))).toEqual({ left: index("a.ts"), right: disk });
+    expect(diffSides(row({ path: "a.ts", kind: "deleted" }))).toEqual({
+      left: index("a.ts"),
+      right: none,
+    });
+    expect(diffSides(row({ path: "a.ts", kind: "untracked" }))).toEqual({
+      left: none,
+      right: disk,
+    });
+    expect(diffSides(row({ path: "a.ts", kind: "conflicted" }))).toEqual({
+      left: head("a.ts"),
+      right: disk,
+    });
   });
 });

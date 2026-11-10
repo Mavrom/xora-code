@@ -38,6 +38,9 @@ export interface GitDiff {
   truncated: boolean;
 }
 
+/** Where `show` reads a file: the last commit or the staged content. */
+export type GitRevision = "head" | "index";
+
 export const gitIpc = {
   status: (dir: string) => invoke<GitStatus>("git_status", { dir }),
   stage: (dir: string, paths: string[]) => invoke<void>("git_stage", { dir, paths }),
@@ -47,6 +50,12 @@ export const gitIpc = {
   /** `origPath`: the old path of a staged rename, so it diffs as a rename. */
   diff: (dir: string, path: string, staged: boolean, origPath: string | null = null) =>
     invoke<GitDiff>("git_diff", { dir, path, origPath, staged }),
+  /**
+   * A file's text at `rev`; null when it does not exist there. Rejects with `[binary]` or
+   * `[too_large]` for content a diff tab should not show.
+   */
+  show: (dir: string, path: string, rev: GitRevision) =>
+    invoke<string | null>("git_show", { dir, path, rev }),
   /** Resolves with the new commit's short id. */
   commit: (dir: string, message: string) => invoke<string>("git_commit", { dir, message }),
   push: (dir: string) => invoke<void>("git_push", { dir }),

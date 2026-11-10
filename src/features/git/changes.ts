@@ -1,7 +1,7 @@
 // Pure pieces of the Changes panel: which checkout it shows, how entries group into
 // "Staged" and "Changes" rows, status letters and error texts.
 import { t } from "@/shared/i18n";
-import type { ChangeKind, GitStatus, StatusEntry } from "./ipc";
+import type { ChangeKind, GitRevision, GitStatus, StatusEntry } from "./ipc";
 
 /**
  * The checkout the panel shows, the same one the chat works in: the active chat's folder
@@ -59,6 +59,38 @@ export function rowPaths(rows: readonly ChangeRow[]): string[] {
 export function filePath(root: string, path: string): string {
   const full = `${root.replace(/[\\/]+$/, "")}/${path}`;
   return /^[A-Za-z]:[\\/]/.test(root) ? full.replace(/\//g, "\\") : full;
+}
+
+/** Where one side of a row's diff tab comes from: git, the file on disk, or nothing. */
+export type DiffSide =
+  { from: "git"; rev: GitRevision; path: string } | { from: "disk" } | { from: "none" };
+
+const NONE: DiffSide = { from: "none" };
+
+/**
+ * The two sides of a row's diff tab, matching its inline diff. Staged: HEAD (at the old
+ * path of a rename) against the index. Unstaged: the index against the file on disk; an
+ * untracked file has nothing on the left, a conflicted one (no staged version) HEAD.
+ */
+export function diffSides(row: ChangeRow): { left: DiffSide; right: DiffSide } {
+  if (row.staged) {
+    return {
+      left:
+        row.kind === "added" ? NONE : { from: "git", rev: "head", path: row.origPath ?? row.path },
+      right: row.kind === "deleted" ? NONE : { from: "git", rev: "index", path: row.path },
+    };
+  }
+  const index: DiffSide = { from: "git", rev: "index", path: row.path };
+  switch (row.kind) {
+    case "untracked":
+      return { left: NONE, right: { from: "disk" } };
+    case "conflicted":
+      return { left: { from: "git", rev: "head", path: row.path }, right: { from: "disk" } };
+    case "deleted":
+      return { left: index, right: NONE };
+    default:
+      return { left: index, right: { from: "disk" } };
+  }
 }
 
 /** Title and warning of the confirm dialog before discarding `rows`. */
@@ -145,16 +177,26 @@ export function commitBlocker(status: GitStatus | null, message: string): string
   return null;
 }
 
+const errorText = (err: unknown) => (err instanceof Error ? err.message : String(err));
+
+/** The `code` of a `[code] …` error from the git (or file) commands, if it has one. */
+export const changesErrorCode = (err: unknown): string | undefined =>
+  /^\[([a-z_]+)\]/.exec(errorText(err))?.[1];
+
 /** Text for a `[code] …` error from the git commands. */
 export function describeChangesError(err: unknown): string {
-  const text = err instanceof Error ? err.message : String(err);
-  const code = /^\[([a-z_]+)\]/.exec(text)?.[1];
+  const text = errorText(err);
+  const code = changesErrorCode(err);
   const detail = text.replace(/^\[[a-z_]+\]\s*/, "");
   switch (code) {
     case "no_git":
       return t("Git not found. Install Git to use the Changes view.");
     case "not_repo":
       return t("Not a git repository.");
+    case "binary":
+      return t("Binary file; no preview.");
+    case "too_large":
+      return t("The file is too large to show as a diff.");
     case "conflicted":
       return t("Resolve the conflicts first.");
     case "nothing_staged":
