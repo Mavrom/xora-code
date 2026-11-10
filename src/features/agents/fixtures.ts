@@ -3,6 +3,7 @@
 // scenarios. Used by tests, by the chat UI's `?fixture=` dev mode and by the
 // fake ipc below, which lets the real store run without Rust.
 
+import type { Note } from "@/shared/lib/ipc";
 import type { AgentIpc } from "./ipc";
 import {
   attachSession,
@@ -309,6 +310,28 @@ export const FIXTURE_HISTORY: AgentSessionInfo[] = [
     cwd: FIXTURE_CWD,
     title: "Tauri komutlarına test ekle",
     updatedAt: null,
+  },
+];
+
+// --- Inbox -----------------------------------------------------------------------------
+
+/** Notes for the Inbox, which has no IPC in a plain browser. */
+export const FIXTURE_NOTES: Note[] = [
+  {
+    id: "n1",
+    text: "Sekme kapatınca kaydedilmemiş değişiklik uyarısı çıkmıyor; nedenini bul\nEditörde Ctrl+W ile dene.",
+    pinned: true,
+    done: false,
+    createdAt: Date.now() - 3 * 60 * 60_000,
+    updatedAt: Date.now() - 3 * 60 * 60_000,
+  },
+  {
+    id: "n2",
+    text: "README'ye kurulum için ekran görüntüsü ekle",
+    pinned: false,
+    done: false,
+    createdAt: Date.now() - 20 * 60_000,
+    updatedAt: Date.now() - 20 * 60_000,
   },
 ];
 

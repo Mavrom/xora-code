@@ -7,6 +7,7 @@
 //   &agent=codex          agent for the session (default claude)
 //   &status=crashed       status of that agent (see FIXTURE_STATUSES)
 
+import { useInboxStore } from "@/features/inbox/store";
 import { setAgentIpc, useAgentStore } from "./store";
 import type { AgentId } from "./types";
 
@@ -49,6 +50,8 @@ export async function startFixtureMode(params: FixtureParams): Promise<void> {
   await store.init();
   store.selectAgent(params.agent);
   await store.refreshHistory(f.FIXTURE_CWD);
+  // The Inbox has no IPC in a browser: give it notes so the welcome screen can show one.
+  if (!scenario) useInboxStore.setState({ notes: f.FIXTURE_NOTES });
   if (!scenario || status) return;
   const id = await store.newSession(params.agent, f.FIXTURE_CWD);
   await useAgentStore.getState().prompt(id, f.FIXTURE_SCENARIOS[scenario].prompt);
