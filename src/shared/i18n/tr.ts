@@ -766,4 +766,18 @@ export const TR: Record<string, string> = {
   "Interface language": "Arayüz dili",
   "System follows your computer's language. Changing it reloads the window.":
     "Sistem, bilgisayarının dilini izler. Değiştirince pencere yeniden yüklenir.",
+
+  // New chat: starting points under the composer
+  "Starting points": "Başlangıç noktaları",
+  "Continue:": "Devam et:",
+  "Inbox note:": "Inbox notu:",
+  "Put this Inbox note in the message": "Bu Inbox notunu mesaj alanına koy",
+  "Explain this project": "Bu projeyi açıkla",
+  "Explain how this project is structured: the main parts, how they fit together, and where to start reading.":
+    "Bu projenin yapısını açıkla: ana parçalar neler, birbirine nasıl bağlanıyor ve okumaya nereden başlamalıyım?",
+  "Find and fix a bug": "Bir hata bul ve düzelt",
+  "Find a likely bug in this project, explain why it is one, and fix it.":
+    "Bu projede olası bir hata bul, neden hata olduğunu açıkla ve düzelt.",
+  "Write tests for a file": "Bir dosya için test yaz",
+  "Write tests for this file: ": "Şu dosya için test yaz: ",
 };

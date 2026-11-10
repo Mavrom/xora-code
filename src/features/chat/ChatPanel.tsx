@@ -30,6 +30,7 @@ import {
 } from "./ComposerToolbar";
 import { attachmentFromBlob, attachmentFromPath, toBlocks, type Attachment } from "./attachments";
 import { PermissionPrompt } from "./PermissionPrompt";
+import { StartingPointList } from "./StartingPointList";
 import type { XoraCommandName } from "./slash";
 import { isDocked } from "./sessionTitle";
 import { needsStatusCard } from "./toolView";
@@ -247,6 +248,7 @@ export function ChatPanel() {
       ),
   );
 
+  const sessionId = session?.sessionId ?? null;
   const permission = session?.permissions[0] ?? null;
   const side = docked ? "top" : "bottom";
   const hero = !docked;
@@ -385,7 +387,18 @@ export function ChatPanel() {
           </div>
           {composer}
         </section>
-        <div aria-hidden className="min-h-6 flex-[1.15]" />
+        {/* The starting points live in the space under the composer, so they never move it:
+            this spacer keeps its share of the height whether they are there or not. */}
+        <div className="min-h-6 flex-[1.15]">
+          <div className="mx-auto w-full max-w-186 px-6 pt-1 @container">
+            <StartingPointList
+              root={root}
+              cwd={cwd}
+              currentSessionId={sessionId}
+              onPrompt={(text) => composerRef.current?.fill(text)}
+            />
+          </div>
+        </div>
         {dropping && <DropOverlay />}
       </div>
     );
