@@ -1,14 +1,17 @@
-//! Git worktrees for agent chats: a chat can run in its own checkout on its own branch,
-//! leaving the user's working tree alone. Everything goes through the `git` binary.
+//! Git for Xora, through the `git` binary. This file: the runner, the error type and
+//! worktrees for agent chats (a chat can run in its own checkout on its own branch, leaving
+//! the user's working tree alone). `status` and `changes` back the Changes panel.
 //!
-//! Errors carry a `[code]` prefix the frontend maps to a message: `no_git`, `dirty`,
-//! `unmerged`, `not_ff`, `git` (anything else, with git's own text).
+//! Errors carry a `[code]` prefix the frontend maps to a message (see [`GitError`]); `git`
+//! is anything else, with git's own text.
 
+pub mod changes;
 pub mod commands;
+pub mod status;
 
 use serde::Serialize;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::{Command, Output, Stdio};
 
 /// Branches Xora creates live under this prefix; only those are deleted with their worktree.
 pub const BRANCH_PREFIX: &str = "xora/";
@@ -34,37 +37,79 @@ pub enum GitError {
     Unmerged(String),
     #[error("[not_ff] {0}")]
     NotFastForward(String),
+    #[error("[not_repo] not a git repository")]
+    NotRepo,
+    #[error("[bad_path] {0}")]
+    BadPath(String),
+    #[error("[conflicted] resolve the merge conflicts first")]
+    Conflicted,
+    #[error("[nothing_staged] nothing is staged to commit")]
+    NothingStaged,
+    #[error("[empty_message] the commit message is empty")]
+    EmptyMessage,
+    #[error("[no_identity] {0}")]
+    NoIdentity(String),
+    #[error("[detached] HEAD is not on a branch")]
+    Detached,
+    #[error("[no_remote] the repository has no remote")]
+    NoRemote,
+    #[error("[no_upstream] {0}")]
+    NoUpstream(String),
+    #[error("[auth] {0}")]
+    Auth(String),
+    #[error("[rejected] {0}")]
+    Rejected(String),
+    #[error("[diverged] {0}")]
+    Diverged(String),
+    #[error("[offline] {0}")]
+    Offline(String),
     #[error("[git] {0}")]
     Failed(String),
 }
 
 type Result<T> = std::result::Result<T, GitError>;
 
-/// Runs `git -C dir <args>` without a console window; stdout on success.
-fn git(dir: &Path, args: &[&str]) -> Result<String> {
+/// Runs `git -C dir <args>` without a console window and returns whatever it produced.
+/// Never prompts (no terminal to answer in), takes pathspecs literally (a file named `*.ts`
+/// is that file, not a glob) and reports in English, so the error codes can be matched.
+fn run(dir: &Path, args: &[&str]) -> Result<Output> {
     let mut command = Command::new("git");
     command
         .arg("-C")
         .arg(dir)
         .args(args)
         .stdin(Stdio::null())
-        .env("GIT_TERMINAL_PROMPT", "0");
+        .env("GIT_TERMINAL_PROMPT", "0")
+        .env("GIT_LITERAL_PATHSPECS", "1")
+        .env("LANGUAGE", "en");
     #[cfg(windows)]
     {
         use std::os::windows::process::CommandExt;
         const CREATE_NO_WINDOW: u32 = 0x0800_0000;
         command.creation_flags(CREATE_NO_WINDOW);
     }
-    let out = command.output().map_err(GitError::Missing)?;
+    command.output().map_err(GitError::Missing)
+}
+
+/// The error for a failed run: `[not_repo]` when git says so, else git's own text.
+fn failure(args: &[&str], out: &Output) -> GitError {
+    let stderr = String::from_utf8_lossy(&out.stderr).trim().to_owned();
+    if stderr.contains("not a git repository") {
+        GitError::NotRepo
+    } else if stderr.is_empty() {
+        GitError::Failed(format!("git {} failed", args.join(" ")))
+    } else {
+        GitError::Failed(stderr)
+    }
+}
+
+/// Runs git (see [`run`]); stdout without trailing whitespace on success.
+fn git(dir: &Path, args: &[&str]) -> Result<String> {
+    let out = run(dir, args)?;
     if out.status.success() {
         Ok(String::from_utf8_lossy(&out.stdout).trim_end().to_owned())
     } else {
-        let stderr = String::from_utf8_lossy(&out.stderr).trim().to_owned();
-        Err(GitError::Failed(if stderr.is_empty() {
-            format!("git {} failed", args.join(" "))
-        } else {
-            stderr
-        }))
+        Err(failure(args, &out))
     }
 }
 
@@ -100,7 +145,7 @@ pub fn parse_porcelain(text: &str) -> Vec<Worktree> {
 pub fn list(repo: &Path) -> Result<Vec<Worktree>> {
     match git(repo, &["worktree", "list", "--porcelain"]) {
         Ok(text) => Ok(parse_porcelain(&text)),
-        Err(GitError::Failed(_)) => Ok(Vec::new()),
+        Err(GitError::Failed(_) | GitError::NotRepo) => Ok(Vec::new()),
         Err(err) => Err(err),
     }
 }
@@ -282,6 +327,27 @@ pub fn merge(repo: &Path, path: &Path, message: &str) -> Result<String> {
     }
     remove(repo, path, false)?;
     Ok(target)
+}
+
+/// A throwaway repository with one commit (`a.txt`), or none when git is not installed.
+#[cfg(test)]
+fn test_repo() -> Option<tempfile::TempDir> {
+    let dir = tempfile::tempdir().unwrap();
+    let p = dir.path();
+    git(p, &["init", "-q", "-b", "main"]).ok()?;
+    git(p, &["config", "user.email", "test@example.invalid"]).ok()?;
+    git(p, &["config", "user.name", "Test"]).ok()?;
+    git(p, &["config", "commit.gpgsign", "false"]).ok()?;
+    git(p, &["config", "core.autocrlf", "false"]).ok()?;
+    std::fs::write(
+        p.join("a.txt"),
+        "one
+",
+    )
+    .unwrap();
+    git(p, &["add", "-A"]).ok()?;
+    git(p, &["commit", "-q", "-m", "init"]).ok()?;
+    Some(dir)
 }
 
 #[cfg(test)]

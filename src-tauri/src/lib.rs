@@ -74,6 +74,14 @@ pub fn run() {
             git::commands::git_worktree_create,
             git::commands::git_worktree_merge,
             git::commands::git_worktree_remove,
+            git::commands::git_status,
+            git::commands::git_stage,
+            git::commands::git_unstage,
+            git::commands::git_discard,
+            git::commands::git_diff,
+            git::commands::git_commit,
+            git::commands::git_push,
+            git::commands::git_pull,
         ])
         .build(tauri::generate_context!())
         .expect("error while running tauri application")

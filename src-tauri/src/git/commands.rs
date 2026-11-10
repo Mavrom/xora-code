@@ -1,4 +1,6 @@
 use super::Worktree;
+use super::changes::Diff;
+use super::status::Status;
 use crate::error::AppResult;
 use std::path::PathBuf;
 use tauri::{AppHandle, Manager};
@@ -46,4 +48,44 @@ pub async fn git_worktree_merge(
 #[tauri::command]
 pub async fn git_worktree_remove(repo: PathBuf, path: PathBuf, force: bool) -> AppResult<()> {
     blocking(move || super::remove(&repo, &path, force)).await
+}
+
+#[tauri::command]
+pub async fn git_status(dir: PathBuf) -> AppResult<Status> {
+    blocking(move || super::status::status(&dir)).await
+}
+
+#[tauri::command]
+pub async fn git_stage(dir: PathBuf, paths: Vec<String>) -> AppResult<()> {
+    blocking(move || super::changes::stage(&dir, &paths)).await
+}
+
+#[tauri::command]
+pub async fn git_unstage(dir: PathBuf, paths: Vec<String>) -> AppResult<()> {
+    blocking(move || super::changes::unstage(&dir, &paths)).await
+}
+
+#[tauri::command]
+pub async fn git_discard(dir: PathBuf, paths: Vec<String>) -> AppResult<()> {
+    blocking(move || super::changes::discard(&dir, &paths)).await
+}
+
+#[tauri::command]
+pub async fn git_diff(dir: PathBuf, path: String, staged: bool) -> AppResult<Diff> {
+    blocking(move || super::changes::diff(&dir, &path, staged)).await
+}
+
+#[tauri::command]
+pub async fn git_commit(dir: PathBuf, message: String) -> AppResult<String> {
+    blocking(move || super::changes::commit(&dir, &message)).await
+}
+
+#[tauri::command]
+pub async fn git_push(dir: PathBuf) -> AppResult<()> {
+    blocking(move || super::changes::push(&dir)).await
+}
+
+#[tauri::command]
+pub async fn git_pull(dir: PathBuf) -> AppResult<()> {
+    blocking(move || super::changes::pull(&dir)).await
 }
