@@ -16,12 +16,12 @@ type ShortcutEvent = Pick<
 >;
 
 /**
- * App-level shortcuts that act outside the palette: Ctrl+W, Ctrl+S, Ctrl+Shift+N/E
+ * App-level shortcuts that act outside the palette: Ctrl+W, Ctrl+S, Ctrl+Shift+N/E/H/G
  * (Cmd on macOS). Physical codes for the shifted ones so keyboard layouts do not matter.
  */
 export function isGlobalShortcut(e: ShortcutEvent) {
   if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
-  if (e.shiftKey) return e.code === "KeyN" || e.code === "KeyE" || e.code === "KeyH";
+  if (e.shiftKey) return ["KeyN", "KeyE", "KeyH", "KeyG"].includes(e.code);
   const key = e.key.toLowerCase();
   return key === "w" || key === "s";
 }

@@ -2,6 +2,7 @@ import { useEffect, useMemo, type ReactNode } from "react";
 import {
   ArrowLeft,
   ArrowRight,
+  GitBranch,
   Inbox,
   MessagesSquare,
   PanelLeft,
@@ -18,6 +19,10 @@ import { statusNote } from "@/features/chat/controlsView";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
 import { SessionList } from "@/features/chat/SessionList";
 import { emitCommand, NEW_CHAT, OPEN_PALETTE } from "@/features/commands/events";
+import { changeCount } from "@/features/git/changes";
+import { CHANGES_PANEL_ID, ChangesPanel } from "@/features/git/ChangesPanel";
+import { useChangesStore } from "@/features/git/changesStore";
+import { useChangesSync } from "@/features/git/useChangesSync";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { openCount } from "@/features/inbox/sortNotes";
@@ -34,17 +39,22 @@ import { t } from "@/shared/i18n";
 const SHORTCUTS: Record<SidebarView, { code: string; label: string }> = {
   sessions: { code: "KeyH", label: "Ctrl+Shift+H" },
   inbox: { code: "KeyN", label: "Ctrl+Shift+N" },
+  changes: { code: "KeyG", label: "Ctrl+Shift+G" },
 };
 
-/** Opening the inbox is a capture gesture: land straight in the composer. */
-function focusComposerSoon() {
-  requestAnimationFrame(() => document.getElementById(INBOX_COMPOSER_ID)?.focus());
+/**
+ * Where focus lands when a view is opened from the keyboard: the inbox is a capture
+ * gesture (its composer), the changes view its panel (Tab moves on into it).
+ */
+function focusViewSoon(view: SidebarView) {
+  const id = view === "inbox" ? INBOX_COMPOSER_ID : view === "changes" ? CHANGES_PANEL_ID : null;
+  if (id) requestAnimationFrame(() => document.getElementById(id)?.focus());
 }
 
 function showView(next: SidebarView) {
   closeSettings();
   useUiStore.getState().setSidebarView(next);
-  if (next === "inbox") focusComposerSoon();
+  if (next === "inbox") focusViewSoon(next);
 }
 
 /**
@@ -56,6 +66,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const view = useUiStore((s) => s.sidebarView);
   const settingsOpen = useSettingsView((s) => s.open);
   const badge = useInboxStore((s) => openCount(s.notes));
+  const changes = useChangesStore((s) => changeCount(s.status));
   const canBack = useNavHistory((s) => canTravel(s, -1));
   const canForward = useNavHistory((s) => canTravel(s, 1));
   const active = settingsOpen ? null : view;
@@ -64,6 +75,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   useEffect(() => {
     void useInboxStore.getState().load();
   }, []);
+  useChangesSync();
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
@@ -80,7 +92,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       if (!match) return;
       e.preventDefault();
       useUiStore.getState().setSidebarView(match);
-      if (match === "inbox") focusComposerSoon();
+      focusViewSoon(match);
     };
     // Capture phase so the shortcut also works while the editor has focus. On
     // `document` (not `window`) so the command palette's window-capture handler
@@ -163,19 +175,21 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           shortcut={SHORTCUTS.inbox.label}
           active={active === "inbox"}
           onClick={() => showView("inbox")}
-          meta={
-            badge > 0 ? (
-              <span className="rounded-full bg-white/[0.08] px-1.5 text-[11px] leading-4.5 font-medium text-fg-muted tabular-nums">
-                {badge > 99 ? "99+" : badge}
-              </span>
-            ) : null
-          }
+          meta={<CountBadge count={badge} />}
+        />
+        <NavItem
+          icon={GitBranch}
+          label={t("Changes")}
+          shortcut={SHORTCUTS.changes.label}
+          active={active === "changes"}
+          onClick={() => showView("changes")}
+          meta={<CountBadge count={changes} />}
         />
       </nav>
 
       <div aria-hidden className="mx-4 mt-3 h-px bg-white/[0.05]" />
 
-      {/* Both stay mounted so switching views keeps drafts. */}
+      {/* All stay mounted so switching views keeps drafts. */}
       <div className="relative mt-1 min-h-0 flex-1">
         <div className="flex h-full flex-col" hidden={view !== "sessions"}>
           <ProjectPicker />
@@ -186,10 +200,22 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         <div className="h-full" hidden={view !== "inbox"}>
           <InboxPanel />
         </div>
+        <div className="h-full" hidden={view !== "changes"}>
+          <ChangesPanel />
+        </div>
       </div>
 
       <AccountCard settingsOpen={settingsOpen} />
     </div>
+  );
+}
+
+function CountBadge({ count }: { count: number }) {
+  if (count <= 0) return null;
+  return (
+    <span className="rounded-full bg-white/[0.08] px-1.5 text-[11px] leading-4.5 font-medium text-fg-muted tabular-nums">
+      {count > 99 ? "99+" : count}
+    </span>
   );
 }
 

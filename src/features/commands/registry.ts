@@ -2,8 +2,12 @@ import {
   CircleUserRound,
   Copy,
   Download,
+  ArrowDownToLine,
+  ArrowUpFromLine,
   Files,
+  GitBranch,
   MessagesSquare,
+  Plus,
   FileSearch,
   FolderOpen,
   Inbox,
@@ -21,6 +25,9 @@ import {
 } from "lucide-react";
 import { toggleFiles, useUiStore } from "@/app/uiStore";
 import { closeActiveTab } from "@/features/editor/closeTab";
+import { groupChanges, rowPaths } from "@/features/git/changes";
+import { CHANGES_PANEL_ID } from "@/features/git/ChangesPanel";
+import { useChangesStore } from "@/features/git/changesStore";
 import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
@@ -58,6 +65,23 @@ const hasActiveTab = () => useEditorStore.getState().activePath !== null;
 function showInbox() {
   useUiStore.getState().setSidebarView("inbox");
   requestAnimationFrame(() => document.getElementById(INBOX_COMPOSER_ID)?.focus());
+}
+
+/** Shows the Changes view (where a git action's result appears) and focuses it. */
+function showChanges() {
+  closeSettings();
+  useUiStore.getState().setSidebarView("changes");
+  requestAnimationFrame(() => document.getElementById(CHANGES_PANEL_ID)?.focus());
+}
+
+const gitStatus = () => useChangesStore.getState().status;
+
+/** Runs a git action from the palette, in view of its result. */
+function gitAction(action: (store: ReturnType<typeof useChangesStore.getState>) => unknown) {
+  return () => {
+    showChanges();
+    void action(useChangesStore.getState());
+  };
 }
 
 export const COMMANDS: Command[] = [
@@ -168,6 +192,50 @@ export const COMMANDS: Command[] = [
     shortcut: "ctrl+shift+n",
     icon: Inbox,
     run: showInbox,
+  },
+  {
+    id: "view.changes",
+    title: t("Go to Changes"),
+    group: t("View"),
+    shortcut: "ctrl+shift+g",
+    icon: GitBranch,
+    run: showChanges,
+  },
+  {
+    id: "git.stageAll",
+    title: t("Stage all changes"),
+    group: t("Git"),
+    icon: Plus,
+    when: () =>
+      (gitStatus()?.entries ?? []).some((e) => !e.conflicted && (e.unstaged || e.untracked)),
+    run: gitAction((s) => {
+      const rows = groupChanges(s.status?.entries ?? []).changes;
+      return s.stage(rowPaths(rows.filter((r) => r.kind !== "conflicted")));
+    }),
+  },
+  {
+    id: "git.pull",
+    title: t("Pull"),
+    group: t("Git"),
+    icon: ArrowDownToLine,
+    when: () => Boolean(gitStatus()?.upstream),
+    run: gitAction((s) => s.pull()),
+  },
+  {
+    id: "git.push",
+    title: t("Push"),
+    group: t("Git"),
+    icon: ArrowUpFromLine,
+    when: () => Boolean(gitStatus()?.branch),
+    run: gitAction((s) => s.push()),
+  },
+  {
+    id: "git.refresh",
+    title: t("Refresh changes"),
+    group: t("Git"),
+    icon: RotateCw,
+    when: () => useChangesStore.getState().dir !== null,
+    run: gitAction((s) => s.refresh()),
   },
   {
     id: "inbox.newNote",

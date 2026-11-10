@@ -26,9 +26,10 @@ describe("isSettingsShortcut", () => {
 });
 
 describe("isSidebarShortcut", () => {
-  it("matches Ctrl+Shift+E and Ctrl+Shift+N by physical key", () => {
+  it("matches Ctrl+Shift+E, N and G by physical key", () => {
     expect(isSidebarShortcut(key("E", { code: "KeyE", ctrlKey: true, shiftKey: true }))).toBe(true);
     expect(isSidebarShortcut(key("N", { code: "KeyN", ctrlKey: true, shiftKey: true }))).toBe(true);
+    expect(isSidebarShortcut(key("G", { code: "KeyG", ctrlKey: true, shiftKey: true }))).toBe(true);
     expect(isSidebarShortcut(key("e", { code: "KeyE", ctrlKey: true }))).toBe(false);
   });
 });

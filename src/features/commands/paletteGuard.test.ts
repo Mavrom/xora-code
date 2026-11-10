@@ -15,11 +15,13 @@ const key = (
 });
 
 describe("isGlobalShortcut", () => {
-  it("matches Ctrl+W, Ctrl+S and Ctrl+Shift+N/E (Cmd too)", () => {
+  it("matches Ctrl+W, Ctrl+S and Ctrl+Shift+N/E/H/G (Cmd too)", () => {
     expect(isGlobalShortcut(key("w", "KeyW", { ctrl: true }))).toBe(true);
     expect(isGlobalShortcut(key("S", "KeyS", { meta: true }))).toBe(true);
     expect(isGlobalShortcut(key("N", "KeyN", { ctrl: true, shift: true }))).toBe(true);
     expect(isGlobalShortcut(key("E", "KeyE", { ctrl: true, shift: true }))).toBe(true);
+    expect(isGlobalShortcut(key("H", "KeyH", { ctrl: true, shift: true }))).toBe(true);
+    expect(isGlobalShortcut(key("G", "KeyG", { ctrl: true, shift: true }))).toBe(true);
   });
 
   it("leaves editing keys and the palette's own shortcuts alone", () => {
