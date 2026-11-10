@@ -1,5 +1,5 @@
-//! Per-turn change tracking for the "Değişiklikler" review bar and its
-//! "Geri al" action (design doc section 4.3).
+//! Per-turn change tracking for the chat's Changes bar and its "Revert"
+//! action (`ChangesBar.tsx`; the review flow in `docs/architecture.md`).
 //!
 //! For every file an agent changes in the current turn the store keeps the
 //! content from before the first change (`original`, `None` for a file that
@@ -132,7 +132,7 @@ impl ReviewStore {
         files
     }
 
-    /// "Kabul et": forgets one file's snapshot, or all of the session's.
+    /// "Accept": forgets one file's snapshot, or all of the session's.
     pub fn accept(&self, session_id: &str, path: Option<&Path>) {
         let mut sessions = self.lock();
         match path {
@@ -147,7 +147,7 @@ impl ReviewStore {
         }
     }
 
-    /// "Geri al": restores the pre-turn content of `path` if the disk still
+    /// "Revert": restores the pre-turn content of `path` if the disk still
     /// holds what the agent wrote. `roots` are the session's canonical
     /// workspace roots; the path is re-checked against them because diff
     /// paths come straight from the agent.

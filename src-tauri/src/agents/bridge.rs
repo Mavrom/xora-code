@@ -43,13 +43,13 @@ impl Bridges {
         self.review.changed_files(session_id)
     }
 
-    /// "Kabul et": forget one file's snapshot, or all of the session's.
+    /// "Accept": forget one file's snapshot, or all of the session's.
     pub fn accept(&self, session_id: &str, path: Option<&str>) {
         self.review.accept(session_id, path.map(Path::new));
     }
 
     /// Agents that write files themselves (Codex) report the change as ACP
-    /// `diff` content; record it so "Geri al" works for them too.
+    /// `diff` content; record it so "Revert" works for them too.
     pub fn record_diff(
         &self,
         session_id: &str,

@@ -1,5 +1,5 @@
-// Sidebar ordering on top of package C's project groups: untouched (empty) open sessions are
-// hidden, and the open workspace's group comes first.
+// Sidebar ordering on top of the agent store's project groups (`groupByProject`): untouched
+// (empty) open sessions are hidden, and the open workspace's group comes first.
 import {
   sameProject,
   type ProjectGroup,

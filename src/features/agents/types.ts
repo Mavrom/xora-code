@@ -1,5 +1,5 @@
 // Shared event contract between Rust (`src-tauri/src/agents/events.rs`) and the
-// frontend. Mirrors design doc section 5.1 exactly; change both sides together.
+// frontend; change both sides together.
 
 export type AgentId = "claude" | "codex" | "gemini";
 

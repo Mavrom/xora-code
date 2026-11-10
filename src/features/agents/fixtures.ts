@@ -1,5 +1,5 @@
 // Realistic fixture data for the three agents: session setups (as the
-// adapters send them, design 4.4), agent statuses, history, and event
+// adapters send them), agent statuses, history, and event
 // scenarios. Used by tests, by the chat UI's `?fixture=` dev mode and by the
 // fake ipc below, which lets the real store run without Rust.
 
@@ -30,7 +30,7 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
   claude: {
     sessionId: "fixture-claude",
     agentId: "claude",
-    // Claude also sends legacy modes; configOptions win (design 4.4).
+    // Claude also sends legacy modes; configOptions win (see `controls.ts`).
     modes: {
       currentModeId: "default",
       availableModes: [

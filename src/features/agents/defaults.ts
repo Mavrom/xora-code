@@ -1,4 +1,4 @@
-// Session defaults from the user's settings (design 4.4 / 5.3). Applied once
+// Session defaults from the user's settings. Applied once
 // when a session opens; later picker changes stay within the session.
 
 import type { Control, SessionControls } from "./controls";
@@ -9,7 +9,7 @@ export type ApprovalPolicy = "ask" | "autoEdits" | "full";
 export type Effort = "low" | "medium" | "high";
 export type DefaultMode = "agent" | "plan" | "chat";
 
-/** Mirrors `settings.agent` from package S (`@/features/settings/types`). */
+/** Mirrors `settings.agent` from the settings feature (`@/features/settings/types`). */
 export interface AgentSettings {
   defaultAgent: AgentId;
   defaultMode: DefaultMode;
@@ -54,7 +54,7 @@ export function normalizeAgentSettings(raw: unknown): AgentSettings {
 }
 
 // --- Settings source -------------------------------------------------------------
-// Package S owns the settings store. Integration wires it with
+// The settings feature owns the settings store; `useAgentEvents` wires it in with
 // `setAgentSettingsSource(() => useSettingsStore.getState().settings.agent)`.
 
 let settingsSource: () => unknown = () => DEFAULT_AGENT_SETTINGS;

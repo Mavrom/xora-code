@@ -1,4 +1,4 @@
-//! Local session index (design doc 3.8): `<app data>/agents/sessions.json`.
+//! Local session index: `<app data>/agents/sessions.json`.
 //! The only history source for Gemini; merged with `session/list` for the others.
 
 use super::events::AgentId;

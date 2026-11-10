@@ -1,4 +1,4 @@
-// Typed wrappers around the agent Tauri commands (design 5.2). The store talks
+// Typed wrappers around the agent Tauri commands. The store talks
 // to the `AgentIpc` interface, so tests and the `?fixture=` dev mode can swap
 // in a fake.
 
@@ -98,7 +98,7 @@ export const tauriAgentIpc: AgentIpc = {
   shutdown: () => invoke<void>("agents_shutdown"),
 };
 
-/** Rust prefixes ACP `-32000` errors with this (design 5.2). */
+/** Rust prefixes ACP `-32000` errors with this (`AgentError::ipc_message`). */
 export const AUTH_REQUIRED_PREFIX = "auth_required:";
 
 export function errorMessage(err: unknown): string {

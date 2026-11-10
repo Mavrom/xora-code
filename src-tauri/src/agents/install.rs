@@ -1,4 +1,4 @@
-//! Managed adapter install (design doc 1.2): `node npm-cli.js install --prefix`
+//! Managed adapter install: `node npm-cli.js install --prefix`
 //! into `<app data>/agents/<slug>/<version>`. Optional dependencies are kept
 //! (the Claude SDK ships its native CLI and Gemini `node-pty` that way).
 

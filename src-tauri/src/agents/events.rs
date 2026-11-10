@@ -1,5 +1,5 @@
-//! Shared event contract between the Rust agent core and the frontend
-//! (design doc section 5.1). Mirrored one-to-one by
+//! Shared event contract between the Rust agent core and the frontend.
+//! Mirrored one-to-one by
 //! `src/features/agents/types.ts`; change both together.
 
 use serde::Serialize;

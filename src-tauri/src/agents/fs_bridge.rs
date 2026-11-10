@@ -1,4 +1,4 @@
-//! Client-side file system bridge for ACP agents (design doc section 3.5):
+//! Client-side file system bridge for ACP agents:
 //! `fs/read_text_file` and `fs/write_text_file`, confined to the session's
 //! workspace roots.
 //!

@@ -1,4 +1,4 @@
-//! `session/request_permission` round trip (design doc 3.7): the agent waits
+//! `session/request_permission` round trip: the agent waits
 //! while the user picks an option in the UI. `None` means "cancelled".
 
 use std::collections::HashMap;

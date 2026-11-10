@@ -1,5 +1,6 @@
-//! ACP client side: the `ClientHandlers` boundary that package B implements
-//! (design doc 3.4). The connection itself is added below this boundary.
+//! ACP client side: the `ClientHandlers` boundary between the protocol and the
+//! bridges. `Bridges` (`bridge.rs`) implements it; `handle_request` in
+//! `manager.rs` routes the agent's requests to it over the transport.
 
 use agent_client_protocol_schema::v1::{
     CreateTerminalRequest, CreateTerminalResponse, KillTerminalRequest, KillTerminalResponse,

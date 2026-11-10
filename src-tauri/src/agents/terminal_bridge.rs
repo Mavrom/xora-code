@@ -1,4 +1,4 @@
-//! ACP `terminal/*` (design doc 3.6): agent-run commands on plain pipes, not
+//! ACP `terminal/*`: agent-run commands on plain pipes, not
 //! the interactive PTY terminal. Output from stdout and stderr is merged into
 //! one buffer that keeps the *tail* once `outputByteLimit` is exceeded.
 

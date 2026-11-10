@@ -1,4 +1,4 @@
-// Agent state (design 4.1): agents, sessions, permissions, history. Channel
+// Agent state: agents, sessions, permissions, history. Channel
 // events are queued and applied once per animation frame, so a burst of
 // chunks becomes a single render.
 

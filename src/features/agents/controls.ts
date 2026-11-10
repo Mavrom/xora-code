@@ -1,4 +1,4 @@
-// Unifies the three ways agents expose model / mode / effort (design 4.4):
+// Unifies the three ways agents expose model / mode / effort:
 // ACP `configOptions` (Claude, Codex) win; otherwise the legacy `modes` and
 // Gemini's unstable `models` field are used. Pure, no IPC.
 

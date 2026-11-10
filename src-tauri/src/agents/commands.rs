@@ -1,4 +1,4 @@
-//! Tauri commands for the agent core (design doc 5.2). Thin wrappers around
+//! Tauri commands for the agent core. Thin wrappers around
 //! `AgentManager`; errors cross IPC as strings (`auth_required:` prefix for -32000).
 
 use super::acp::RevertOutcome;

@@ -1,5 +1,5 @@
 //! Agent adapter child processes: hidden console, kill-on-close Job Object (a process
-//! group off Windows), and a masked stderr tail for the crash card (design doc 3.8).
+//! group off Windows), and a masked stderr tail for the crash card.
 
 use std::collections::VecDeque;
 use std::ffi::OsString;

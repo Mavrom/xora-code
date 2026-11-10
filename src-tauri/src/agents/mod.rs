@@ -1,6 +1,6 @@
 //! ACP agent core: spawning agent adapters, the JSON-RPC transport, the
-//! client-side bridges and the event stream to the frontend
-//! (design doc `2026-10-25-phase2-acp-design.md`).
+//! client-side bridges and the event stream to the frontend. See the
+//! `agents` section of `docs/architecture.md` for how the files fit together.
 
 pub mod acp;
 pub mod bridge;

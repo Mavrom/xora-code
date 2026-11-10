@@ -1,5 +1,5 @@
 //! Which adapters Xora runs, at which pinned versions, and where they live
-//! (design doc 1.1/1.2/3.8). Adapters are installed per version under the
+//! (the `SPECS` table). Adapters are installed per version under the
 //! app data folder and started as `node <entry>`; no npx, no `.cmd` shims.
 
 use super::events::AgentId;

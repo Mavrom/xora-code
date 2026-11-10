@@ -1,4 +1,4 @@
-//! Newline-delimited JSON-RPC 2.0 over a child's stdio (design doc 3.1/3.3).
+//! Newline-delimited JSON-RPC 2.0 over a child's stdio.
 //!
 //! One reader task routes responses to their waiting request, hands
 //! notifications to the handler *inline and in order*, and gives requests a

@@ -1,4 +1,4 @@
-// AgentEvent -> view state (design 4.2). Pure: `now` is passed in. A batch is
+// AgentEvent -> view state. Pure: `now` is passed in. A batch is
 // applied with copy-on-write drafts, so a frame of hundreds of chunks copies
 // each touched session and item once instead of once per event.
 
@@ -507,7 +507,6 @@ export function reduceEvents(
   return { agents, sessions, orphans };
 }
 
-/** Adds (or replaces) a session and replays events that arrived before it. */
 /**
  * Starts a turn locally: appends the user's message (agents echo user chunks
  * only on replay) and marks the session running. The change list starts over,
@@ -549,6 +548,7 @@ export function withCoreChanges(view: SessionView, files: readonly ChangedFile[]
   };
 }
 
+/** Adds (or replaces) a session and replays events that arrived before it. */
 export function attachSession(data: AgentData, view: SessionView, now: number): AgentData {
   const pending = data.orphans[view.sessionId];
   const orphans = { ...data.orphans };

@@ -1,4 +1,4 @@
-//! `AgentManager` (design doc 3.3): one adapter process per agent kind, many
+//! `AgentManager`: one adapter process per agent kind, many
 //! sessions per process. Owns the connections, routes incoming requests to
 //! the bridges and the permission broker, and reports everything to the UI
 //! through the single `EventSink`.
@@ -1022,7 +1022,8 @@ async fn handle_request(
     }
 }
 
-/// `initialize` params: Xora's client capabilities (design doc 2.2).
+/// `initialize` params: Xora's client capabilities (`fs` read/write, terminals,
+/// terminal sign-in) and its name and version.
 pub fn initialize_params() -> Value {
     json!({
         "protocolVersion": 1,
@@ -1039,7 +1040,6 @@ pub fn initialize_params() -> Value {
     })
 }
 
-/// How an adapter is started (design doc 1.2/1.4/3.8).
 /// The user's home folder: a working directory no project removal can pull away.
 fn home_dir() -> Option<PathBuf> {
     ["USERPROFILE", "HOME"]
@@ -1049,6 +1049,9 @@ fn home_dir() -> Option<PathBuf> {
         .find(|p| p.is_dir())
 }
 
+/// How an adapter is started: `node <entry> <args>` in `cwd`, with Claude's protocol
+/// switch, optionally without the API key variables (`claude_ignore_api_key`), and with
+/// the adapter's own log folder when `debug_logs` is on.
 pub fn launch_spec(
     spec: &AgentSpec,
     node: &Path,
