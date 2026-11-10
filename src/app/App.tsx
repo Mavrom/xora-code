@@ -16,6 +16,7 @@ import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
 import { installUnread } from "@/features/chat/unread";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
+import { installCommandShortcuts } from "@/features/commands/commandShortcuts";
 import { installCaptureGuard } from "@/features/keymap/captureGuard";
 import { installKeymap } from "@/features/keymap/settingsSync";
 import { installSettingsFixture } from "@/features/settings/sections/shortcutsFixture";
@@ -25,9 +26,11 @@ import { isQuickOpenShortcut, usePaletteShortcut } from "@/features/commands/use
 import { Layout } from "./Layout";
 
 // Before the first render, so they run ahead of every feature's own shortcut listener:
-// recording a shortcut in Settings takes every key, then the open palette swallows some.
+// recording a shortcut in Settings takes every key, then the open palette swallows some,
+// then a key bound to a palette command runs it.
 installCaptureGuard();
 installPaletteGuard();
+installCommandShortcuts();
 installKeymap();
 installLanguage();
 installNavHistory();

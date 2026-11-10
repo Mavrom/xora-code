@@ -49,6 +49,7 @@ import {
   TOGGLE_TERMINAL,
 } from "./events";
 import type { Rankable } from "./results";
+import { registerCommandActions } from "@/features/keymap/actions";
 import { t } from "@/shared/i18n";
 
 export interface Command extends Rankable {
@@ -286,3 +287,6 @@ export const COMMANDS: Command[] = [
     run: () => openSettings("appearance"),
   },
 ];
+
+// Every palette command can be given a shortcut in Settings > Shortcuts.
+registerCommandActions(COMMANDS.map((c) => c.id));
