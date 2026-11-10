@@ -124,9 +124,10 @@ The ACP client. One adapter process per agent kind, many sessions per process.
 | `terminal_bridge.rs`  | ACP terminals: commands on pipes, output kept to a byte limit (1 MiB default), streamed to the UI in batches.                                                   |
 | `permissions.rs`      | `PermissionBroker`: an open `session/request_permission` waits on a oneshot until the UI answers or the turn is cancelled.                                      |
 | `review.rs`           | `ReviewStore`: per turn, each changed file's content before the first change and after the last, for revert.                                                    |
+| `fork.rs`             | "Edit and retry": the `session/fork` request cut at a message, and which adapter versions were checked to honour the cut (`FORK_POINT_ADAPTERS`).              |
 | `index.rs`            | `SessionIndex`: `<app data>/agents/sessions.json` with titles, pins, archive and delete marks, merged with the agent's `session/list`.                          |
 | `events.rs`           | `AgentEvent`, `AgentStatus`, `SessionSetup`, `EventSink`. Mirrored by `src/features/agents/types.ts`; change both together.                                     |
-| `commands.rs`         | The 24 `agent_*` / `agents_*` commands, thin wrappers around `AgentManager`.                                                                                    |
+| `commands.rs`         | The 25 `agent_*` / `agents_*` commands, thin wrappers around `AgentManager`.                                                                                    |
 
 - **Errors:** `AgentError`, sent as a string; ACP error `-32000` becomes `auth_required:<message>`.
 - **Events:** everything goes through `EventSink` to the `Channel` the UI passes to `agents_subscribe`. The `type` tag is one of `agentStatus`, `sessionUpdate` (the raw ACP update, passed through), `permissionRequested`, `permissionResolved`, `turnEnded`, `turnFailed`, `fileWritten`, `terminalOutput`, `terminalExited`. Events sent before a subscriber exists are dropped; the UI re-reads state with `agents_list`.
@@ -185,7 +186,7 @@ Each feature folder co-locates its components, its Zustand store, pure logic, an
 
 ### Fixture mode
 
-`npm run dev` serves the UI in a plain browser, where no Rust command exists. In a DEV build, `?fixture=<scenario>` (`streaming`, `toolDiff`, `permission`, `plan`, `terminal`, `toolRun`; or `welcome` for no session) swaps the agent IPC for a fake (`setAgentIpc`) and plays a scripted turn through the real store and reducer; `&agent=codex` and `&status=crashed` pick the agent and its status. `&update=0.9.0` shows the update notice for that version without any request. See `src/features/agents/fixtureMode.ts`. Production builds drop the fixture code.
+`npm run dev` serves the UI in a plain browser, where no Rust command exists. In a DEV build, `?fixture=<scenario>` (`streaming`, `toolDiff`, `permission`, `plan`, `terminal`, `toolRun`; or `welcome` for no session) swaps the agent IPC for a fake (`setAgentIpc`) and plays a scripted turn through the real store and reducer; `&agent=codex` and `&status=crashed` pick the agent and its status; `&branch=1` sends a second message and then edits and retries it (a fork for Claude and Codex, the summary fallback for Gemini). `&update=0.9.0` shows the update notice for that version without any request. See `src/features/agents/fixtureMode.ts`. Production builds drop the fixture code.
 
 ## IPC surface
 
@@ -238,6 +239,14 @@ How often an agent asks is the agent's own mode: Settings' approval policy (`ask
 3. The reducer collects the turn's changed files in the session's `changes`; `ChangesBar` lists them, and a row opens a read-only diff tab through `openDiffInEditor`. Starting the next turn empties the list (`beginTurn`), as the core drops the last turn's snapshots then (`begin_turn`). Reopening a session (`loadSession`) adds back the files the core still tracks (`agent_review_changes`), for example after a window reload.
 4. "Accept" (`acceptChanges`) calls `agent_review_accept`, which drops the session's snapshots, and clears the list only once that succeeds; a failure keeps the list and shows the error. Snapshots also go when the session closes.
 5. "Revert" calls `revertChange` → `agent_review_revert`. `ReviewStore::revert` restores the original (or deletes a file the turn created) only while the disk still holds what the agent wrote; otherwise it returns `conflict` and leaves the file alone.
+
+### Edit and retry from an earlier message
+
+1. The pencil on a user message (`MessageList`, offered while `canBranch`) calls `editAndRetry` (`chat/branchChat.ts`), which calls `useAgentStore.branchSession`.
+2. `planBranch` finds the cut point: the `messageId` of the last agent message between that user message and the one before it (the reducer keeps the ids the adapters put on message chunks, live and on replay). `branchVia` picks `fork` when there is one and the agent advertises `sessionCapabilities.fork`, `new` for the first message, else `summary`.
+3. `fork` invokes `agent_session_fork`. `AgentManager::session_fork` asks only adapters in `fork::FORK_POINT_ADAPTERS` and sends `session/fork` with the cut in `_meta.jetbrains.air.fork` (`fork_request`); the new session is registered like `session_new`. Any refusal falls back to `summary`: a plain `agent_session_new`.
+4. The new chat opens next to the original, which is not changed. A fork shows the kept conversation; every branch gets the original's model, mode and effort, and quiet lines when it started from a summary or when later turns edited files.
+5. `branchDraft` puts the message and its attachments back in the composer (`draftFromBlocks`), for the summary also the transcript before it (`branchPrompt`). Nothing is sent until the user sends it.
 
 ### Open, edit and save a file; follow the disk
 
@@ -317,6 +326,8 @@ WebView:
 - There is no Content Security Policy (`"csp": null` in `tauri.conf.json`). Agent Markdown is sanitized with DOMPurify (`chat/renderMarkdown.ts`) before it is rendered.
 
 Not sandboxed, stated plainly: the adapters and everything they start, ACP terminal commands, the integrated terminal, and the UI's file commands.
+
+Edit and retry rewinds the conversation only: files on disk stay as the later turns left them. The cut point of a fork relies on an adapter extension (`_meta.jetbrains.air.fork`) that only the checked adapter versions get; any other agent, or a refused fork, gets a new chat seeded with the transcript as text, so the agent sees a summary, not its own history.
 
 ## Extending
 
