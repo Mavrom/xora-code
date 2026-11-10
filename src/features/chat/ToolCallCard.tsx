@@ -48,6 +48,9 @@ const KIND_ICON: Record<AcpToolKind, LucideIcon> = {
   other: Wrench,
 };
 
+/** The status mark's box; a folded run reserves the same slot so the columns line up. */
+export const STATUS_SLOT = "grid size-3.5 shrink-0 place-items-center";
+
 interface ToolCallCardProps {
   call: AcpToolCall;
   startedAt: number;
@@ -200,12 +203,7 @@ function StatusMark({ status }: { status: NonNullable<AcpToolCall["status"]> }) 
     failed: t("Failed"),
   }[status];
   return (
-    <span
-      role="img"
-      aria-label={label}
-      title={label}
-      className="grid size-3.5 shrink-0 place-items-center"
-    >
+    <span role="img" aria-label={label} title={label} className={STATUS_SLOT}>
       {status === "pending" && <span className="size-1.5 rounded-full border border-fg-subtle" />}
       {status === "in_progress" && (
         <span className="size-3 animate-spin rounded-full border-[1.5px] border-border-strong border-t-fg motion-reduce:animate-none" />

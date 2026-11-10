@@ -5,7 +5,7 @@ import { cn } from "@/shared/ui/cn";
 import { Collapse } from "./Disclosure";
 import { DiffStat } from "./DiffPreview";
 import { formatDuration } from "./format";
-import { ToolCallCard } from "./ToolCallCard";
+import { STATUS_SLOT, ToolCallCard } from "./ToolCallCard";
 import { failedText, summaryText, type ToolItem, type ToolRun } from "./toolRuns";
 
 interface ToolRunGroupProps {
@@ -76,6 +76,7 @@ export const ToolRunGroup = memo(function ToolRunGroup({
             {formatDuration(summary.durationMs)}
           </span>
         )}
+        <span aria-hidden className={STATUS_SLOT} />
         <ChevronRight
           size={13}
           strokeWidth={1.75}
