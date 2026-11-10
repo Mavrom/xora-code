@@ -159,7 +159,7 @@ function DiffRow({ line }: { line: DiffLine }) {
         )}
       >
         <span className="sr-only">
-          {line.type === "add" ? "eklendi: " : line.type === "del" ? "silindi: " : ""}
+          {line.type === "add" ? t("added: ") : line.type === "del" ? t("removed: ") : ""}
         </span>
         {line.text || " "}
       </td>

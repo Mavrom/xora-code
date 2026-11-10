@@ -168,6 +168,8 @@ export const TR: Record<string, string> = {
   "Open in editor": "Editörde aç",
   "Content unchanged.": "İçerik değişmedi.",
   "Show 1 more line": "1 satır daha göster",
+  "added: ": "eklendi: ",
+  "removed: ": "silindi: ",
   "Show {n} more lines": "{n} satır daha göster",
   // features/chat/DropOverlay.tsx
   "Drop to add to the chat": "Sohbete eklemek için bırak",
