@@ -1,4 +1,4 @@
-import { memo, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { ArrowDown, Check, CircleAlert, Copy, FileText, Info, TriangleAlert } from "lucide-react";
 import type { ChatItem, SessionView } from "@/features/agents/reducer";
 import type { AcpContentBlock, AcpStopReason } from "@/features/agents/types";
@@ -10,6 +10,8 @@ import { ThinkingBlock } from "./ThinkingBlock";
 import { ToolCallCard } from "./ToolCallCard";
 import { fileName, imageKey, messageImagePaths, toolImages, type ToolImage } from "./toolView";
 import { ToolImages } from "./ToolImages";
+import { createRunGrouper } from "./toolRuns";
+import { ToolRunGroup } from "./ToolRunGroup";
 import { dataUrl } from "./attachments";
 import { t } from "@/shared/i18n";
 
@@ -40,6 +42,30 @@ export function MessageList({ session }: MessageListProps) {
   const running = turn !== "idle";
   const last = items[items.length - 1];
   const shown = useShownImages(items);
+  const permissions = useMemo(
+    () => new Set(session.permissions.map((p) => p.toolCall.toolCallId)),
+    [session.permissions],
+  );
+  const [groupRuns] = useState(createRunGrouper);
+  const rows = useMemo(
+    () => groupRuns(items, { live: running, permissions }),
+    [groupRuns, items, running, permissions],
+  );
+  // Expanded runs by first call id: survives streaming updates and the run growing.
+  const [expanded, setExpanded] = useState<ReadonlySet<string>>(NONE);
+  const toggleRun = useCallback(
+    (id: string) => {
+      const next = new Set(expanded);
+      if (next.has(id)) next.delete(id);
+      else {
+        next.add(id);
+        // The reader opened a run to read it: stop following the stream so it stays in place.
+        stuck.current = false;
+      }
+      setExpanded(next);
+    },
+    [expanded],
+  );
 
   // A different session starts pinned to its latest message.
   useLayoutEffect(() => {
@@ -55,6 +81,7 @@ export function MessageList({ session }: MessageListProps) {
     if (!el || !content) return;
     const observer = new ResizeObserver(() => {
       if (stuck.current) el.scrollTop = el.scrollHeight;
+      else setDetached(!isNearBottom(el));
     });
     observer.observe(content);
     return () => observer.disconnect();
@@ -91,16 +118,36 @@ export function MessageList({ session }: MessageListProps) {
       >
         <div ref={contentRef} className="mx-auto w-full max-w-180 px-6 pt-6 pb-10">
           {session.loading && items.length === 0 && <ReplaySkeleton />}
-          {items.map((item, index) => (
-            <div key={item.id} className={gapBefore(items[index - 1]?.kind, item.kind)}>
-              <Item
-                item={item}
-                streaming={running && item === last}
-                terminals={terminals}
-                shown={item.kind === "agent" ? shown : undefined}
-              />
-            </div>
-          ))}
+          {rows.map((row, index) => {
+            const prev = rows[index - 1];
+            const gap = gapBefore(
+              prev && (prev.kind === "run" ? "tool" : prev.item.kind),
+              row.kind === "run" ? "tool" : row.item.kind,
+            );
+            if (row.kind === "run") {
+              return (
+                <div key={`run-${row.id}`} className={gap}>
+                  <ToolRunGroup
+                    run={row}
+                    open={expanded.has(row.id)}
+                    onToggle={toggleRun}
+                    terminals={terminals}
+                  />
+                </div>
+              );
+            }
+            const { item } = row;
+            return (
+              <div key={item.id} className={gap}>
+                <Item
+                  item={item}
+                  streaming={running && item === last}
+                  terminals={terminals}
+                  shown={item.kind === "agent" ? shown : undefined}
+                />
+              </div>
+            );
+          })}
           {working && (
             <p className="mt-4 text-xs">
               <span className="shimmer">{t("Working…")}</span>
