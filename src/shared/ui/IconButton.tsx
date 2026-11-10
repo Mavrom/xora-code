@@ -1,5 +1,6 @@
 import type { LucideIcon } from "lucide-react";
 import { cn } from "./cn";
+import { describeShortcut, detectPlatform } from "./keys";
 
 interface IconButtonProps {
   icon: LucideIcon;
@@ -13,7 +14,11 @@ interface IconButtonProps {
   variant?: "ghost" | "solid";
   /** `md` (28px) by default; `sm` (24px) for dense row actions. */
   size?: "sm" | "md";
+  /** Shortcut in portable form (`"alt+c"`): added to the tooltip and `aria-keyshortcuts`. */
+  shortcut?: string;
 }
+
+const PLATFORM = detectPlatform(typeof navigator === "undefined" ? undefined : navigator);
 
 export function IconButton({
   icon: Icon,
@@ -23,12 +28,15 @@ export function IconButton({
   disabled,
   variant = "ghost",
   size = "md",
+  shortcut,
 }: IconButtonProps) {
+  const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
   return (
     <button
       type="button"
       aria-label={label}
-      title={label}
+      title={keys ? `${label} (${keys})` : label}
+      aria-keyshortcuts={keys}
       aria-pressed={active}
       disabled={disabled}
       onClick={onClick}
