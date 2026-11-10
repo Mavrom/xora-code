@@ -1,18 +1,14 @@
 import { lazy, Suspense, useEffect, useRef, useState } from "react";
-import { ask, open } from "@tauri-apps/plugin-dialog";
-import { X } from "lucide-react";
+import { ask } from "@tauri-apps/plugin-dialog";
 import { errorMessage, isAuthRequired } from "@/features/agents/ipc";
-import type { SessionView } from "@/features/agents/reducer";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import type { AgentId, AgentStatus } from "@/features/agents/types";
-import { ipc } from "@/shared/lib/ipc";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { useEditorStore } from "@/features/editor/store";
 import { fileKey } from "@/features/editor/tabKind";
 import { basename } from "@/shared/lib/path";
 import { useHostname } from "@/shared/lib/useHostname";
-import { Kbd } from "@/shared/ui/Kbd";
 import { useWorktreeStore } from "@/features/git/worktrees";
 import { ConversationScrim } from "@/features/backdrop/ConversationScrim";
 import { AgentStatusCard } from "./AgentStatusCard";
@@ -28,19 +24,18 @@ import {
   ModelPicker,
   type OpenChip,
 } from "./ComposerToolbar";
-import { attachmentFromBlob, attachmentFromPath, toBlocks, type Attachment } from "./attachments";
+import { attachmentFromBlob, toBlocks, type Attachment } from "./attachments";
 import { editAndRetry } from "./branchChat";
 import { PermissionPrompt } from "./PermissionPrompt";
+import { QueuedPrompts, StopHint } from "./QueuedPrompts";
 import { StartingPointList } from "./StartingPointList";
 import type { XoraCommandName } from "./slash";
 import { isDocked } from "./sessionTitle";
 import { needsStatusCard } from "./toolView";
-import { NEW_CHAT, onChatDraft, onCommand } from "@/features/commands/events";
-import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 import { DropOverlay } from "./DropOverlay";
-import { useFileDrop } from "./useFileDrop";
-import { matchesAction, useShortcut } from "@/features/keymap/keymap";
+import { useAttachmentInput } from "./useAttachmentInput";
+import { useComposerEvents } from "./useComposerEvents";
 import { t } from "@/shared/i18n";
 
 const NOTICE_MS = 3200;
@@ -102,33 +97,7 @@ export function ChatPanel() {
 
   useWarmSession(session === null, agentId, cwd, agent.status);
 
-  // An Inbox note sent to the chat lands in the composer, ready to edit and send.
-  useEffect(
-    () =>
-      onChatDraft((text, append) =>
-        append ? composerRef.current?.append(text) : composerRef.current?.fill(text),
-      ),
-    [],
-  );
-
-  // "Yeni sohbet" from the sidebar, or its shortcut (Ctrl+N, Cmd+N on macOS) anywhere.
-  useEffect(() => {
-    const start = () => {
-      useAgentStore.getState().setActiveSession(null);
-      requestAnimationFrame(() => composerRef.current?.focus());
-    };
-    const onKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat || isPaletteOpen() || !matchesAction(e, "chat.new")) return;
-      e.preventDefault();
-      start();
-    };
-    window.addEventListener("keydown", onKeyDown, true);
-    const off = onCommand(NEW_CHAT, start);
-    return () => {
-      window.removeEventListener("keydown", onKeyDown, true);
-      off();
-    };
-  }, []);
+  useComposerEvents(composerRef);
 
   useEffect(() => {
     if (!notice) return;
@@ -224,48 +193,11 @@ export function ChatPanel() {
       );
   };
 
-  const addAttachments = async (pending: Promise<Attachment>[]) => {
-    const results = await Promise.allSettled(pending);
-    const added = results.flatMap((r) => (r.status === "fulfilled" ? [r.value] : []));
-    const failed = results.find((r) => r.status === "rejected");
-    if (added.length > 0) {
-      // The same file twice is one attachment.
-      setAttachments((list) => [
-        ...list,
-        ...added.filter((a) => !a.path || !list.some((b) => b.path === a.path)),
-      ]);
-      composerRef.current?.focus();
-    }
-    if (failed) say(t("Could not attach: {reason}", { reason: errorMessage(failed.reason) }));
-  };
-
-  const attachPaths = (paths: string[], kind: "file" | "folder") =>
-    void addAttachments(paths.map((p) => attachmentFromPath(p, kind, ipc.readBytes)));
-
-  const attach = async (directory: boolean) => {
-    const picked = await open({
-      title: directory ? t("Add folder") : t("Add file"),
-      multiple: true,
-      directory,
-      defaultPath: cwd ?? undefined,
-    }).catch(() => null);
-    attachPaths(
-      Array.isArray(picked) ? picked : picked ? [picked] : [],
-      directory ? "folder" : "file",
-    );
-  };
-
-  // Dropped from Explorer: folders by what the backend can list, everything else as files.
-  const dropping = useFileDrop(
-    (paths) =>
-      void addAttachments(
-        paths.map((path) =>
-          ipc.listDir(path).then(
-            () => attachmentFromPath(path, "folder", ipc.readBytes),
-            () => attachmentFromPath(path, "file", ipc.readBytes),
-          ),
-        ),
-      ),
+  const { addAttachments, attachPaths, attach, dropping } = useAttachmentInput(
+    cwd,
+    setAttachments,
+    composerRef,
+    say,
   );
 
   const sessionId = session?.sessionId ?? null;
@@ -438,45 +370,5 @@ export function ChatPanel() {
       <div className="relative mx-auto w-full max-w-180 px-4 pt-1 pb-2">{composer}</div>
       {dropping && <DropOverlay />}
     </div>
-  );
-}
-
-function StopHint() {
-  const keys = useShortcut("chat.stop");
-  if (!keys) return null;
-  return (
-    <p className="flex items-center gap-1.5 text-2xs text-fg-subtle">
-      <Kbd keys={keys} />
-      <span>{t("stop")}</span>
-    </p>
-  );
-}
-
-/** Messages typed during a running turn, sent one by one when it ends. */
-function QueuedPrompts({ session }: { session: SessionView }) {
-  return (
-    <ul aria-label={t("Queued messages")} className="mb-2 flex flex-col gap-1">
-      {session.queued.map((blocks, index) => {
-        const text = blocks.flatMap((b) => (b.type === "text" ? [b.text] : [])).join(" ");
-        return (
-          <li
-            key={index}
-            className="flex h-8 items-center gap-2 rounded-lg border border-glass-border bg-glass pr-1 pl-3 text-xs backdrop-blur-xl"
-          >
-            <span className="shrink-0 text-2xs text-fg-subtle">{t("Queued")}</span>
-            <span className="min-w-0 flex-1 truncate text-fg-muted">{text}</span>
-            <button
-              type="button"
-              aria-label={t("Remove from queue")}
-              title={t("Remove from queue")}
-              onClick={() => useAgentStore.getState().dropQueued(session.sessionId, index)}
-              className="grid size-6 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-            >
-              <X size={12} strokeWidth={1.75} aria-hidden />
-            </button>
-          </li>
-        );
-      })}
-    </ul>
   );
 }
