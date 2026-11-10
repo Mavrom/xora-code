@@ -52,6 +52,34 @@ describe("Turkish catalog", () => {
   });
 });
 
+/**
+ * Files whose Turkish letters are data, not interface text: fixture conversations, the
+ * folding tables, search keywords, the language's own name, a regex over `Intl` output.
+ */
+const TURKISH_DATA = [
+  join("features", "agents", "fixtures.ts"),
+  join("features", "commands", "fuzzy.ts"),
+  join("features", "settings", "searchIndex.ts"),
+  join("features", "settings", "sections", "GeneralSection.tsx"),
+  join("features", "inbox", "relativeTime.ts"),
+];
+
+describe("interface text", () => {
+  it("has no Turkish outside the catalog, so English users never see it", () => {
+    const offenders = sources(SRC)
+      .filter((file) => !file.includes("i18n") && !TURKISH_DATA.some((d) => file.endsWith(d)))
+      .flatMap((file) =>
+        readFileSync(file, "utf8")
+          .replace(/\/\*[\s\S]*?\*\//g, "")
+          .split("\n")
+          .map((line) => line.replace(/(^|\s)\/\/.*$/, ""))
+          .filter((line) => /[çğıöşüÇĞİÖŞÜ]/.test(line))
+          .map((line) => `${file.slice(SRC.length + 1)}: ${line.trim()}`),
+      );
+    expect(offenders).toEqual([]);
+  });
+});
+
 describe("translate", () => {
   it("fills placeholders in either language and falls back to the English", () => {
     expect(translate("en", "Continue with {name}", { name: "Codex" })).toBe("Continue with Codex");

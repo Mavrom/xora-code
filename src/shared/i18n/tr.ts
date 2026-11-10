@@ -188,6 +188,7 @@ export const TR: Record<string, string> = {
   "Listing files…": "Dosyalar listeleniyor…",
   "No matching files": "Eşleşen dosya yok",
   // features/chat/MessageList.tsx
+  "Stopped.": "Durduruldu.",
   "The reply hit its length limit.": "Yanıt uzunluk sınırına ulaştı.",
   "This turn hit its request limit.": "Bu tur için istek sınırına ulaşıldı.",
   "The agent declined this request.": "Agent bu isteği yanıtlamadı.",

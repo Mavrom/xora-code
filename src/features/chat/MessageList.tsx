@@ -14,7 +14,7 @@ import { t } from "@/shared/i18n";
 const NONE: ReadonlySet<string> = new Set();
 
 const STOP_NOTE: Partial<Record<AcpStopReason, string>> = {
-  cancelled: "Durduruldu.",
+  cancelled: t("Stopped."),
   max_tokens: t("The reply hit its length limit."),
   max_turn_requests: t("This turn hit its request limit."),
   refusal: t("The agent declined this request."),
