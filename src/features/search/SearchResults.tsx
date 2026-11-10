@@ -1,5 +1,6 @@
-import { useEffect, useLayoutEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef } from "react";
 import { FileIcon } from "@/features/files/FileIcon";
+import { useScrollViewport } from "@/features/files/useScrollViewport";
 import { scrollToReveal, visibleRange } from "@/features/files/virtualRange";
 import { cn } from "@/shared/ui/cn";
 import { t } from "@/shared/i18n";
@@ -34,35 +35,8 @@ export function SearchResults({
   onOpen,
 }: SearchResultsProps) {
   const scroller = useRef<HTMLDivElement>(null);
-  const [viewport, setViewport] = useState({ top: 0, height: 0 });
+  const viewport = useScrollViewport(scroller);
   const { rows, matchRows } = list;
-
-  // Track the scroll position and height; scroll events are coalesced per frame.
-  useLayoutEffect(() => {
-    const el = scroller.current;
-    if (!el) return;
-    let frame = 0;
-    const read = () => {
-      frame = 0;
-      setViewport((prev) =>
-        prev.top === el.scrollTop && prev.height === el.clientHeight
-          ? prev
-          : { top: el.scrollTop, height: el.clientHeight },
-      );
-    };
-    read();
-    const onScroll = () => {
-      if (!frame) frame = requestAnimationFrame(read);
-    };
-    const observer = new ResizeObserver(read);
-    observer.observe(el);
-    el.addEventListener("scroll", onScroll, { passive: true });
-    return () => {
-      cancelAnimationFrame(frame);
-      observer.disconnect();
-      el.removeEventListener("scroll", onScroll);
-    };
-  }, []);
 
   // New results start at the top.
   useLayoutEffect(() => {
