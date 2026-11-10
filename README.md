@@ -50,6 +50,7 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 | **Editor**          | Monaco, bundled offline, lazy-loaded on the first file. Tabs, format on save, auto save, sticky scroll, bracket colors. `Ctrl+L` sends the selection to the chat with its file and lines. |
 | **Files**           | A drawer that slides out from the sidebar's edge, or pinned open. Several folders side by side as tabs, live refresh, full keyboard navigation.                                           |
 | **Go to file**      | `Ctrl+P`: fuzzy search over every file in the project, respecting `.gitignore`.                                                                                                           |
+| **Find in files**   | `Ctrl+Shift+F`: search the contents of the project's files, with match case, whole word and regex. Enter opens a result with the match selected.                                          |
 | **Terminal**        | Integrated terminal tabs: PowerShell 7, Windows PowerShell, Command Prompt or Git Bash; your login shell on macOS.                                                                        |
 | **Command palette** | `Ctrl+K` for every command, recent chats and folders.                                                                                                                                     |
 | **Inbox**           | Quick-capture notes for ideas that should not derail the current task; send one to the chat with `G`.                                                                                     |
@@ -90,6 +91,7 @@ Windows and macOS are supported. The code is written to stay cross-platform; Lin
 | ------------------------------ | ------------------------------ |
 | `Ctrl+K` / `Ctrl+Shift+P`      | Command palette                |
 | `Ctrl+P`                       | Go to a file                   |
+| `Ctrl+Shift+F`                 | Find in files                  |
 | `Ctrl+N`                       | New chat                       |
 | `Ctrl+L` (editor)              | Send the selection to the chat |
 | `Esc` (chat)                   | Stop the running turn          |
