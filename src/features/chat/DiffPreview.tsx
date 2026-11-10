@@ -2,7 +2,7 @@ import { Fragment, memo, useMemo, useState } from "react";
 import { Columns2 } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { diffLines, diffStats, limitHunks, toHunks, type DiffHunk, type DiffLine } from "./diff";
-import { canOpenDiff, openDiffInEditor, revealInEditor } from "./editorBridge";
+import { openDiffInEditor, revealInEditor } from "./editorBridge";
 import { fileName } from "./toolView";
 import { t } from "@/shared/i18n";
 
@@ -60,16 +60,14 @@ export const DiffPreview = memo(function DiffPreview({
         )}
         <DiffStat {...stats} />
         <span className="flex-1" />
-        {canOpenDiff() && (
-          <button
-            type="button"
-            onClick={() => openDiffInEditor(path, oldText ?? null, newText)}
-            className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
-          >
-            <Columns2 size={12} strokeWidth={1.75} aria-hidden />
-            {t("Open in editor")}
-          </button>
-        )}
+        <button
+          type="button"
+          onClick={() => openDiffInEditor(path, oldText ?? null, newText)}
+          className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
+        >
+          <Columns2 size={12} strokeWidth={1.75} aria-hidden />
+          {t("Open in editor")}
+        </button>
       </div>
       {hunks.length === 0 ? (
         <p className="px-3 py-2 text-2xs text-fg-subtle">{t("Content unchanged.")}</p>

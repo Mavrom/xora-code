@@ -6,7 +6,7 @@ import { cn } from "@/shared/ui/cn";
 import { Collapse } from "./Disclosure";
 import { DiffStat } from "./DiffPreview";
 import { diffLines, diffStats } from "./diff";
-import { canOpenDiff, openDiffInEditor, revealInEditor } from "./editorBridge";
+import { openDiffInEditor, revealInEditor } from "./editorBridge";
 import { fileName } from "./toolView";
 import { t } from "@/shared/i18n";
 
@@ -33,9 +33,7 @@ export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
       const result = await onRevert(change.path);
       if (result === "conflict") {
         setConflicts((prev) => new Set(prev).add(change.path));
-        if (change.newText !== undefined) {
-          openDiffInEditor(change.path, change.oldText ?? null, change.newText);
-        }
+        openChangeDiff(change);
       }
     } finally {
       setBusy(null);
@@ -89,6 +87,16 @@ export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
   );
 }
 
+/**
+ * Opens the change as a diff tab when both sides are known (an unknown old side would show
+ * the whole file as added); returns whether it did.
+ */
+function openChangeDiff({ path, oldText, newText }: ReviewChange): boolean {
+  if (oldText === undefined || newText === undefined) return false;
+  openDiffInEditor(path, oldText, newText);
+  return true;
+}
+
 function ChangeRow({
   change,
   conflict,
@@ -107,18 +115,15 @@ function ChangeRow({
         : diffStats(diffLines(change.oldText, change.newText)),
     [change.oldText, change.newText],
   );
-  const diffable = canOpenDiff() && change.newText !== undefined;
 
   return (
     <li className="group flex h-8 items-center gap-2 rounded-md px-1.5 hover:bg-hover/60">
       <button
         type="button"
         title={change.path}
-        onClick={() =>
-          diffable && change.newText !== undefined
-            ? openDiffInEditor(change.path, change.oldText ?? null, change.newText)
-            : revealInEditor(change.path)
-        }
+        onClick={() => {
+          if (!openChangeDiff(change)) revealInEditor(change.path);
+        }}
         className="min-w-0 truncate text-left font-mono text-2xs text-fg-muted transition-colors duration-fast hover:text-fg"
       >
         {fileName(change.path)}

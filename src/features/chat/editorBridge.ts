@@ -1,25 +1,13 @@
-// Chat -> editor hand-offs. `openDiff` is package Q's editor store addition (design §5.3);
-// it is feature-detected so the chat works before and after it lands.
+// Chat -> editor hand-offs.
 import { ipc } from "@/shared/lib/ipc";
 import { useEditorStore, type EditorRange } from "@/features/editor/store";
 
-interface EditorExtras {
-  openDiff?: (path: string, oldText: string | null, newText: string) => void;
-}
-
-const extras = () => useEditorStore.getState() as unknown as EditorExtras;
-
-/** Whether the editor can show a side-by-side diff. */
-export function canOpenDiff(): boolean {
-  return typeof extras().openDiff === "function";
-}
-
-/** Opens a Monaco diff for a proposed or applied change; returns false when unsupported. */
-export function openDiffInEditor(path: string, oldText: string | null, newText: string): boolean {
-  const openDiff = extras().openDiff;
-  if (!openDiff) return false;
-  openDiff(path, oldText, newText);
-  return true;
+/**
+ * Opens a proposed or applied change of `path` as a read-only Monaco diff tab (`oldText`
+ * null: a new file). Opening it again for the same file refreshes that tab.
+ */
+export function openDiffInEditor(path: string, oldText: string | null, newText: string): void {
+  useEditorStore.getState().openDiff(path, oldText, newText);
 }
 
 /**
