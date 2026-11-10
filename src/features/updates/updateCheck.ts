@@ -3,9 +3,16 @@
 // whether it is newer than the running app. A notice only: nothing is downloaded.
 import { getVersion } from "@tauri-apps/api/app";
 import { isTauri } from "@tauri-apps/api/core";
+import { openUrl } from "@tauri-apps/plugin-opener";
 import { ensureSettingsLoaded, useSettingsStore } from "@/features/settings/store";
 import { REPO_URL } from "@/shared/lib/repo";
-import { fetchLatestRelease, newerThan, shouldCheck, type Release } from "./releaseCheck";
+import {
+  fetchLatestRelease,
+  isReleaseUrl,
+  newerThan,
+  shouldCheck,
+  type Release,
+} from "./releaseCheck";
 import { defaultStorage, readSaved, writeSaved, type SavedStorage } from "./saved";
 import { useUpdateStore } from "./store";
 import { displayVersion, parseVersion } from "./version";
@@ -92,4 +99,10 @@ export function installUpdateCheck(): () => void {
     clearTimeout(timer);
     off();
   };
+}
+
+/** Opens a release page; the link came from the network, so it is checked again. */
+export function openRelease(url: string) {
+  if (!isReleaseUrl(url)) return;
+  void openUrl(url).catch((err) => console.debug("updates: could not open the release", err));
 }

@@ -30,6 +30,7 @@ import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { openCount } from "@/features/inbox/sortNotes";
 import { useInboxStore } from "@/features/inbox/store";
 import { closeSettings, openSettings, useSettingsView } from "@/features/settings/viewStore";
+import { UpdateNotice } from "@/features/updates/UpdateNotice";
 import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
@@ -304,6 +305,7 @@ function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
 
   return (
     <div className="relative shrink-0 border-t border-white/[0.05] p-2">
+      <UpdateNotice />
       <div className="flex items-center gap-1">
         <button
           type="button"

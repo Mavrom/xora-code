@@ -755,6 +755,9 @@ export const TR: Record<string, string> = {
   "Hide terminal (Ctrl+`)": "Terminali gizle (Ctrl+`)",
   "(exited)": "(sonlandı)",
   "Close {label}": "{label} kapat",
+  // features/updates/UpdateNotice.tsx
+  "Version {version} is available": "{version} sürümü çıktı",
+  "View release": "Sürüme göz at",
   // shared/ui/ConfirmDialog.tsx
   Save: "Kaydet",
   "Don't save": "Kaydetme",

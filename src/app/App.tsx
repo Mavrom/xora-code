@@ -16,6 +16,7 @@ import { installSessionReaper } from "@/features/agents/sessionReaper";
 import { installNavHistory } from "@/features/chat/navHistory";
 import { installUnread } from "@/features/chat/unread";
 import { installPaletteGuard } from "@/features/commands/paletteGuard";
+import { installUpdateCheck } from "@/features/updates/updateCheck";
 import { installContextMenuGuard } from "@/shared/ui/menuModel";
 import { isQuickOpenShortcut, usePaletteShortcut } from "@/features/commands/usePaletteShortcut";
 import { Layout } from "./Layout";
@@ -32,6 +33,7 @@ installWindowLook();
 installUiPrefs();
 installAutoSave();
 installContextMenuGuard();
+installUpdateCheck();
 
 /** The overlay dialogs; at most one is open, and each shortcut toggles its own. */
 type Overlay = "palette" | "quickOpen" | "find";

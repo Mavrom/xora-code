@@ -2,12 +2,13 @@ import { useEffect, useState } from "react";
 import { getTauriVersion, getVersion } from "@tauri-apps/api/app";
 import { openUrl } from "@tauri-apps/plugin-opener";
 import { ChevronRight, ExternalLink } from "lucide-react";
+import { useUpdateStore } from "@/features/updates/store";
+import { openRelease } from "@/features/updates/updateCheck";
+import { REPO_URL } from "@/shared/lib/repo";
 import { cn } from "@/shared/ui/cn";
 import { SettingGroup } from "../controls/SettingRow";
+import { useSettingsStore } from "../store";
 import { t } from "@/shared/i18n";
-
-/** Placeholder until the public repository exists. */
-export const REPO_URL = "https://github.com/Mavrom/xora-code";
 
 /** Main third-party pieces shipped in the app (runtime only). */
 const LICENSES: { name: string; license: string }[] = [
@@ -52,6 +53,8 @@ function XoraLogo() {
 
 export function AboutSection() {
   const versions = useVersions();
+  const update = useUpdateStore((s) => s.available);
+  const updatesOn = useSettingsStore((s) => s.settings.general.checkForUpdates);
   const [licensesOpen, setLicensesOpen] = useState(false);
 
   return (
@@ -79,6 +82,22 @@ export function AboutSection() {
             t("Reading version…")
           )}
         </p>
+        {update && updatesOn && (
+          <p className="relative mt-3 flex items-center gap-1.5 text-xs text-fg-muted">
+            {t("Version {version} is available", { version: update.version })}
+            <span aria-hidden className="text-fg-subtle">
+              ·
+            </span>
+            <button
+              type="button"
+              onClick={() => openRelease(update.url)}
+              className="inline-flex items-center gap-1 rounded-sm text-fg transition-colors duration-fast hover:text-fg-muted focus-visible:outline-1 focus-visible:outline-offset-2 focus-visible:outline-fg-subtle"
+            >
+              {t("View release")}
+              <ExternalLink size={12} strokeWidth={1.75} aria-hidden />
+            </button>
+          </p>
+        )}
       </div>
 
       <SettingGroup>
