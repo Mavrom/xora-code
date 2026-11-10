@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it } from "vitest";
 import type { ChatItem } from "@/features/agents/reducer";
 import type { AcpToolCall, AcpToolKind, AcpToolStatus } from "@/features/agents/types";
 import { setLanguage } from "@/shared/i18n";
+import { fixtureSessionView } from "@/features/agents/fixtures";
 import {
   FOLD_THRESHOLD,
   createRunGrouper,
@@ -276,5 +277,23 @@ describe("run summary", () => {
       expect(failedText({ ...many, failed: 3 })).toBe("3 failed");
       expect(failedText({ ...many, failed: 0 })).toBeNull();
     });
+  });
+});
+
+describe("toolRun fixture", () => {
+  it("folds its run, keeping the failed call visible", () => {
+    const view = fixtureSessionView("toolRun");
+    const rows = groupToolRuns(view.items, { live: false, permissions: new Set() });
+    expect(shape(rows)).toEqual([
+      "user-0",
+      "agent-1",
+      "run(tc-run-1: tc-run-5 | 6 hidden)",
+      "agent-2",
+    ]);
+    const run = rows[2] as ToolRun;
+    expect(failedText(run.summary)).toBe("1 başarısız");
+    expect(summaryText(run.summary)).toBe(
+      "3 dosya okundu, 1 dosya düzenlendi, 1 arama yapıldı, 2 komut çalıştırıldı",
+    );
   });
 });

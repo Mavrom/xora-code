@@ -2,7 +2,7 @@
 // works in a plain browser (`npm run dev`). DEV builds only.
 //
 //   ?fixture=<scenario>   opens a session and plays the scenario
-//                         (streaming | toolDiff | permission | plan | terminal)
+//                         (streaming | toolDiff | permission | plan | terminal | toolRun)
 //   ?fixture=welcome      fake ipc, no session (empty welcome)
 //   &agent=codex          agent for the session (default claude)
 //   &status=crashed       status of that agent (see FIXTURE_STATUSES)

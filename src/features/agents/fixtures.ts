@@ -425,7 +425,21 @@ const terminalRun: AgentEvent[] = [
   up({ sessionUpdate: "tool_call_update", toolCallId: "tc-test", status: "completed" }),
 ];
 
-export type FixtureScenarioName = "streaming" | "toolDiff" | "permission" | "plan" | "terminal";
+/** A quick read (`rel` with forward slashes), started and finished in two updates. */
+const readCall = (id: string, rel: string): AgentEvent[] => [
+  up({
+    sessionUpdate: "tool_call",
+    toolCallId: id,
+    title: `Read ${rel}`,
+    kind: "read",
+    status: "in_progress",
+    locations: [{ path: P(rel.split("/").join("\\")) }],
+  }),
+  up({ sessionUpdate: "tool_call_update", toolCallId: id, status: "completed" }),
+];
+
+export type FixtureScenarioName =
+  "streaming" | "toolDiff" | "permission" | "plan" | "terminal" | "toolRun";
 
 export interface FixtureScenario {
   /** What the user typed to start the turn. */
@@ -555,6 +569,45 @@ export const FIXTURE_SCENARIOS: Record<FixtureScenarioName, FixtureScenario> = {
           { content: "Varsayılanları ve testleri yaz", priority: "medium", status: "pending" },
         ],
       }),
+      end,
+    ],
+  },
+  // A long run of tool calls (one failed): folds into a summary row once four have finished.
+  toolRun: {
+    prompt: "relativeTime saatleri de göstersin, testleri de çalıştır",
+    events: [
+      ...say("Önce ilgili dosyalara bakıyorum."),
+      ...readCall("tc-run-1", "src/features/inbox/relativeTime.ts"),
+      ...readCall("tc-run-2", "src/features/inbox/relativeTime.test.ts"),
+      ...readCall("tc-run-3", "src/features/inbox/NoteList.tsx"),
+      up({
+        sessionUpdate: "tool_call",
+        toolCallId: "tc-run-4",
+        title: "Search relativeTime",
+        kind: "search",
+        status: "completed",
+        content: [{ type: "content", content: { type: "text", text: "2 dosyada 5 eşleşme" } }],
+      }),
+      editCall("pending"),
+      up({ sessionUpdate: "tool_call_update", toolCallId: "tc-edit", status: "in_progress" }),
+      { type: "fileWritten", sessionId: S, path: P("src\\features\\inbox\\relativeTime.ts") },
+      up({ sessionUpdate: "tool_call_update", toolCallId: "tc-edit", status: "completed" }),
+      up({
+        sessionUpdate: "tool_call",
+        toolCallId: "tc-run-5",
+        title: "npm run lint",
+        kind: "execute",
+        status: "in_progress",
+        rawInput: { command: "npm run lint" },
+      }),
+      up({
+        sessionUpdate: "tool_call_update",
+        toolCallId: "tc-run-5",
+        status: "failed",
+        content: [{ type: "content", content: { type: "text", text: "Missing script: lint" } }],
+      }),
+      ...terminalRun,
+      ...say("Değişiklik yapıldı ve testler geçti; lint betiği bu projede yok."),
       end,
     ],
   },
