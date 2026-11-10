@@ -56,6 +56,7 @@ pub fn run() {
             agents::commands::agent_session_new,
             agents::commands::agent_session_load,
             agents::commands::agent_session_resume,
+            agents::commands::agent_session_fork,
             agents::commands::agent_session_close,
             agents::commands::agent_sessions_list,
             agents::commands::agent_session_archive,

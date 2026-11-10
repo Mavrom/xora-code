@@ -6,6 +6,7 @@
 use super::acp::{ClientHandlers, RpcError};
 use super::bridge::Bridges;
 use super::events::{AgentEvent, AgentId, AgentStatus, EventSink, SessionSetup};
+use super::fork;
 use super::index::{self, Mark, SessionEntry, SessionIndex};
 use super::permissions::{PermissionBroker, outcome_json};
 use super::process::{self, AgentProcess, JobObject, LaunchSpec, SharedStderrTail};
@@ -427,6 +428,41 @@ impl AgentManager {
         let result = conn
             .peer
             .request("session/new", params)
+            .await
+            .inspect_err(|err| {
+                self.auth_required(&conn, err);
+            })?;
+        let session_id = result
+            .get("sessionId")
+            .and_then(Value::as_str)
+            .ok_or_else(|| RpcError::internal("agent returned no sessionId"))?
+            .to_owned();
+        Ok(self.register(&conn, &cwd, &result, session_id))
+    }
+
+    /// `session/fork` of `source_id` up to and including the agent message `message_id`
+    /// ("Edit and retry"). The new session is set up exactly like `session_new`: nothing is
+    /// replayed, and it reaches the history index with its first prompt. Refused (method
+    /// not found) when the adapter cannot cut a fork at a message (`fork::fork_point_supported`);
+    /// the chat then starts a new session seeded with the transcript instead.
+    pub async fn session_fork(
+        &self,
+        agent: AgentId,
+        source_id: &str,
+        cwd: PathBuf,
+        message_id: &str,
+        prefs: LaunchPrefs,
+    ) -> Result<SessionSetup> {
+        let conn = self.connection(agent, &cwd, prefs).await?;
+        if !fork::fork_point_supported(&conn.init) {
+            return Err(RpcError::method_not_found("session/fork").into());
+        }
+        let result = conn
+            .peer
+            .request(
+                "session/fork",
+                fork::fork_request(source_id, &cwd, message_id),
+            )
             .await
             .inspect_err(|err| {
                 self.auth_required(&conn, err);

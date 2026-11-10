@@ -6,6 +6,7 @@ pub mod acp;
 pub mod bridge;
 pub mod commands;
 pub mod events;
+pub mod fork;
 pub mod fs_bridge;
 pub mod index;
 pub mod install;

@@ -141,6 +141,25 @@ pub async fn agent_session_resume(
         .map_err(ipc)
 }
 
+/// "Edit and retry": a new session holding `session_id`'s conversation up to the agent
+/// message `message_id` (see `AgentManager::session_fork`).
+#[tauri::command]
+pub async fn agent_session_fork(
+    app: AppHandle,
+    manager: State<'_, AgentManager>,
+    agent_id: AgentId,
+    session_id: String,
+    cwd: PathBuf,
+    message_id: String,
+) -> CmdResult<SessionSetup> {
+    configure(&app, &manager);
+    let prefs = prefs(&app).await;
+    manager
+        .session_fork(agent_id, &session_id, cwd, &message_id, prefs)
+        .await
+        .map_err(ipc)
+}
+
 #[tauri::command]
 pub async fn agent_session_close(
     manager: State<'_, AgentManager>,
