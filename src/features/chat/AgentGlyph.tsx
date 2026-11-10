@@ -1,5 +1,6 @@
 import type { AgentId } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
+import { AGENT_TINT } from "./agentTint";
 
 interface AgentGlyphProps {
   agent: AgentId;
@@ -8,13 +9,6 @@ interface AgentGlyphProps {
   tinted?: boolean;
   className?: string;
 }
-
-/** Each agent's colour, used for its mark in lists and the model chip. */
-const AGENT_TINT: Record<AgentId, string> = {
-  claude: "#d97757",
-  codex: "#e8e8e8",
-  gemini: "#7aa7f5",
-};
 
 /**
  * Marks that tell the three agents apart at a glance without borrowing their brand

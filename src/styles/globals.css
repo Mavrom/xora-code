@@ -26,7 +26,12 @@
   --color-glass-strong: rgb(10 10 10 / 0.7);
   --color-glass-border: rgb(255 255 255 / 0.08);
   --color-warning: #e5b567; /* dirty indicator */
+  --color-success: oklch(76.5% 0.177 163.223); /* ready dot (Tailwind emerald-400) */
   --color-danger: #f87171;
+  /* Filled destructive buttons and the red tint under a danger row (Tailwind red-500). */
+  --color-danger-strong: oklch(63.7% 0.237 25.331);
+  /* Danger text on that red tint (Tailwind red-300). */
+  --color-danger-soft: oklch(80.8% 0.114 19.571);
 
   --font-sans: "Inter Variable", "Segoe UI", system-ui, sans-serif;
   --font-mono: "JetBrains Mono Variable", ui-monospace, monospace;

@@ -100,9 +100,9 @@ export function SessionRow({
         role="alertdialog"
         aria-label={t('Delete "{title}"?', { title })}
         onMouseLeave={() => setConfirming(false)}
-        className="flex h-8 items-center gap-2 rounded-lg bg-red-500/[0.08] pr-1 pl-2.5 text-[12px] ring-1 ring-red-500/20 ring-inset"
+        className="flex h-8 items-center gap-2 rounded-lg bg-danger-strong/[0.08] pr-1 pl-2.5 text-[12px] ring-1 ring-danger-strong/20 ring-inset"
       >
-        <span className="min-w-0 flex-1 truncate text-red-200/90">{t("Delete?")}</span>
+        <span className="min-w-0 flex-1 truncate text-danger-soft">{t("Delete?")}</span>
         <button
           type="button"
           onClick={() => setConfirming(false)}
@@ -114,7 +114,7 @@ export function SessionRow({
           type="button"
           autoFocus
           onClick={() => void remove(entry)}
-          className="h-6 rounded-md bg-red-500/80 px-2 font-medium text-white transition-colors duration-fast hover:bg-red-500"
+          className="h-6 rounded-md bg-danger-strong/80 px-2 font-medium text-white transition-colors duration-fast hover:bg-danger-strong"
         >
           {t("Delete")}
         </button>

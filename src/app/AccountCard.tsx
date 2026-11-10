@@ -3,12 +3,16 @@ import { useAgentStore } from "@/features/agents/store";
 import { PLATFORM, useShortcut } from "@/features/keymap/keymap";
 import { describeShortcut } from "@/shared/ui/keys";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
+import { AGENT_TINT } from "@/features/chat/agentTint";
 import { statusNote } from "@/features/chat/controlsView";
 import { openSettings, useSettingsView } from "@/features/settings/viewStore";
 import { UpdateNotice } from "@/features/updates/UpdateNotice";
 import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
 import { t } from "@/shared/i18n";
+
+/** The avatar's ring: the three agents' own colours. */
+const RING = `conic-gradient(from 210deg, ${AGENT_TINT.claude}, ${AGENT_TINT.gemini}, ${AGENT_TINT.codex}, ${AGENT_TINT.claude})`;
 
 /** Bottom card: this computer, the selected agent's state and the way into settings. */
 export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
@@ -34,9 +38,10 @@ export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
         >
           <span
             aria-hidden
-            className="grid size-7 shrink-0 place-items-center rounded-full bg-[conic-gradient(from_210deg,#d97757,#7aa7f5,#e8e8e8,#d97757)] p-px"
+            style={{ background: RING }}
+            className="grid size-7 shrink-0 place-items-center rounded-full p-px"
           >
-            <span className="grid size-full place-items-center rounded-full bg-[#141415] text-[11px] font-semibold text-fg">
+            <span className="grid size-full place-items-center rounded-full bg-elevated text-[11px] font-semibold text-fg">
               {name.charAt(0).toUpperCase()}
             </span>
           </span>
@@ -51,7 +56,7 @@ export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
                 aria-hidden
                 className={cn(
                   "size-1.5 shrink-0 rounded-full",
-                  ready ? "bg-emerald-400/80" : "bg-amber-400/80",
+                  ready ? "bg-success/80" : "bg-warning/80",
                 )}
               />
             </span>

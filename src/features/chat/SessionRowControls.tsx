@@ -62,7 +62,9 @@ export function RowAction({ icon: Icon, label, danger, onClick }: RowActionProps
       onClick={onClick}
       className={cn(
         "grid size-6 place-items-center rounded-md text-fg-subtle transition-colors duration-fast",
-        danger ? "hover:bg-red-500/15 hover:text-red-300" : "hover:bg-white/[0.08] hover:text-fg",
+        danger
+          ? "hover:bg-danger-strong/15 hover:text-danger-soft"
+          : "hover:bg-white/[0.08] hover:text-fg",
       )}
     >
       <Icon size={13} strokeWidth={1.75} aria-hidden />

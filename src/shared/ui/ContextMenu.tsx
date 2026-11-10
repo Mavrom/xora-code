@@ -97,9 +97,9 @@ export function ContextMenu({ x, y, items, label, onClose }: ContextMenuProps) {
             onClick={() => pick(entry)}
             className={cn(
               "flex h-8 w-full items-center gap-2.5 rounded-lg px-2.5 text-left text-[13px] transition-colors duration-100",
-              entry.danger ? "text-red-400" : "text-fg-muted",
+              entry.danger ? "text-danger" : "text-fg-muted",
               i === active &&
-                (entry.danger ? "bg-red-500/12 text-red-300" : "bg-white/[0.07] text-fg"),
+                (entry.danger ? "bg-danger-strong/12 text-danger-soft" : "bg-white/[0.07] text-fg"),
             )}
           >
             {Icon && <Icon size={14} strokeWidth={1.75} aria-hidden />}

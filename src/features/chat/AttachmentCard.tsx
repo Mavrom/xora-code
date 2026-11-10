@@ -16,7 +16,7 @@ export function AttachmentCard({
       aria-label={t("Remove attachment {name}", { name: a.name })}
       title={t("Remove")}
       onClick={() => onRemove(a.id)}
-      className="absolute -top-1.5 -right-1.5 grid size-4.5 place-items-center rounded-full border border-white/10 bg-[#1c1c1e] text-fg-muted opacity-0 shadow-md transition-[opacity,color] duration-fast group-hover:opacity-100 group-focus-within:opacity-100 hover:text-fg"
+      className="absolute -top-1.5 -right-1.5 grid size-4.5 place-items-center rounded-full border border-white/10 bg-hover text-fg-muted opacity-0 shadow-md transition-[opacity,color] duration-fast group-hover:opacity-100 group-focus-within:opacity-100 hover:text-fg"
     >
       <X size={10} strokeWidth={2.25} aria-hidden />
     </button>
