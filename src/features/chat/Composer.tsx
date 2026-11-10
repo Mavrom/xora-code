@@ -31,6 +31,7 @@ import { absolutePath, loadFileIndex } from "@/features/files/fileIndex";
 import { searchFiles, type FileHit, type IndexedFile } from "@/features/files/fileSearch";
 import { mentionOptionId, mentionToken, removeMention } from "./mention";
 import { MentionPopover } from "./MentionPopover";
+import { matchesAction } from "@/features/keymap/keymap";
 import { t } from "@/shared/i18n";
 
 export interface ComposerHandle {
@@ -243,17 +244,15 @@ export function Composer({
         }
       }
     }
-    if (event.key === "Escape") {
-      if (slashOpen) {
-        event.preventDefault();
-        setSlashDismissed(true);
-        return;
-      }
-      if (running) {
-        event.preventDefault();
-        onStop();
-        return;
-      }
+    if (event.key === "Escape" && slashOpen) {
+      event.preventDefault();
+      setSlashDismissed(true);
+      return;
+    }
+    if (running && matchesAction(event, "chat.stop")) {
+      event.preventDefault();
+      onStop();
+      return;
     }
     const action = getComposerKeyAction(
       {

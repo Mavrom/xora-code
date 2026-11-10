@@ -3,12 +3,17 @@ import { Search } from "lucide-react";
 import { COMMANDS } from "@/features/commands/registry";
 import { Kbd } from "@/shared/ui/Kbd";
 import { SectionHeader, SettingGroup } from "../controls/SettingRow";
-import { BUILTIN_SHORTCUTS, groupShortcuts } from "../shortcuts";
+import { useKeymap } from "@/features/keymap/keymap";
+import { groupShortcuts, shortcutSources } from "../shortcuts";
 import { t } from "@/shared/i18n";
 
 export function ShortcutsSection() {
   const [query, setQuery] = useState("");
-  const groups = useMemo(() => groupShortcuts([...BUILTIN_SHORTCUTS, ...COMMANDS], query), [query]);
+  const overrides = useKeymap((s) => s.overrides);
+  const groups = useMemo(
+    () => groupShortcuts(shortcutSources(COMMANDS, overrides), query),
+    [overrides, query],
+  );
 
   return (
     <>

@@ -12,7 +12,8 @@ import { useWorkspaceStore } from "@/features/workspace/store";
 import { IconButton } from "@/shared/ui/IconButton";
 import { displayPath } from "./displayPath";
 import { registerEditorFocus, registerEditorSelection } from "./editorFocus";
-import { DIFF_NEXT_SHORTCUT, DIFF_PREVIOUS_SHORTCUT, diffNavigation, isShown } from "./editorKeys";
+import { useShortcut } from "@/features/keymap/keymap";
+import { diffNavigation, isShown } from "./editorKeys";
 import { diffOptionsFor } from "./editorOptions";
 import { useEditorSettings } from "./editorSettings";
 import { XORA_THEME } from "./monaco/theme";
@@ -86,7 +87,7 @@ export function DiffView({ file, oldText, newText }: DiffViewProps) {
 
   const goTo = (target: "next" | "previous") => editorRef.current?.goToDiff(target);
 
-  // Alt+F5 / Shift+Alt+F5 while this view is on screen, wherever focus is.
+  // Alt+F5 / Shift+Alt+F5 (by default) while this view is on screen, wherever focus is.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
       const target = diffNavigation(e);
@@ -105,6 +106,8 @@ export function DiffView({ file, oldText, newText }: DiffViewProps) {
   };
 
   const unchanged = stats.added === 0 && stats.removed === 0;
+  const previousKeys = useShortcut("diff.previous");
+  const nextKeys = useShortcut("diff.next");
 
   return (
     <div className="flex min-h-0 flex-1 flex-col">
@@ -126,7 +129,7 @@ export function DiffView({ file, oldText, newText }: DiffViewProps) {
             size="sm"
             icon={ChevronUp}
             label={t("Previous change")}
-            shortcut={DIFF_PREVIOUS_SHORTCUT}
+            shortcut={previousKeys}
             disabled={unchanged}
             onClick={() => goTo("previous")}
           />
@@ -134,7 +137,7 @@ export function DiffView({ file, oldText, newText }: DiffViewProps) {
             size="sm"
             icon={ChevronDown}
             label={t("Next change")}
-            shortcut={DIFF_NEXT_SHORTCUT}
+            shortcut={nextKeys}
             disabled={unchanged}
             onClick={() => goTo("next")}
           />

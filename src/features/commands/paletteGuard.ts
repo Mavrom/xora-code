@@ -2,6 +2,10 @@
 // (closing a tab, saving, switching the sidebar). Handlers this feature owns check
 // `isPaletteOpen()`; for everyone else a window capture listener swallows the keys.
 
+import type { ActionId } from "@/features/keymap/actions";
+import type { KeyEventLike } from "@/features/keymap/binding";
+import { resolve } from "@/features/keymap/keymap";
+
 let open = false;
 
 export const isPaletteOpen = () => open;
@@ -10,20 +14,23 @@ export function setPaletteOpen(value: boolean) {
   open = value;
 }
 
-type ShortcutEvent = Pick<
-  KeyboardEvent,
-  "key" | "code" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey"
->;
-
 /**
- * App-level shortcuts that act outside the palette: Ctrl+W, Ctrl+S, Ctrl+Shift+N/E/H/G
- * (Cmd on macOS). Physical codes for the shifted ones so keyboard layouts do not matter.
+ * App-level actions that act outside the palette and whose handlers do not ask
+ * `isPaletteOpen()` themselves: close tab, save and the sidebar views.
  */
-export function isGlobalShortcut(e: ShortcutEvent) {
-  if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
-  if (e.shiftKey) return ["KeyN", "KeyE", "KeyH", "KeyG"].includes(e.code);
-  const key = e.key.toLowerCase();
-  return key === "w" || key === "s";
+const GUARDED = new Set<ActionId>([
+  "editor.closeTab",
+  "editor.save",
+  "view.explorer",
+  "view.sessions",
+  "view.inbox",
+  "view.changes",
+]);
+
+/** Whether `e` is one of the actions this guard swallows while the palette is open. */
+export function isGlobalShortcut(e: KeyEventLike) {
+  const action = resolve(e);
+  return action !== null && GUARDED.has(action);
 }
 
 let installed = false;

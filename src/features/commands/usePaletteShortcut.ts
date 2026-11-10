@@ -1,20 +1,12 @@
 import { useEffect, useRef } from "react";
+import type { KeyEventLike } from "@/features/keymap/binding";
+import { matchesAction } from "@/features/keymap/keymap";
 
-/** True for Ctrl+K and Ctrl+Shift+P (Cmd on macOS). */
-export function isPaletteShortcut(
-  e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">,
-) {
-  if (!(e.ctrlKey || e.metaKey) || e.altKey) return false;
-  const key = e.key.toLowerCase();
-  return (key === "k" && !e.shiftKey) || (key === "p" && e.shiftKey);
-}
+/** The command palette's keys (by default Ctrl+K and Ctrl+Shift+P, Cmd on macOS). */
+export const isPaletteShortcut = (e: KeyEventLike) => matchesAction(e, "palette.open");
 
-/** True for Ctrl+P (Cmd on macOS) without Shift: quick open. WebView2 would print. */
-export function isQuickOpenShortcut(
-  e: Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">,
-) {
-  return (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key.toLowerCase() === "p";
-}
+/** Quick open (by default Ctrl+P, Cmd on macOS). WebView2 would print. */
+export const isQuickOpenShortcut = (e: KeyEventLike) => matchesAction(e, "workspace.quickOpen");
 
 /**
  * Calls `onToggle` for the palette shortcuts anywhere in the app. Capture phase plus

@@ -21,6 +21,7 @@ import { Sidebar } from "./Sidebar";
 import { cn } from "@/shared/ui/cn";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { useSettingsView } from "@/features/settings/viewStore";
+import { matchesAction } from "@/features/keymap/keymap";
 import { t } from "@/shared/i18n";
 
 /**
@@ -108,12 +109,11 @@ export function Layout() {
     [editorPanel],
   );
 
-  // Ctrl+B (Cmd+B on macOS), like VS Code and Zed; capture phase so it also works from the editor.
+  // Ctrl+B (Cmd+B on macOS) by default, like VS Code and Zed; capture phase so it also works
+  // from the editor.
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented || e.repeat || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey)
-        return;
-      if (e.code !== "KeyB") return;
+      if (e.defaultPrevented || e.repeat || !matchesAction(e, "view.toggleSidebar")) return;
       e.preventDefault();
       emitCommand(TOGGLE_SIDEBAR);
     };

@@ -34,16 +34,23 @@ import { UpdateNotice } from "@/features/updates/UpdateNotice";
 import { useHostname } from "@/shared/lib/useHostname";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
+import { describeShortcut } from "@/shared/ui/keys";
+import type { ActionId } from "@/features/keymap/actions";
+import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
 import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
 import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET } from "./WindowControls";
 import { t } from "@/shared/i18n";
 
-/** Ctrl+Shift+<code> per view. Avoids WebView2's Ctrl+Shift+I/J (devtools). */
-const SHORTCUTS: Record<SidebarView, { code: string; label: string }> = {
-  sessions: { code: "KeyH", label: "Ctrl+Shift+H" },
-  inbox: { code: "KeyN", label: "Ctrl+Shift+N" },
-  changes: { code: "KeyG", label: "Ctrl+Shift+G" },
+/**
+ * The keymap action per view (by default Ctrl+Shift+H / N / G, Control on macOS too).
+ * The defaults avoid WebView2's Ctrl+Shift+I/J (devtools).
+ */
+const VIEW_ACTIONS: Record<SidebarView, ActionId> = {
+  sessions: "view.sessions",
+  inbox: "view.inbox",
+  changes: "view.changes",
 };
+const VIEWS = Object.keys(VIEW_ACTIONS) as SidebarView[];
 
 /**
  * Where focus lands when a view is opened from the keyboard: the inbox is a capture
@@ -75,6 +82,8 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const canBack = useNavHistory((s) => canTravel(s, -1));
   const canForward = useNavHistory((s) => canTravel(s, 1));
   const active = settingsOpen ? null : view;
+  const newChatKeys = useShortcut("chat.new");
+  const paletteKeys = useShortcut("palette.open");
 
   // Load once at startup so the badge is right before the inbox is opened.
   useEffect(() => {
@@ -84,16 +93,13 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
 
   useEffect(() => {
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.defaultPrevented) return;
-      if (!e.ctrlKey || !e.shiftKey || e.altKey || e.metaKey || e.repeat) return;
-      if (e.code === "KeyE") {
+      if (e.defaultPrevented || e.repeat) return;
+      if (matchesAction(e, "view.explorer")) {
         e.preventDefault();
         toggleFiles();
         return;
       }
-      const match = (Object.keys(SHORTCUTS) as SidebarView[]).find(
-        (v) => SHORTCUTS[v].code === e.code,
-      );
+      const match = VIEWS.find((v) => matchesAction(e, VIEW_ACTIONS[v]));
       if (!match) return;
       e.preventDefault();
       useUiStore.getState().setSidebarView(match);
@@ -147,10 +153,12 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         >
           <SquarePen size={15} strokeWidth={1.75} aria-hidden />
           {t("New chat")}
-          <Kbd
-            keys="mod+n"
-            className="ml-auto opacity-0 transition-opacity duration-fast group-hover:opacity-100"
-          />
+          {newChatKeys && (
+            <Kbd
+              keys={newChatKeys}
+              className="ml-auto opacity-0 transition-opacity duration-fast group-hover:opacity-100"
+            />
+          )}
         </button>
         <button
           type="button"
@@ -159,10 +167,12 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         >
           <Search size={15} strokeWidth={1.75} aria-hidden />
           {t("Search")}
-          <Kbd
-            keys="mod+k"
-            className="ml-auto opacity-60 transition-opacity duration-fast group-hover:opacity-100"
-          />
+          {paletteKeys && (
+            <Kbd
+              keys={paletteKeys}
+              className="ml-auto opacity-60 transition-opacity duration-fast group-hover:opacity-100"
+            />
+          )}
         </button>
       </div>
 
@@ -170,7 +180,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         <NavItem
           icon={MessagesSquare}
           label={t("Chats")}
-          shortcut={SHORTCUTS.sessions.label}
+          action={VIEW_ACTIONS.sessions}
           active={active === "sessions"}
           onClick={() => showView("sessions")}
           meta={<CountBadge count={waiting} />}
@@ -178,7 +188,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         <NavItem
           icon={Inbox}
           label={t("Inbox")}
-          shortcut={SHORTCUTS.inbox.label}
+          action={VIEW_ACTIONS.inbox}
           active={active === "inbox"}
           onClick={() => showView("inbox")}
           meta={<CountBadge count={badge} />}
@@ -186,7 +196,7 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         <NavItem
           icon={GitBranch}
           label={t("Changes")}
-          shortcut={SHORTCUTS.changes.label}
+          action={VIEW_ACTIONS.changes}
           active={active === "changes"}
           onClick={() => showView("changes")}
           meta={<CountBadge count={changes} />}
@@ -228,18 +238,22 @@ function CountBadge({ count }: { count: number }) {
 interface NavItemProps {
   icon: LucideIcon;
   label: string;
-  shortcut: string;
+  /** The keymap action that opens this view; its binding goes in the tooltip. */
+  action: ActionId;
   active: boolean;
   meta?: ReactNode;
   onClick: () => void;
 }
 
-function NavItem({ icon: Icon, label, shortcut, active, meta, onClick }: NavItemProps) {
+function NavItem({ icon: Icon, label, action, active, meta, onClick }: NavItemProps) {
+  const shortcut = useShortcut(action);
+  const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
   return (
     <button
       type="button"
       aria-current={active ? "page" : undefined}
-      title={`${label} (${shortcut})`}
+      aria-keyshortcuts={keys}
+      title={keys ? `${label} (${keys})` : label}
       onClick={onClick}
       className={cn(
         "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-[background-color,color] duration-fast",

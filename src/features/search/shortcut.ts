@@ -1,13 +1,11 @@
+import type { KeyEventLike } from "@/features/keymap/binding";
+import { matchesAction } from "@/features/keymap/keymap";
 import type { SearchOptions } from "./ipc";
 
 type KeyLike = Pick<KeyboardEvent, "code" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">;
 
-/**
- * Ctrl+Shift+F (Cmd+Shift+F on macOS): find in files. The physical key, like the app's other
- * Ctrl+Shift letters, so keyboard layouts do not matter.
- */
-export const isFindInFilesShortcut = (e: KeyLike) =>
-  (e.ctrlKey || e.metaKey) && e.shiftKey && !e.altKey && e.code === "KeyF";
+/** Find in files (by default Ctrl+Shift+F, Cmd+Shift+F on macOS). */
+export const isFindInFilesShortcut = (e: KeyEventLike) => matchesAction(e, "search.findInFiles");
 
 /** Alt+C / Alt+W / Alt+R flip the search options, as in VS Code (physical keys). */
 const TOGGLE_CODES: Record<string, keyof SearchOptions> = {

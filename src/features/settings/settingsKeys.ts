@@ -1,22 +1,11 @@
-type KeyLike = Pick<KeyboardEvent, "key" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">;
+import type { KeyEventLike } from "@/features/keymap/binding";
+import { matchesAction } from "@/features/keymap/keymap";
 
-/**
- * Ctrl+, (Cmd+, on macOS). Matches the produced character, not the physical key,
- * so it follows the keyboard layout like the app's other letter shortcuts.
- */
-export function isSettingsShortcut(e: KeyLike) {
-  return (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key === ",";
-}
+/** Settings (by default Ctrl+, and Cmd+, on macOS). */
+export const isSettingsShortcut = (e: KeyEventLike) => matchesAction(e, "settings.open");
 
-/** Sidebar switches (Ctrl+Shift+E / H / N / G) leave the settings view to show that sidebar. */
-export function isSidebarShortcut(
-  e: Pick<KeyboardEvent, "code" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey">,
-) {
-  return (
-    e.ctrlKey &&
-    e.shiftKey &&
-    !e.altKey &&
-    !e.metaKey &&
-    ["KeyE", "KeyH", "KeyN", "KeyG"].includes(e.code)
+/** The sidebar switches (files, conversations, Inbox, Changes) leave the settings view. */
+export const isSidebarShortcut = (e: KeyEventLike) =>
+  (["view.explorer", "view.sessions", "view.inbox", "view.changes"] as const).some((id) =>
+    matchesAction(e, id),
   );
-}

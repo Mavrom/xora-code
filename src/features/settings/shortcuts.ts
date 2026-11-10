@@ -1,4 +1,5 @@
-import { t } from "@/shared/i18n";
+import { ACTIONS, actionDef, isActionId } from "@/features/keymap/actions";
+import { shortcutOf, type KeymapOverrides } from "@/features/keymap/keymap";
 
 export interface ShortcutSource {
   id: string;
@@ -12,10 +13,38 @@ export interface ShortcutGroup {
   items: { id: string; title: string; shortcut: string | null }[];
 }
 
-/** Bindings that live outside the command registry (the palette cannot list itself). */
-export const BUILTIN_SHORTCUTS: ShortcutSource[] = [
-  { id: "palette.open", title: t("Command palette"), group: "Genel", shortcut: "mod+k" },
-];
+/**
+ * The rows of the shortcut list: the command palette first (it cannot list itself), then
+ * every palette command in registry order with its binding from the keymap, then the
+ * bindable actions that are not palette commands.
+ */
+export function shortcutSources(
+  commands: readonly { id: string; title: string; group: string }[],
+  overrides?: KeymapOverrides,
+): ShortcutSource[] {
+  const fromKeymap = (id: string) => (isActionId(id) ? shortcutOf(id, overrides) : undefined);
+  const listed = new Set(commands.map((c) => c.id));
+  const actions = ACTIONS.filter((a) => !listed.has(a.id)).map((a) => {
+    const def = actionDef(a.id);
+    return {
+      id: a.id,
+      title: def.title ?? a.id,
+      group: def.group ?? "",
+      shortcut: shortcutOf(a.id, overrides),
+    };
+  });
+  const isPalette = (s: ShortcutSource) => s.id === "palette.open";
+  return [
+    ...actions.filter(isPalette),
+    ...commands.map((c) => ({
+      id: c.id,
+      title: c.title,
+      group: c.group,
+      shortcut: fromKeymap(c.id),
+    })),
+    ...actions.filter((s) => !isPalette(s)),
+  ];
+}
 
 const normalize = (s: string) => s.toLocaleLowerCase("tr");
 

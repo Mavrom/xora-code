@@ -10,6 +10,7 @@ import {
 import { flushSync } from "react-dom";
 import { Search } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
+import { useCommandShortcut } from "@/features/keymap/keymap";
 import { Kbd } from "@/shared/ui/Kbd";
 import { setPaletteOpen } from "./paletteGuard";
 import { dynamicCommands } from "./dynamic";
@@ -196,6 +197,7 @@ interface CommandRowProps {
 function CommandRow({ id, result, active, onHover, onRun }: CommandRowProps) {
   const { item, positions } = result;
   const Icon = item.icon;
+  const shortcut = useCommandShortcut(item.id);
   return (
     <div
       id={id}
@@ -223,7 +225,7 @@ function CommandRow({ id, result, active, onHover, onRun }: CommandRowProps) {
       <span className="min-w-0 flex-1 truncate">
         <Highlight text={item.title} positions={positions} />
       </span>
-      {item.shortcut && <Kbd keys={item.shortcut} className="shrink-0" />}
+      {shortcut && <Kbd keys={shortcut} className="shrink-0" />}
     </div>
   );
 }

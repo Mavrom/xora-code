@@ -40,6 +40,7 @@ import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { ensureSession, useGitBranch, useWarmSession } from "./useChatSession";
 import { DropOverlay } from "./DropOverlay";
 import { useFileDrop } from "./useFileDrop";
+import { matchesAction } from "@/features/keymap/keymap";
 import { t } from "@/shared/i18n";
 
 const NOTICE_MS = 3200;
@@ -110,16 +111,14 @@ export function ChatPanel() {
     [],
   );
 
-  // "Yeni sohbet" from the sidebar, or Ctrl+N (Cmd+N on macOS) anywhere.
+  // "Yeni sohbet" from the sidebar, or its shortcut (Ctrl+N, Cmd+N on macOS) anywhere.
   useEffect(() => {
     const start = () => {
       useAgentStore.getState().setActiveSession(null);
       requestAnimationFrame(() => composerRef.current?.focus());
     };
     const onKeyDown = (e: KeyboardEvent) => {
-      if (e.repeat || isPaletteOpen() || !(e.ctrlKey || e.metaKey) || e.shiftKey || e.altKey)
-        return;
-      if (e.code !== "KeyN") return;
+      if (e.repeat || isPaletteOpen() || !matchesAction(e, "chat.new")) return;
       e.preventDefault();
       start();
     };

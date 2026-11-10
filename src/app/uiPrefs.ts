@@ -2,6 +2,8 @@
 // (`--chat-text`, read by the transcript) and the interface zoom (webview zoom), plus the
 // Ctrl + / Ctrl - / Ctrl 0 shortcuts that change the zoom.
 import { getCurrentWebview } from "@tauri-apps/api/webview";
+import type { KeyEventLike } from "@/features/keymap/binding";
+import { matchesAction } from "@/features/keymap/keymap";
 import { useSettingsStore } from "@/features/settings/store";
 import { UI_SCALE_RANGE, type Settings } from "@/features/settings/types";
 
@@ -15,14 +17,11 @@ export function nextScale(current: number, direction: -1 | 0 | 1): number {
   return Math.min(UI_SCALE_RANGE.max, Math.max(UI_SCALE_RANGE.min, next));
 }
 
-/** Which zoom shortcut a key event is, if any (layout-independent for + and -). */
-export function zoomDirection(
-  e: Pick<KeyboardEvent, "ctrlKey" | "metaKey" | "altKey" | "key" | "code">,
-) {
-  if (!(e.ctrlKey || e.metaKey) || e.altKey) return null;
-  if (e.key === "+" || e.key === "=" || e.code === "NumpadAdd") return 1 as const;
-  if (e.key === "-" || e.code === "NumpadSubtract") return -1 as const;
-  if (e.key === "0" || e.code === "Numpad0") return 0 as const;
+/** Which zoom shortcut a key event is, if any (by default Ctrl + / Ctrl - / Ctrl 0). */
+export function zoomDirection(e: KeyEventLike) {
+  if (matchesAction(e, "view.zoomIn")) return 1 as const;
+  if (matchesAction(e, "view.zoomOut")) return -1 as const;
+  if (matchesAction(e, "view.zoomReset")) return 0 as const;
   return null;
 }
 

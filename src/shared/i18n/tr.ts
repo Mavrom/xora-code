@@ -735,6 +735,12 @@ export const TR: Record<string, string> = {
   "Search commands or keys…": "Komut ya da tuş ara…",
   "Search shortcuts": "Kısayollarda ara",
   Unassigned: "Atanmamış",
+  // features/keymap/actions.ts
+  "New terminal": "Yeni terminal",
+  "Zoom in": "Yakınlaştır",
+  "Zoom out": "Uzaklaştır",
+  "Reset zoom": "Yakınlaştırmayı sıfırla",
+  "Stop the running turn": "Çalışan turu durdur",
   // features/settings/sections/TerminalSection.tsx
   Automatic: "Otomatik",
   "PowerShell 7, else Windows PowerShell": "PowerShell 7, yoksa Windows PowerShell",

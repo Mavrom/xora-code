@@ -1,15 +1,17 @@
+import type { KeyEventLike } from "@/features/keymap/binding";
+import { matchesAction } from "@/features/keymap/keymap";
+
 type KeyLike = Pick<KeyboardEvent, "key" | "code" | "ctrlKey" | "metaKey" | "shiftKey" | "altKey">;
 
 /**
- * Ctrl+` toggles the terminal (Ctrl on macOS too, like VS Code). Matched on the physical
- * key so it works on layouts where that key types something else (Turkish Q: `"`).
+ * Toggles the terminal: by default Ctrl+` (Control on macOS too, like VS Code), by physical
+ * key, so it works on layouts where that key types something else (Turkish Q: `"`).
  */
-export const isToggleTerminalShortcut = (e: KeyLike) =>
-  e.ctrlKey && !e.metaKey && !e.altKey && !e.shiftKey && e.code === "Backquote";
+export const isToggleTerminalShortcut = (e: KeyEventLike) =>
+  matchesAction(e, "view.toggleTerminal");
 
-/** Ctrl+Shift+` opens a new terminal tab. */
-export const isNewTerminalShortcut = (e: KeyLike) =>
-  e.ctrlKey && !e.metaKey && !e.altKey && e.shiftKey && e.code === "Backquote";
+/** Opens a new terminal tab (by default Ctrl+Shift+`). */
+export const isNewTerminalShortcut = (e: KeyEventLike) => matchesAction(e, "terminal.new");
 
 const isMac = () => typeof navigator !== "undefined" && /mac/i.test(navigator.platform);
 

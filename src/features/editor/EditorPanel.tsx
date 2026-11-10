@@ -12,6 +12,7 @@ import { chatSnippet } from "./chatSnippet";
 import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { registerEditorFocus, registerEditorSelection } from "./editorFocus";
 import { isSaveShortcut } from "./editorKeys";
+import { monacoKeybindings } from "@/features/keymap/keymap";
 import { formatOnSave, useEditorSettings } from "./editorSettings";
 import { EDITOR_FONT, editorOptionsFor } from "./editorOptions";
 import { XORA_THEME } from "./monaco/theme";
@@ -143,7 +144,8 @@ export function EditorPanel() {
 
   const onMount: OnMount = (editor, m) => {
     editorRef.current = editor;
-    editor.addCommand(m.KeyMod.CtrlCmd | m.KeyCode.KeyS, save);
+    for (const keybinding of monacoKeybindings("editor.save", m))
+      editor.addCommand(keybinding, save);
     const syncCursor = () => {
       const position = editor.getPosition();
       setCursor(position ? { line: position.lineNumber, column: position.column } : null);
@@ -151,12 +153,12 @@ export function EditorPanel() {
     editor.onDidChangeCursorPosition(syncCursor);
     // Switching tabs swaps the model; its own saved cursor is restored, so read it again.
     editor.onDidChangeModel(syncCursor);
-    // Ctrl+L (also in the right-click menu): the selection, or the current line, goes to
-    // the chat composer with its place, ready for a question.
+    // Ctrl+L by default (also in the right-click menu): the selection, or the current line,
+    // goes to the chat composer with its place, ready for a question.
     editor.addAction({
       id: "xora.addToChat",
       label: t("Add selection to chat"),
-      keybindings: [m.KeyMod.CtrlCmd | m.KeyCode.KeyL],
+      keybindings: monacoKeybindings("editor.addToChat", m),
       contextMenuGroupId: "navigation",
       contextMenuOrder: 0,
       run: (ed) => {
