@@ -14,6 +14,7 @@ import { basename } from "@/shared/lib/path";
 import { useHostname } from "@/shared/lib/useHostname";
 import { Kbd } from "@/shared/ui/Kbd";
 import { useWorktreeStore } from "@/features/git/worktrees";
+import { ConversationScrim } from "@/features/backdrop/ConversationScrim";
 import { AgentStatusCard } from "./AgentStatusCard";
 import { CheckoutChip } from "./CheckoutChip";
 import { ChangesBar } from "./ChangesBar";
@@ -387,11 +388,13 @@ export function ChatPanel() {
   }
 
   return (
-    <div className="flex h-full flex-col">
+    <div className="relative flex h-full flex-col">
+      {/* First, so the (positioned) transcript and composer paint over it. */}
+      <ConversationScrim />
       <Suspense fallback={<div className="min-h-0 flex-1" />}>
         <MessageList session={session} />
       </Suspense>
-      <div className="mx-auto w-full max-w-180 px-4 pt-1 pb-2">{composer}</div>
+      <div className="relative mx-auto w-full max-w-180 px-4 pt-1 pb-2">{composer}</div>
       {dropping && <DropOverlay />}
     </div>
   );

@@ -262,6 +262,17 @@
   );
 }
 
+/* Readability shade behind a conversation (ConversationScrim): black at --scrim-alpha,
+   fading out at the sides and towards the top bar, and gone by 70vh, where the picture
+   above (hero-backdrop, 68% of the window) has faded out too. */
+@utility chat-scrim {
+  background: rgb(0 0 0 / var(--scrim-alpha, 0.4));
+  mask-image:
+    linear-gradient(to right, transparent, #000 16%, #000 84%, transparent),
+    linear-gradient(to bottom, transparent, #000 2.5rem, #000 46vh, transparent 70vh);
+  mask-composite: intersect;
+}
+
 /* Streaming caret appended after the last token. */
 @utility caret {
   &::after {
