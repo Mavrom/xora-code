@@ -22,9 +22,12 @@ import type {
 
 // --- View model ----------------------------------------------------------------
 
+// `messageId`: the agent's own id for the message (ACP chunk `messageId`), when it sends
+// one. An agent item merges consecutive chunks and keeps the latest id, so it names the
+// last agent message of the run ("Edit and retry" forks right after it).
 export type ChatItem =
-  | { kind: "user"; id: string; blocks: AcpContentBlock[] }
-  | { kind: "agent"; id: string; text: string }
+  | { kind: "user"; id: string; blocks: AcpContentBlock[]; messageId?: string }
+  | { kind: "agent"; id: string; text: string; messageId?: string }
   | { kind: "thought"; id: string; text: string; startedAt: number; endedAt: number | null }
   | { kind: "tool"; id: string; call: AcpToolCall; startedAt: number; endedAt: number | null }
   | { kind: "plan"; id: string; entries: AcpPlanEntry[] }
@@ -217,6 +220,12 @@ function blockText(block: AcpContentBlock): string {
   }
 }
 
+/** The chunk's ACP `messageId`, when the agent sent a usable one. */
+function messageIdOf(update: Record<string, unknown>): string | undefined {
+  const id = update.messageId;
+  return typeof id === "string" && id.trim() ? id : undefined;
+}
+
 const DONE_STATUSES = new Set(["completed", "failed"]);
 
 function mergeCall(base: AcpToolCall, update: AcpToolCallUpdate): AcpToolCall {
@@ -286,15 +295,22 @@ function applyUpdate(d: SessionDraft, update: AcpSessionUpdate, now: number) {
     case "agent_thought_chunk": {
       const chunk = blockText((u as { content: AcpContentBlock }).content);
       const kind = update.sessionUpdate === "agent_message_chunk" ? "agent" : "thought";
+      const messageId = messageIdOf(u);
       const last = d.last();
       if (
         last?.kind === kind &&
         (kind === "agent" || (last.kind === "thought" && last.endedAt === null))
       ) {
-        const item = d.own(v.items.length - 1) as { text: string };
+        const item = d.own(v.items.length - 1) as { text: string; messageId?: string };
         item.text += chunk;
+        if (kind === "agent" && messageId) item.messageId = messageId;
       } else if (kind === "agent") {
-        if (chunk) d.push((id) => ({ kind: "agent", id, text: chunk }), now);
+        if (chunk) {
+          d.push(
+            (id) => ({ kind: "agent", id, text: chunk, ...(messageId ? { messageId } : {}) }),
+            now,
+          );
+        }
       } else {
         d.push((id) => ({ kind: "thought", id, text: chunk, startedAt: now, endedAt: null }), now);
       }
@@ -302,6 +318,7 @@ function applyUpdate(d: SessionDraft, update: AcpSessionUpdate, now: number) {
     }
     case "user_message_chunk": {
       const block = (u as { content: AcpContentBlock }).content;
+      const messageId = messageIdOf(u);
       const last = d.last();
       if (last?.kind === "user") {
         const item = d.own(v.items.length - 1) as Extract<ChatItem, { kind: "user" }>;
@@ -313,8 +330,12 @@ function applyUpdate(d: SessionDraft, update: AcpSessionUpdate, now: number) {
           blocks.push(block);
         }
         item.blocks = blocks;
+        if (messageId && !item.messageId) item.messageId = messageId;
       } else {
-        d.push((id) => ({ kind: "user", id, blocks: [block] }), now);
+        d.push(
+          (id) => ({ kind: "user", id, blocks: [block], ...(messageId ? { messageId } : {}) }),
+          now,
+        );
       }
       return;
     }

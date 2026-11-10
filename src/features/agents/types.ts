@@ -125,6 +125,8 @@ export type AcpSessionUpdate =
   | {
       sessionUpdate: "user_message_chunk" | "agent_message_chunk" | "agent_thought_chunk";
       content: AcpContentBlock;
+      /** The agent's id for the message this chunk belongs to (optional in ACP v1). */
+      messageId?: string | null;
     }
   | ({ sessionUpdate: "tool_call" } & AcpToolCall)
   | ({ sessionUpdate: "tool_call_update" } & AcpToolCallUpdate)
@@ -167,6 +169,8 @@ export interface AcpAgentCapabilities {
     resume?: object | null;
     close?: object | null;
     delete?: object | null;
+    /** Unstable `session/fork`. */
+    fork?: object | null;
   };
 }
 export interface AgentSessionInfo {

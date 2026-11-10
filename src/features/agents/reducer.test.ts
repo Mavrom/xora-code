@@ -66,6 +66,31 @@ describe("message chunks", () => {
     ]);
   });
 
+  it("keeps the agent's message ids, the latest one per merged agent message", () => {
+    const chunk = (
+      kind: "agent_message_chunk" | "user_message_chunk",
+      t: string,
+      messageId?: string | null,
+    ) => up({ sessionUpdate: kind, content: { type: "text", text: t }, messageId });
+    const v = run([
+      chunk("user_message_chunk", "fix ", "u-1"),
+      chunk("user_message_chunk", "it", "u-1"),
+      chunk("agent_message_chunk", "a", "msg_1"),
+      chunk("agent_message_chunk", "b", "msg_2"),
+      chunk("agent_message_chunk", "c"), // a chunk without an id keeps the last one
+      up({ sessionUpdate: "tool_call", toolCallId: "t1", title: "Read" }),
+      chunk("agent_message_chunk", "d", null),
+    ]);
+    expect(v.items[0]).toEqual({
+      kind: "user",
+      id: "user-1",
+      blocks: [{ type: "text", text: "fix it" }],
+      messageId: "u-1",
+    });
+    expect(v.items[1]).toEqual({ kind: "agent", id: "agent-2", text: "abc", messageId: "msg_2" });
+    expect(v.items[3]).toEqual({ kind: "agent", id: "agent-3", text: "d" });
+  });
+
   it("renders resource links as markdown and ignores images in agent text", () => {
     const v = run([
       up({
