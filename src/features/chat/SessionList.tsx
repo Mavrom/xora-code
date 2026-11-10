@@ -30,6 +30,7 @@ import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { SEPARATOR } from "@/shared/ui/menuModel";
 import { AgentGlyph } from "./AgentGlyph";
 import { Collapse } from "./Disclosure";
+import { openEntry } from "./openEntry";
 import { emptySessionKey, flatSessions, groupByDay, visibleGroups } from "./sessionListView";
 import { sessionStatus, type SessionStatus } from "./sessionStatus";
 import { useUnreadStore } from "./unread";
@@ -181,12 +182,6 @@ export function SessionList() {
       )}
     </div>
   );
-}
-
-function openEntry(entry: SessionListEntry) {
-  const store = useAgentStore.getState();
-  if (entry.open) store.setActiveSession(entry.sessionId);
-  else void store.loadSession(entry.agentId, entry.sessionId, entry.cwd);
 }
 
 /** The row's state in words, for its tooltip and accessible name; `undefined` when idle. */
