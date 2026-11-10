@@ -26,5 +26,6 @@ export const ipc = {
   notesList: () => invoke<Note[]>("notes_list"),
   /** Replaces the whole stored list (atomic on disk). */
   notesSave: (notes: Note[]) => invoke<void>("notes_save", { notes }),
-  hostname: () => invoke<string>("system_hostname"),
+  /** The computer's name, or null when the core cannot tell (show `t("This computer")`). */
+  hostname: () => invoke<string | null>("system_hostname"),
 };

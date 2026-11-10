@@ -134,7 +134,7 @@ The ACP client. One adapter process per agent kind, many sessions per process.
 
 ### `system`
 
-`system.rs`: `system_hostname` (the computer name shown above the composer) and `adopt_login_shell_path`, which on macOS reads the login shell's `PATH` at startup (5 s limit) so `node` and `git` from Homebrew, nvm or Volta are found when the app is opened from Finder.
+`system.rs`: `system_hostname` (the computer name shown above the composer, or `null` when there is none; the UI then shows its translated "This computer") and `adopt_login_shell_path`, which on macOS reads the login shell's `PATH` at startup (5 s limit) so `node` and `git` from Homebrew, nvm or Volta are found when the app is opened from Finder.
 
 ## Frontend
 
