@@ -3,6 +3,7 @@ import { ipc } from "@/shared/lib/ipc";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { describeFsError } from "@/features/files/fsErrors";
 import { extname } from "@/shared/lib/path";
+import { displayPath } from "./displayPath";
 import { useEditorStore } from "./store";
 import { t } from "@/shared/i18n";
 
@@ -13,16 +14,6 @@ interface EditorStatusBarProps {
   cursor?: { line: number; column: number } | null;
   /** The file changed or vanished on disk while the tab had unsaved edits. */
   diskChanged?: boolean;
-}
-
-/** Path relative to the open folder, with forward slashes. */
-function displayPath(path: string, root: string | null) {
-  const normalized = path.replace(/\\/g, "/");
-  if (!root) return normalized;
-  const prefix = root.replace(/\\/g, "/").replace(/\/$/, "") + "/";
-  return normalized.toLowerCase().startsWith(prefix.toLowerCase())
-    ? normalized.slice(prefix.length)
-    : normalized;
 }
 
 /** Drops the tab's edits for the file's current disk content ("Diskten yükle"). */

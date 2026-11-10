@@ -116,6 +116,24 @@ export function defineXoraTheme(m: typeof Monaco) {
         [1, 2, 3, 4, 5, 6].map((n) => [`editorBracketHighlight.foreground${n}`, "#a1a1a1"]),
       ),
       "editorBracketHighlight.unexpectedBracket.foreground": "#f87171",
+      // Diff tabs: the chat's DiffPreview tones (added = fg/5.5%, removed = danger/8%),
+      // a touch stronger for the changed characters inside a line. Not Monaco's green/red.
+      "diffEditor.insertedLineBackground": "#ededed0e",
+      "diffEditor.insertedTextBackground": "#ededed1f",
+      "diffEditor.removedLineBackground": "#f8717114",
+      "diffEditor.removedTextBackground": "#f8717133",
+      "diffEditorGutter.insertedLineBackground": "#ededed0e",
+      "diffEditorGutter.removedLineBackground": "#f8717114",
+      "diffEditorOverview.insertedForeground": "#ededed59",
+      "diffEditorOverview.removedForeground": "#f8717180",
+      "diffEditor.border": "#1c1c1c",
+      "diffEditor.diagonalFill": "#ffffff0d",
+      // Collapsed unchanged lines: a quiet surface strip with meta-text tone.
+      "diffEditor.unchangedRegionBackground": "#0a0a0a",
+      "diffEditor.unchangedRegionForeground": "#7e7e7e",
+      "diffEditor.unchangedCodeBackground": "#ffffff05",
+      "diffEditor.move.border": "#7e7e7e80",
+      "diffEditor.moveActive.border": "#a1a1a1",
     },
   });
 }

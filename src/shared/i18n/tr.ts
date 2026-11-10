@@ -323,6 +323,10 @@ export const TR: Record<string, string> = {
   "(changed on disk)": "(diskte değişti)",
   "Close {name}": "{name} kapat",
   "Close (Ctrl+W)": "Kapat (Ctrl+W)",
+  "{name} (diff)": "{name} (fark)",
+  // features/editor/DiffView.tsx
+  "Previous change": "Önceki değişiklik",
+  "Next change": "Sonraki değişiklik",
   // features/files/FileTree.tsx
   "No folder open": "Klasör açılmadı",
   "Open a folder or pick up where you left off.": "Bir klasör aç ya da kaldığın yerden devam et.",

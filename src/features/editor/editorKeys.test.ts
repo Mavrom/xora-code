@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { isCloseTabShortcut, isSaveShortcut, revealTabScroll } from "./editorKeys";
+import { diffNavigation, isCloseTabShortcut, isSaveShortcut, revealTabScroll } from "./editorKeys";
 
 const key = (
   k: string,
@@ -13,6 +13,14 @@ const key = (
 });
 
 describe("editor shortcuts", () => {
+  it("maps Alt+F5 / Shift+Alt+F5 to the next / previous change only", () => {
+    expect(diffNavigation(key("F5", { alt: true }))).toBe("next");
+    expect(diffNavigation(key("F5", { alt: true, shift: true }))).toBe("previous");
+    expect(diffNavigation(key("F5", {}))).toBeNull();
+    expect(diffNavigation(key("F5", { alt: true, ctrl: true }))).toBeNull();
+    expect(diffNavigation(key("F7", { alt: true }))).toBeNull();
+  });
+
   it("matches Ctrl/Cmd+W and Ctrl/Cmd+S, any letter case", () => {
     expect(isCloseTabShortcut(key("w", { ctrl: true }))).toBe(true);
     expect(isCloseTabShortcut(key("W", { meta: true }))).toBe(true);

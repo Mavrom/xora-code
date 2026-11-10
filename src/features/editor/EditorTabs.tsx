@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from "react";
-import { X } from "lucide-react";
+import { FileDiff, X } from "lucide-react";
 import { FileIcon } from "@/features/files/FileIcon";
 import { basename } from "@/shared/lib/path";
 import { cn } from "@/shared/ui/cn";
@@ -7,11 +7,15 @@ import { isPaletteOpen } from "@/features/commands/paletteGuard";
 import { closeActiveTab, requestCloseTab } from "./closeTab";
 import { focusEditorSoon } from "./editorFocus";
 import { isCloseTabShortcut, isShown, revealTabScroll } from "./editorKeys";
-import { isDirty, useEditorStore, type Tab } from "./store";
+import { isDiffTab, isDirty, useEditorStore, type Tab } from "./store";
+import { tabFile } from "./tabKind";
 import { t } from "@/shared/i18n";
 
-/** Parent folder name, shown only when two open tabs share a file name. */
-const parentName = (path: string) => basename(path.replace(/[\\/][^\\/]*$/, ""));
+/** Parent folder name, shown only when two open tabs share a label. */
+const parentName = (path: string) => basename(tabFile(path).replace(/[\\/][^\\/]*$/, ""));
+
+/** What the tab says: the file name, marked as such on a diff tab. */
+const tabLabel = (tab: Tab) => (isDiffTab(tab) ? t("{name} (diff)", { name: tab.name }) : tab.name);
 
 const FADE = 16;
 
@@ -24,7 +28,7 @@ export function EditorTabs() {
 
   const duplicateNames = useMemo(() => {
     const seen = new Map<string, number>();
-    for (const tab of tabs) seen.set(tab.name, (seen.get(tab.name) ?? 0) + 1);
+    for (const label of tabs.map(tabLabel)) seen.set(label, (seen.get(label) ?? 0) + 1);
     return new Set([...seen].filter(([, n]) => n > 1).map(([name]) => name));
   }, [tabs]);
 
@@ -131,7 +135,7 @@ export function EditorTabs() {
           key={tab.path}
           tab={tab}
           active={tab.path === activePath}
-          hint={duplicateNames.has(tab.name) ? parentName(tab.path) : undefined}
+          hint={duplicateNames.has(tabLabel(tab)) ? parentName(tab.path) : undefined}
           onSelect={() => {
             // Like VS Code / Zed: picking a tab means "edit this", so the editor gets focus.
             setActive(tab.path);
@@ -153,6 +157,8 @@ interface EditorTabProps {
 function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
   const dirty = isDirty(tab);
   const marked = dirty || !!tab.diskChanged;
+  const diff = isDiffTab(tab);
+  const label = tabLabel(tab);
 
   const onMouseDown = (e: MouseEvent) => {
     // Middle button: suppress the autoscroll cursor, close on auxclick.
@@ -178,13 +184,23 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
         role="tab"
         aria-selected={active}
         tabIndex={active ? 0 : -1}
-        title={tab.diskChanged ? t("{path}\nChanged on disk", { path: tab.path }) : tab.path}
+        title={
+          diff
+            ? t("Diff of {name}", { name: tabFile(tab.path) })
+            : tab.diskChanged
+              ? t("{path}\nChanged on disk", { path: tab.path })
+              : tab.path
+        }
         aria-keyshortcuts="Delete Control+W"
         onClick={onSelect}
         className="flex h-full min-w-0 items-center gap-2 rounded-md pr-1 pl-2.5 text-xs outline-none focus-visible:bg-hover"
       >
-        <FileIcon name={tab.name} />
-        <span className="truncate">{tab.name}</span>
+        {diff ? (
+          <FileDiff size={14} strokeWidth={1.75} className="shrink-0 text-fg-subtle" aria-hidden />
+        ) : (
+          <FileIcon name={tab.name} />
+        )}
+        <span className="truncate">{label}</span>
         {hint && <span className="truncate text-2xs text-fg-subtle">{hint}</span>}
         {dirty && <span className="sr-only">(kaydedilmedi)</span>}
         {tab.diskChanged && <span className="sr-only">{t("(changed on disk)")}</span>}
@@ -192,7 +208,7 @@ function EditorTab({ tab, active, hint, onSelect }: EditorTabProps) {
       <button
         type="button"
         tabIndex={-1}
-        aria-label={t("Close {name}", { name: tab.name })}
+        aria-label={t("Close {name}", { name: label })}
         title={t("Close (Ctrl+W)")}
         onClick={() => void requestCloseTab(tab)}
         className={cn(

@@ -9,6 +9,19 @@ export const isCloseTabShortcut = (e: KeyLike) => isMod(e, "w");
 /** Ctrl+S / Cmd+S (Shift is left free for a future "save as"). */
 export const isSaveShortcut = (e: KeyLike) => isMod(e, "s");
 
+/**
+ * Next / previous change in a diff tab: Alt+F5 / Shift+Alt+F5, as in VS Code. (F7 is taken:
+ * Monaco opens its accessible diff viewer with it.)
+ */
+export const DIFF_NEXT_SHORTCUT = "alt+f5";
+export const DIFF_PREVIOUS_SHORTCUT = "shift+alt+f5";
+
+/** Which way a diff navigation key goes, or `null` for any other key. */
+export function diffNavigation(e: KeyLike): "next" | "previous" | null {
+  if (e.key !== "F5" || !e.altKey || e.ctrlKey || e.metaKey) return null;
+  return e.shiftKey ? "previous" : "next";
+}
+
 /** Id of the focusable wrapper around the editor's "no open file" state. */
 export const EDITOR_EMPTY_ID = "xora-editor-empty";
 
