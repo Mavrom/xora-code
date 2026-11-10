@@ -1,5 +1,6 @@
 pub mod commands;
 pub mod index;
+pub mod search;
 pub mod watch;
 
 use serde::Serialize;

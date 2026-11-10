@@ -1,4 +1,5 @@
 use super::DirEntry;
+use super::search::{SearchOptions, SearchOutcome, SearchState};
 use super::watch::WatchState;
 use crate::error::AppResult;
 use std::path::PathBuf;
@@ -23,6 +24,40 @@ pub async fn fs_list_files(root: String) -> AppResult<Vec<String>> {
     .map_err(|e| std::io::Error::other(e.to_string()))?
     .map_err(super::coded)?;
     Ok(files)
+}
+
+/// Find in files under `root`. A newer search (or `fs_search_cancel`) makes a running one
+/// stop and resolve with `{ status: "cancelled" }`; a bad pattern rejects with `[bad_regex]`.
+#[tauri::command]
+pub async fn fs_search(
+    state: State<'_, SearchState>,
+    root: String,
+    query: String,
+    case_sensitive: bool,
+    whole_word: bool,
+    regex: bool,
+) -> AppResult<SearchOutcome> {
+    let ticket = state.begin();
+    let options = SearchOptions {
+        query,
+        case_sensitive,
+        whole_word,
+        regex,
+    };
+    let outcome = tauri::async_runtime::spawn_blocking(move || {
+        super::search::search(&PathBuf::from(root), &options, &|| ticket.is_cancelled())
+    })
+    .await
+    .map_err(|e| std::io::Error::other(e.to_string()))?
+    .map_err(super::coded)?;
+    Ok(outcome)
+}
+
+/// Stops the running search (the find dialog closed or the query got too short).
+#[tauri::command]
+pub async fn fs_search_cancel(state: State<'_, SearchState>) -> AppResult<()> {
+    state.cancel();
+    Ok(())
 }
 
 #[tauri::command]

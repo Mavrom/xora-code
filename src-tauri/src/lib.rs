@@ -21,6 +21,7 @@ pub fn run() {
         .plugin(tauri_plugin_opener::init())
         .manage(notes::commands::NotesLock::default())
         .manage(fs::watch::WatchState::default())
+        .manage(fs::search::SearchState::default())
         .manage(terminal::TerminalManager::default())
         .on_window_event(terminal::commands::on_window_event)
         .manage(settings::commands::SettingsLock::default())
@@ -31,6 +32,8 @@ pub fn run() {
             fs::commands::fs_write_file,
             fs::commands::fs_read_bytes,
             fs::commands::fs_list_files,
+            fs::commands::fs_search,
+            fs::commands::fs_search_cancel,
             fs::commands::fs_watch,
             fs::commands::fs_unwatch,
             notes::commands::notes_list,

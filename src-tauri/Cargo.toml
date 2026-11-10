@@ -35,6 +35,8 @@ tokio = { version = "1", features = ["process", "io-util", "sync", "time", "macr
 uuid = { version = "1", features = ["v4"] }
 # Windows canonicalize without the \\?\ prefix (fs sandbox, package B)
 dunce = "1"
+# Find in files (fs/search.rs); already in the tree through Tauri's dependencies
+regex = "1"
 
 [target.'cfg(windows)'.dependencies]
 windows-sys = { version = "0.61", features = ["Win32_System_JobObjects", "Win32_System_Threading", "Win32_Foundation", "Win32_Security"] }
