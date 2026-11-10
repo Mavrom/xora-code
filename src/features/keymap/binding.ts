@@ -145,17 +145,21 @@ function modifiersMatch(e: KeyEventLike, b: Binding, platform: Platform): boolea
 }
 
 /**
- * How letters are recognised. `char`: the character typed (`KeyboardEvent.key`), so the
- * shortcut follows the keyboard layout. `code`: the physical key (`KeyboardEvent.code`).
+ * Letters and digits are recognised by the character typed, so a shortcut follows the
+ * keyboard layout (Ctrl+Z stays undo on AZERTY and Turkish F, where the physical W or N key
+ * types z). When the key types no Latin letter or digit (Cyrillic or Greek layouts, ş or ı
+ * on Turkish Q, Option+letter on macOS, digits under Shift or on AZERTY) the physical key
+ * decides instead.
  */
-export type LetterMatch = "char" | "code";
-
-function keyMatches(e: KeyEventLike, key: string, letters: LetterMatch): boolean {
+function keyMatches(e: KeyEventLike, key: string): boolean {
   const typed = e.key ?? "";
   if (isLetter(key)) {
-    return letters === "char" ? typed.toLowerCase() === key : e.code === `Key${key.toUpperCase()}`;
+    const lower = typed.length === 1 ? typed.toLowerCase() : "";
+    return isLetter(lower) ? lower === key : e.code === `Key${key.toUpperCase()}`;
   }
-  if (isDigit(key)) return typed === key || e.code === `Numpad${key}`;
+  if (isDigit(key)) {
+    return isDigit(typed) ? typed === key : e.code === `Digit${key}` || e.code === `Numpad${key}`;
+  }
   // The physical key left of 1: it types `"` on Turkish Q, so the character cannot be used.
   if (key === "`") return e.code === "Backquote";
   if (key === "plus") return typed === "+" || typed === "=" || e.code === "NumpadAdd";
@@ -166,11 +170,6 @@ function keyMatches(e: KeyEventLike, key: string, letters: LetterMatch): boolean
 }
 
 /** Whether a key event is this binding on `platform`. */
-export function matches(
-  e: KeyEventLike,
-  binding: Binding,
-  platform: Platform,
-  letters: LetterMatch = "code",
-): boolean {
-  return modifiersMatch(e, binding, platform) && keyMatches(e, binding.key, letters);
+export function matches(e: KeyEventLike, binding: Binding, platform: Platform): boolean {
+  return modifiersMatch(e, binding, platform) && keyMatches(e, binding.key);
 }

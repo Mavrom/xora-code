@@ -2,7 +2,7 @@
 // and the questions handlers ask it ("is this event action X?", "which action is this?").
 import { create } from "zustand";
 import { detectPlatform, type Platform } from "@/shared/ui/keys";
-import { ACTIONS, actionDef, isActionId, type ActionId } from "./actions";
+import { ACTIONS, isActionId, type ActionId } from "./actions";
 import { formatBinding, matches, parseBinding, type Binding, type KeyEventLike } from "./binding";
 
 export const PLATFORM: Platform = detectPlatform(
@@ -50,8 +50,7 @@ export function matchesAction(
   platform: Platform = PLATFORM,
   overrides: KeymapOverrides = useKeymap.getState().overrides,
 ): boolean {
-  const letters = actionDef(id).letters ?? "code";
-  return bindingsOf(id, overrides).some((b) => matches(e, b, platform, letters));
+  return bindingsOf(id, overrides).some((b) => matches(e, b, platform));
 }
 
 /** The action a key event stands for, if any (first in `ACTIONS` order). */

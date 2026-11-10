@@ -11,7 +11,6 @@
 // - terminal key handling (`terminal/keys.ts` clipboard keys, Ctrl+PageUp/PageDown);
 // - the dialog-local toggles Alt+C / Alt+W / Alt+R in find in files (`search/shortcut.ts`),
 //   Ctrl+Enter in the commit box and Ctrl+Z in the Inbox.
-import type { LetterMatch } from "./binding";
 import { t } from "@/shared/i18n";
 
 /**
@@ -32,8 +31,6 @@ export interface ActionDef {
    */
   title?: string;
   group?: string;
-  /** Letters by typed character instead of physical key (how the handler always matched). */
-  letters?: LetterMatch;
 }
 
 export const ACTIONS = [
@@ -43,9 +40,8 @@ export const ACTIONS = [
     scope: "global",
     title: t("Command palette"),
     group: t("General"),
-    letters: "char",
   },
-  { id: "workspace.quickOpen", defaults: ["mod+p"], scope: "global", letters: "char" },
+  { id: "workspace.quickOpen", defaults: ["mod+p"], scope: "global" },
   { id: "search.findInFiles", defaults: ["mod+shift+f"], scope: "global" },
   { id: "chat.new", defaults: ["mod+n"], scope: "global" },
   { id: "view.toggleSidebar", defaults: ["mod+b"], scope: "global" },
@@ -62,8 +58,8 @@ export const ACTIONS = [
     title: t("New terminal"),
     group: t("View"),
   },
-  { id: "editor.save", defaults: ["mod+s"], scope: "global", letters: "char" },
-  { id: "editor.closeTab", defaults: ["mod+w"], scope: "global", letters: "char" },
+  { id: "editor.save", defaults: ["mod+s"], scope: "global" },
+  { id: "editor.closeTab", defaults: ["mod+w"], scope: "global" },
   { id: "settings.open", defaults: ["mod+,"], scope: "global" },
   {
     id: "view.zoomIn",
