@@ -24,5 +24,6 @@ describe("setting paths", () => {
 
   it("builds the patch that resets one setting", () => {
     expect(resetPatch("editor.fontSize")).toEqual({ editor: { fontSize: 13 } });
+    expect(resetPatch("general.checkForUpdates")).toEqual({ general: { checkForUpdates: true } });
   });
 });

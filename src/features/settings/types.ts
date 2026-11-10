@@ -24,6 +24,8 @@ export interface GeneralSettings {
   reducedMotion: ReducedMotion;
   /** Flash the taskbar when an agent finishes or asks for approval in the background. */
   notifyWhenDone: boolean;
+  /** Ask GitHub once a day whether a newer release is out; off means no request at all. */
+  checkForUpdates: boolean;
   /** Which key sends from the composer; the other adds a line. */
   sendKey: SendKey;
   /** Conversation text size, px. */
@@ -117,6 +119,7 @@ export const DEFAULT_SETTINGS: Settings = {
     confirmDirtyClose: true,
     reducedMotion: "system",
     notifyWhenDone: true,
+    checkForUpdates: true,
     sendKey: "enter",
     chatFontSize: 13,
   },

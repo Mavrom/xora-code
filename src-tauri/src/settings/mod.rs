@@ -47,6 +47,9 @@ pub struct General {
     pub reduced_motion: ReducedMotion,
     /// Flash the taskbar when an agent finishes or asks for approval in the background.
     pub notify_when_done: bool,
+    /// Ask GitHub once a day whether a newer release is out (the notice only; nothing is
+    /// downloaded). Off means no request at all.
+    pub check_for_updates: bool,
     /// Which key sends a message from the composer (the other one adds a line).
     pub send_key: SendKey,
     /// Text size of the conversation, in px.
@@ -80,6 +83,7 @@ impl Default for General {
             confirm_dirty_close: true,
             reduced_motion: ReducedMotion::System,
             notify_when_done: true,
+            check_for_updates: true,
             send_key: SendKey::default(),
             chat_font_size: 13,
         }
@@ -600,6 +604,20 @@ mod tests {
         assert_eq!(wild.appearance.ui_scale, UI_SCALE_RANGE.1);
         assert_eq!(wild.editor.line_numbers, LineNumbers::Relative);
         assert_eq!(wild.editor.cursor_style, CursorStyle::Block);
+    }
+
+    #[test]
+    fn check_for_updates_defaults_on_and_can_be_turned_off() {
+        assert!(Settings::default().general.check_for_updates);
+        let value = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(value["general"]["checkForUpdates"], json!(true));
+        let off = from_value(&json!({ "general": { "checkForUpdates": false } }));
+        assert!(!off.general.check_for_updates);
+        let bad = from_value(&json!({ "general": { "checkForUpdates": "no" } }));
+        assert!(
+            bad.general.check_for_updates,
+            "an invalid value falls back to on"
+        );
     }
 
     #[test]

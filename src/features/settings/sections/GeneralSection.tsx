@@ -120,6 +120,23 @@ export function GeneralSection() {
         />
       </SettingGroup>
 
+      <SettingGroup title={t("Updates")}>
+        <SettingRow
+          label={t("Check for updates")}
+          setting="general.checkForUpdates"
+          description={t(
+            "Once a day, Xora asks GitHub whether a newer release is out and tells you. Nothing is downloaded or installed. When off, no request is made.",
+          )}
+          control={(id) => (
+            <Toggle
+              labelledBy={id}
+              checked={general.checkForUpdates}
+              onChange={(checkForUpdates) => update({ general: { checkForUpdates } })}
+            />
+          )}
+        />
+      </SettingGroup>
+
       <SettingGroup title={t("Editing")}>
         <SettingRow
           label={t("Ask before closing an unsaved tab")}

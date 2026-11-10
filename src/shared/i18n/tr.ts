@@ -546,6 +546,7 @@ export const TR: Record<string, string> = {
   "Send message with": "Mesajı gönder",
   "Chat text size": "Sohbet yazı boyutu",
   "Notify when done": "Bitince haber ver",
+  "Check for updates": "Güncellemeleri denetle",
   "Reopen last folder": "Son klasörü aç",
   "Ask before closing an unsaved tab": "Kaydedilmemiş sekmeyi kapatırken sor",
   "Reduce motion": "Hareketi azalt",
@@ -707,6 +708,9 @@ export const TR: Record<string, string> = {
   Notifications: "Bildirim",
   "While Xora is in the background, its taskbar button flashes when an agent finishes or asks for approval.":
     "Xora arka plandayken ajan işini bitirince ya da onay isteyince görev çubuğunda yanıp söner.",
+  Updates: "Güncellemeler",
+  "Once a day, Xora asks GitHub whether a newer release is out and tells you. Nothing is downloaded or installed. When off, no request is made.":
+    "Xora günde bir kez GitHub'a yeni bir sürüm çıkıp çıkmadığını sorar ve sana haber verir. Hiçbir şey indirilmez ya da kurulmaz. Kapalıyken hiç istek gönderilmez.",
   Editing: "Düzenleme",
   "When off, unsaved changes are discarded without asking.":
     "Kapalıyken kaydedilmemiş değişiklikler sorulmadan atılır.",

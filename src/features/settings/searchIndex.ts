@@ -86,6 +86,12 @@ export const SEARCH_INDEX: SearchEntry[] = [
   },
   {
     section: "general",
+    label: t("Check for updates"),
+    setting: "general.checkForUpdates",
+    keywords: "update güncelleme sürüm version release yeni",
+  },
+  {
+    section: "general",
     label: t("Reopen last folder"),
     setting: "general.openLastFolder",
     keywords: "açılış başlangıç startup klasör",
