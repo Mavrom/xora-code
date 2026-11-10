@@ -181,10 +181,13 @@ pub fn mask_secrets(line: &str) -> String {
         out.push(ch);
         rest = &rest[ch.len_utf8()..];
     }
-    // Generic `KEY=value` / `"token": "value"` forms for well-known names.
+    // Generic `KEY=value` / `"token": "value"` forms for well-known names, every
+    // occurrence on the line.
     for key in ["API_KEY", "AUTH_TOKEN", "access_token", "refresh_token"] {
-        if let Some(pos) = out.find(key) {
-            let after = pos + key.len();
+        let mut from = 0;
+        while let Some(pos) = out[from..].find(key) {
+            let after = from + pos + key.len();
+            from = after;
             let value_start = out[after..]
                 .find(|c: char| !matches!(c, '=' | ':' | '"' | ' '))
                 .map(|i| after + i);
@@ -194,6 +197,7 @@ pub fn mask_secrets(line: &str) -> String {
                     .map_or(out.len(), |i| start + i);
                 if end > start {
                     out.replace_range(start..end, "***");
+                    from = start + "***".len();
                 }
             }
         }
@@ -344,6 +348,22 @@ mod tests {
         );
         assert_eq!(mask_secrets("plain line ünicode"), "plain line ünicode");
         assert_eq!(mask_secrets("run task-list now"), "run task-list now");
+    }
+
+    #[test]
+    fn masks_every_occurrence_of_a_key_on_a_line() {
+        assert_eq!(
+            mask_secrets("AUTH_TOKEN=a AUTH_TOKEN=b"),
+            "AUTH_TOKEN=*** AUTH_TOKEN=***"
+        );
+        assert_eq!(
+            mask_secrets("ANTHROPIC_API_KEY=one GEMINI_API_KEY=two AUTH_TOKEN=three"),
+            "ANTHROPIC_API_KEY=*** GEMINI_API_KEY=*** AUTH_TOKEN=***"
+        );
+        assert_eq!(
+            mask_secrets(r#"{"access_token":"a","refresh_token":"b","access_token":"c"}"#),
+            r#"{"access_token":"***","refresh_token":"***","access_token":"***"}"#
+        );
     }
 
     #[test]
