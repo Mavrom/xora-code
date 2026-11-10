@@ -32,16 +32,16 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 
 ### Agents
 
-|                              |                                                                                                                                                                            |
-| ---------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Three agents, one window** | Claude Code, Codex and Gemini CLI, with streaming replies, thinking, tool-call cards, plans and slash commands. Stop a turn with `Esc`, or queue follow-ups while it runs. |
-| **Model, mode, effort**      | Pickers filled from what each agent reports. Hide the models you never use.                                                                                                |
-| **Hand-off**                 | Continue a conversation with another agent: a new chat opens with what happened so far, ready to send.                                                                     |
-| **Worktrees**                | Run a chat in its own git worktree on an `xora/<name>` branch, then merge its work into your branch or throw it away.                                                      |
-| **Changes**                  | A sidebar view (`Ctrl+Shift+G`) for the checkout the chat works in: stage, unstage or discard files, read each diff inline, commit, then pull or push.                     |
-| **Review**                   | Permission prompts with a diff preview, a changes bar listing every file a turn touched, accept or revert per file, agent and git changes as Monaco diff tabs.             |
-| **Attachments**              | Drop in files, folders and screenshots, paste images, or type `@` to attach a file of the project. Pictures the agent creates show up in the chat.                         |
-| **Attention**                | When Xora is in the background, its taskbar button flashes as soon as an agent finishes or needs approval.                                                                 |
+|                              |                                                                                                                                                                                                           |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Three agents, one window** | Claude Code, Codex and Gemini CLI, with streaming replies, thinking, tool-call cards (long runs fold into one line), plans and slash commands. Stop a turn with `Esc`, or queue follow-ups while it runs. |
+| **Model, mode, effort**      | Pickers filled from what each agent reports. Hide the models you never use.                                                                                                                               |
+| **Hand-off**                 | Continue a conversation with another agent: a new chat opens with what happened so far, ready to send.                                                                                                    |
+| **Worktrees**                | Run a chat in its own git worktree on an `xora/<name>` branch, then merge its work into your branch or throw it away.                                                                                     |
+| **Changes**                  | A sidebar view (`Ctrl+Shift+G`) for the checkout the chat works in: stage, unstage or discard files, read each diff inline, commit, then pull or push.                                                    |
+| **Review**                   | Permission prompts with a diff preview, a changes bar listing every file a turn touched, accept or revert per file, agent and git changes as Monaco diff tabs.                                            |
+| **Attachments**              | Drop in files, folders and screenshots, paste images, or type `@` to attach a file of the project. Pictures the agent creates show up in the chat.                                                        |
+| **Attention**                | When Xora is in the background, its taskbar button flashes as soon as an agent finishes or needs approval.                                                                                                |
 
 ### Editor and workspace
 
