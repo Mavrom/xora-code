@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { registerCommandActions } from "./actions";
 import { isOverridden, sanitizeOverrides, withBindings, withoutOverride } from "./overrides";
 
 describe("sanitizeOverrides", () => {
@@ -42,5 +43,16 @@ describe("withoutOverride", () => {
     expect(withoutOverride({ "chat.new": "mod+j", "editor.save": null }, "chat.new")).toEqual({
       "editor.save": null,
     });
+  });
+});
+
+describe("palette commands without a dedicated handler", () => {
+  it("keep their override once the registry has registered them", () => {
+    const stored = { "test.persisted": "Ctrl+Alt+P", "test.notRegistered": "mod+alt+q" };
+    expect(sanitizeOverrides(stored)).toEqual({});
+    registerCommandActions(["test.persisted"]);
+    expect(sanitizeOverrides(stored)).toEqual({ "test.persisted": "ctrl+alt+p" });
+    expect(withBindings({}, { "test.persisted": null })).toEqual({ "test.persisted": null });
+    expect(withoutOverride({ "test.persisted": "mod+j" }, "test.persisted")).toEqual({});
   });
 });

@@ -2,7 +2,7 @@
 // it must not take a key the user types with, a key the system or the editor owns, or (without
 // asking) a key another action already uses. Pure, so each rule is tested on its own.
 import type { Platform } from "@/shared/ui/keys";
-import { ACTIONS, actionDef, type ActionId, type Scope } from "./actions";
+import { actionDef, bindableIds, type BindableId, type Scope } from "./actions";
 import { formatBinding, type Binding, type KeyEventLike } from "./binding";
 import { bindingsOf, monacoKeyName, type KeymapOverrides } from "./keymap";
 import { t } from "@/shared/i18n";
@@ -187,17 +187,15 @@ export const scopesOverlap = (a: Scope, b: Scope) => a === "global" || b === "gl
 
 /** The other action that already answers to `binding` where `id` would, if any. */
 export function findConflict(
-  id: ActionId,
+  id: BindableId,
   binding: Binding,
   overrides: KeymapOverrides,
   platform: Platform,
-): ActionId | null {
+): BindableId | null {
   const scope = actionDef(id).scope;
-  for (const other of ACTIONS) {
-    if (other.id === id || !scopesOverlap(scope, other.scope)) continue;
-    if (bindingsOf(other.id, overrides).some((b) => overlaps(binding, b, platform))) {
-      return other.id;
-    }
+  for (const other of bindableIds()) {
+    if (other === id || !scopesOverlap(scope, actionDef(other).scope)) continue;
+    if (bindingsOf(other, overrides).some((b) => overlaps(binding, b, platform))) return other;
   }
   return null;
 }

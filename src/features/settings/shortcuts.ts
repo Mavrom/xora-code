@@ -1,4 +1,4 @@
-import { ACTIONS, actionDef, isActionId, type ActionId } from "@/features/keymap/actions";
+import { ACTIONS, actionDef, isBindable, type BindableId } from "@/features/keymap/actions";
 import { shortcutsOf, type KeymapOverrides } from "@/features/keymap/keymap";
 import { isOverridden } from "@/features/keymap/overrides";
 
@@ -9,7 +9,7 @@ export interface ShortcutSource {
   /** Effective bindings in canonical form; empty when unbound or not bindable. */
   shortcuts: string[];
   /** The keymap action behind the row; rows without one cannot be given a shortcut. */
-  action?: ActionId;
+  action?: BindableId;
   /** The user changed this action's binding. */
   modified?: boolean;
 }
@@ -29,7 +29,7 @@ export function shortcutSources(
   overrides: KeymapOverrides = {},
 ): ShortcutSource[] {
   const row = (id: string, title: string, group: string): ShortcutSource =>
-    isActionId(id)
+    isBindable(id)
       ? {
           id,
           title,

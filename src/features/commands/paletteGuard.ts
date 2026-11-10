@@ -2,7 +2,6 @@
 // (closing a tab, saving, switching the sidebar). Handlers this feature owns check
 // `isPaletteOpen()`; for everyone else a window capture listener swallows the keys.
 
-import type { ActionId } from "@/features/keymap/actions";
 import type { KeyEventLike } from "@/features/keymap/binding";
 import { resolve } from "@/features/keymap/keymap";
 
@@ -18,7 +17,7 @@ export function setPaletteOpen(value: boolean) {
  * App-level actions that act outside the palette and whose handlers do not ask
  * `isPaletteOpen()` themselves: close tab, save and the sidebar views.
  */
-const GUARDED = new Set<ActionId>([
+const GUARDED = new Set<string>([
   "editor.closeTab",
   "editor.save",
   "view.explorer",

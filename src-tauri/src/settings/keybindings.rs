@@ -10,31 +10,27 @@ use std::collections::BTreeMap;
 /// Action id to binding (`None` = unbound).
 pub type Keybindings = BTreeMap<String, Option<String>>;
 
-/// The bindable actions. Mirrors `ACTIONS` in `src/features/keymap/actions.ts`
-/// (`keymap/rustMirror.test.ts` checks that the two lists match).
-pub const ACTION_IDS: &[&str] = &[
-    "palette.open",
-    "workspace.quickOpen",
-    "search.findInFiles",
-    "chat.new",
-    "view.toggleSidebar",
-    "view.explorer",
-    "view.sessions",
-    "view.inbox",
-    "view.changes",
-    "view.toggleTerminal",
-    "terminal.new",
-    "editor.save",
-    "editor.closeTab",
-    "settings.open",
-    "view.zoomIn",
-    "view.zoomOut",
-    "view.zoomReset",
-    "editor.addToChat",
-    "diff.next",
-    "diff.previous",
-    "chat.stop",
-];
+/// Whether `id` has the shape of an action id: dot-separated segments of ASCII letters and
+/// digits, each starting with a lowercase letter, at least two segments, at most 64 bytes
+/// (`view.toggleSidebar`, `git.stageAll`). Same rule as `isWellFormedActionId` in
+/// `src/features/keymap/actions.ts`.
+///
+/// Only the shape is checked here. Which ids exist is decided by the frontend, where the
+/// keymap and the command registry live (every palette command is bindable, so a list kept
+/// here would have to follow every new command); it drops overrides for ids it does not know.
+pub fn is_action_id(id: &str) -> bool {
+    let mut segments = 0;
+    for segment in id.split('.') {
+        let mut chars = segment.chars();
+        if !chars.next().is_some_and(|c| c.is_ascii_lowercase())
+            || !chars.all(|c| c.is_ascii_alphanumeric())
+        {
+            return false;
+        }
+        segments += 1;
+    }
+    id.len() <= 64 && segments >= 2
+}
 
 const NAMED_KEYS: &[&str] = &[
     "enter",
@@ -130,14 +126,14 @@ pub fn normalize_binding(text: &str) -> Option<String> {
     Some(out.join("+"))
 }
 
-/// Reads the stored map, dropping unknown action ids and unreadable bindings one entry at
+/// Reads the stored map, dropping malformed action ids and unreadable bindings one entry at
 /// a time; anything that is not an object reads as no overrides.
 pub fn sanitize(value: Option<&Value>) -> Keybindings {
     let Some(Value::Object(map)) = value else {
         return Keybindings::new();
     };
     map.iter()
-        .filter(|(id, _)| ACTION_IDS.contains(&id.as_str()))
+        .filter(|(id, _)| is_action_id(id))
         .filter_map(|(id, binding)| match binding {
             Value::Null => Some((id.clone(), None)),
             Value::String(text) => normalize_binding(text).map(|b| (id.clone(), Some(b))),
@@ -193,11 +189,42 @@ mod tests {
     }
 
     #[test]
-    fn sanitize_drops_unknown_ids_and_bad_bindings_only() {
+    fn action_ids_are_checked_by_shape() {
+        for id in [
+            "chat.new",
+            "view.toggleSidebar",
+            "git.stageAll",
+            "workspace.openFolder",
+            "a.b.c2",
+        ] {
+            assert!(is_action_id(id), "{id}");
+        }
+        let long = format!("a.{}", "b".repeat(63));
+        for id in [
+            "",
+            "chat",
+            ".new",
+            "chat.",
+            "chat..new",
+            "Chat.new",
+            "chat.New",
+            "chat.2x",
+            "chat new",
+            "chat.new!",
+            "çat.new",
+            &long,
+        ] {
+            assert!(!is_action_id(id), "{id}");
+        }
+    }
+
+    #[test]
+    fn sanitize_drops_malformed_ids_and_bad_bindings_only() {
         let stored = json!({
             "chat.new": "Ctrl+Alt+N",
             "editor.save": null,
-            "no.such.action": "mod+j",
+            "git.push": "mod+alt+p",
+            "Not An Id": "mod+j",
             "view.changes": "mod+k+l",
             "view.inbox": 5
         });
@@ -207,6 +234,7 @@ mod tests {
             Keybindings::from([
                 ("chat.new".into(), Some("ctrl+alt+n".into())),
                 ("editor.save".into(), None),
+                ("git.push".into(), Some("mod+alt+p".into())),
             ])
         );
         assert!(sanitize(Some(&json!("mod+k"))).is_empty());

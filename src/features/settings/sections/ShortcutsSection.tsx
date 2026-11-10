@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { RotateCcw, Search } from "lucide-react";
 import { COMMANDS } from "@/features/commands/registry";
-import { actionDef, type ActionId } from "@/features/keymap/actions";
+import { actionDef, type BindableId } from "@/features/keymap/actions";
 import { formatBinding, parseBinding } from "@/features/keymap/binding";
 import { captureStep, findConflict, refusal, samePress } from "@/features/keymap/capture";
 import { beginCapture } from "@/features/keymap/captureGuard";
@@ -20,8 +20,8 @@ import { devShortcutsSeed } from "./shortcutsFixture";
 
 /** The row being edited: recording keys, or holding a binding another action already has. */
 export type ShortcutEdit =
-  | { id: ActionId; phase: "capture"; message?: string }
-  | { id: ActionId; phase: "conflict"; binding: string; other: ActionId };
+  | { id: BindableId; phase: "capture"; message?: string }
+  | { id: BindableId; phase: "conflict"; binding: string; other: BindableId };
 
 const label = (shortcut: string) => describeShortcut(shortcut, PLATFORM);
 
@@ -104,12 +104,12 @@ export function ShortcutsSection() {
 interface ShortcutRowProps {
   item: ShortcutSource;
   edit: ShortcutEdit | null;
-  otherTitle: (id: ActionId) => string;
+  otherTitle: (id: BindableId) => string;
   onEdit: (edit: ShortcutEdit | null) => void;
 }
 
 /** What a recorded binding does: refused, held for a conflict, or saved. */
-function settle(id: ActionId, text: string): ShortcutEdit | null {
+function settle(id: BindableId, text: string): ShortcutEdit | null {
   const binding = parseBinding(text);
   if (!binding) return null;
   const reason = refusal(binding, actionDef(id).scope, PLATFORM);

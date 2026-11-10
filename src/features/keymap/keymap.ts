@@ -2,15 +2,15 @@
 // and the questions handlers ask it ("is this event action X?", "which action is this?").
 import { create } from "zustand";
 import { detectPlatform, type Platform } from "@/shared/ui/keys";
-import { ACTIONS, isActionId, type ActionId } from "./actions";
+import { ACTIONS, bindableIds, isBindable, type ActionId, type BindableId } from "./actions";
 import { formatBinding, matches, parseBinding, type Binding, type KeyEventLike } from "./binding";
 
 export const PLATFORM: Platform = detectPlatform(
   typeof navigator === "undefined" ? undefined : navigator,
 );
 
-/** User overrides: a binding in canonical form, or `null` for unbound. */
-export type KeymapOverrides = Partial<Record<ActionId, string | null>>;
+/** User overrides by action id: a binding in canonical form, or `null` for unbound. */
+export type KeymapOverrides = Partial<Record<BindableId, string | null>>;
 
 interface KeymapState {
   overrides: KeymapOverrides;
@@ -22,16 +22,16 @@ export function setKeymapOverrides(overrides: KeymapOverrides) {
   useKeymap.setState({ overrides });
 }
 
-const DEFAULTS = new Map<ActionId, Binding[]>(
+const DEFAULTS = new Map<BindableId, Binding[]>(
   ACTIONS.map((a) => [a.id, a.defaults.map((d) => parseBinding(d) as Binding)]),
 );
 
-/** The default bindings of an action. */
-export const defaultBindings = (id: ActionId): Binding[] => DEFAULTS.get(id) ?? [];
+/** The default bindings of an action (none for a palette command). */
+export const defaultBindings = (id: BindableId): Binding[] => DEFAULTS.get(id) ?? [];
 
 /** The bindings in effect for an action (none when the user unbound it). */
 export function bindingsOf(
-  id: ActionId,
+  id: BindableId,
   overrides: KeymapOverrides = useKeymap.getState().overrides,
 ): Binding[] {
   if (Object.prototype.hasOwnProperty.call(overrides, id)) {
@@ -43,34 +43,45 @@ export function bindingsOf(
   return defaultBindings(id);
 }
 
-/** Whether `e` is action `id` under the effective keymap. */
-export function matchesAction(
+/** Whether `e` is any bindable action `id` (a palette command included). */
+export function matchesBindable(
   e: KeyEventLike,
-  id: ActionId,
+  id: BindableId,
   platform: Platform = PLATFORM,
   overrides: KeymapOverrides = useKeymap.getState().overrides,
 ): boolean {
   return bindingsOf(id, overrides).some((b) => matches(e, b, platform));
 }
 
-/** The action a key event stands for, if any (first in `ACTIONS` order). */
+/** Whether `e` is action `id` under the effective keymap (for the dedicated handlers). */
+export const matchesAction = (
+  e: KeyEventLike,
+  id: ActionId,
+  platform: Platform = PLATFORM,
+  overrides: KeymapOverrides = useKeymap.getState().overrides,
+): boolean => matchesBindable(e, id, platform, overrides);
+
+/**
+ * The action a key event stands for, if any: `ACTIONS` first, then the registered palette
+ * commands (conflict checks keep two from sharing a binding).
+ */
 export function resolve(
   e: KeyEventLike,
   platform: Platform = PLATFORM,
   overrides: KeymapOverrides = useKeymap.getState().overrides,
-): ActionId | null {
-  return ACTIONS.find((a) => matchesAction(e, a.id, platform, overrides))?.id ?? null;
+): BindableId | null {
+  return bindableIds().find((id) => matchesBindable(e, id, platform, overrides)) ?? null;
 }
 
 /** The bindings of an action in canonical text form, for `Kbd` (first is the main one). */
 export const shortcutsOf = (
-  id: ActionId,
+  id: BindableId,
   overrides: KeymapOverrides = useKeymap.getState().overrides,
 ): string[] => bindingsOf(id, overrides).map(formatBinding);
 
 /** The main binding of an action in canonical form, or `undefined` when unbound. */
 export const shortcutOf = (
-  id: ActionId,
+  id: BindableId,
   overrides: KeymapOverrides = useKeymap.getState().overrides,
 ): string | undefined => shortcutsOf(id, overrides)[0];
 
@@ -81,7 +92,7 @@ export function useShortcut(id: ActionId): string | undefined {
 
 /** The main binding of a command palette entry, for ids that are keymap actions. */
 export function useCommandShortcut(id: string): string | undefined {
-  return useKeymap((s) => (isActionId(id) ? shortcutOf(id, s.overrides) : undefined));
+  return useKeymap((s) => (isBindable(id) ? shortcutOf(id, s.overrides) : undefined));
 }
 
 /** The parts of Monaco's API a keybinding needs (`monaco.KeyMod`, `monaco.KeyCode`). */

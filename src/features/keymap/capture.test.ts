@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vitest";
+import { registerCommandActions } from "./actions";
 import { formatBinding, parseBinding } from "./binding";
 import { captureStep, findConflict, overlaps, refusal, samePress, scopesOverlap } from "./capture";
 import { ev } from "./characterization.cases";
@@ -130,5 +131,19 @@ describe("samePress", () => {
   it("knows Ctrl+Shift+G recorded on Windows is the ctrl+shift+g default", () => {
     expect(samePress(b("mod+shift+g"), b("ctrl+shift+g"), "other")).toBe(true);
     expect(samePress(b("mod+shift+g"), b("ctrl+shift+g"), "mac")).toBe(false);
+  });
+});
+
+describe("palette commands in conflicts", () => {
+  it("count as taken once bound, and see the global actions", () => {
+    registerCommandActions(["test.conflicting"]);
+    const overrides = { "test.conflicting": "mod+alt+g" };
+    expect(findConflict("view.changes", b("mod+alt+g"), overrides, "other")).toBe(
+      "test.conflicting",
+    );
+    expect(findConflict("test.conflicting", b("ctrl+`"), overrides, "other")).toBe(
+      "view.toggleTerminal",
+    );
+    expect(refusal(b("mod+c"), "global", "other")).not.toBeNull();
   });
 });

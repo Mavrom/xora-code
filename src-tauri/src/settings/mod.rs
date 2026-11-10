@@ -710,7 +710,8 @@ mod tests {
             "keybindings": {
                 "chat.new": "Ctrl+Alt+N",
                 "editor.save": null,
-                "unknown.action": "mod+j",
+                "not an id": "mod+j",
+                "git.stageAll": "mod+alt+a",
                 "view.changes": "not a binding",
                 "view.inbox": ["mod+i"]
             },
@@ -723,6 +724,8 @@ mod tests {
             keybindings::Keybindings::from([
                 ("chat.new".into(), Some("ctrl+alt+n".into())),
                 ("editor.save".into(), None),
+                // A palette command without a dedicated handler: kept by its id's shape.
+                ("git.stageAll".into(), Some("mod+alt+a".into())),
             ])
         );
 
