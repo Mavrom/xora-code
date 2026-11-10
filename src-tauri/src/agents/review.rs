@@ -354,6 +354,22 @@ mod tests {
         assert!(store.changed_files("s2").is_empty());
     }
 
+    #[test]
+    fn accepted_file_is_no_longer_revertable() {
+        let (_dir, root, roots) = setup();
+        let file = root.join("a.rs");
+        let store = ReviewStore::default();
+        store.record_write("s1", &file, Some(b"old".to_vec()), "new");
+        fs::write(&file, "new").unwrap();
+
+        store.accept("s1", None);
+        assert!(matches!(
+            store.revert("s1", &file, &roots),
+            Err(ReviewError::NotTracked)
+        ));
+        assert_eq!(fs::read_to_string(&file).unwrap(), "new");
+    }
+
     #[cfg(windows)]
     #[test]
     fn paths_differing_only_in_case_are_one_change() {

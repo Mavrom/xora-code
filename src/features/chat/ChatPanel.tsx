@@ -297,7 +297,11 @@ export function ChatPanel() {
       {session && !running && (
         <ChangesBar
           changes={session.changes}
-          onAccept={() => store().acceptChanges(session.sessionId)}
+          onAccept={() =>
+            void store()
+              .acceptChanges(session.sessionId)
+              .catch((e: unknown) => say(errorMessage(e)))
+          }
           onRevert={(path) => store().revertChange(session.sessionId, path)}
         />
       )}

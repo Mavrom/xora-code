@@ -786,6 +786,8 @@ export function createFixtureIpc(opts: FixtureIpcOptions = {}): AgentIpc {
       resolve?.(optionId);
     },
     reviewRevert: async () => "reverted",
+    reviewChanges: async () => [],
+    reviewAccept: async () => {},
     shutdown: async () => {},
   };
 }

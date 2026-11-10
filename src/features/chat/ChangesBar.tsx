@@ -17,9 +17,9 @@ interface ChangesBarProps {
 }
 
 /**
- * After a turn: the files the agent changed, each revertable. "Kabul et" clears the list;
- * "Geri al" restores the old content unless the file changed again since (then the diff
- * opens so the user can decide).
+ * After a turn: the files the agent changed, each revertable. "Accept" lets the core drop
+ * its snapshots and clears the list; "Revert" restores the old content unless the file
+ * changed again since (then the diff opens so the user can decide).
  */
 export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
   const id = useId();

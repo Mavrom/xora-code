@@ -20,6 +20,7 @@ import {
   createAgentData,
   createSessionView,
   reduceEvents,
+  withCoreChanges,
   withSource,
   type AgentData,
   type SessionView,
@@ -111,7 +112,8 @@ export interface AgentStoreState extends AgentData {
   /** Brings a crashed agent's open sessions back (resume, or load with replay). */
   restart: (agentId: AgentId) => Promise<void>;
 
-  acceptChanges: (sessionId: string) => void;
+  /** Accepts the listed changes: the core drops its snapshots, then the list clears. */
+  acceptChanges: (sessionId: string) => Promise<void>;
   revertChange: (sessionId: string, path: string) => Promise<"reverted" | "conflict">;
   shutdown: () => Promise<void>;
 }
@@ -384,6 +386,14 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
           );
           throw err;
         }
+        // After a window reload the core may still hold the last turn's snapshots
+        // (written files are not part of the replay): list them again.
+        try {
+          const files = await deps.ipc.reviewChanges(sessionId);
+          patch(sessionId, (v) => withCoreChanges(v, files));
+        } catch (err) {
+          console.warn("agents: review changes", err);
+        }
       },
 
       closeSession: async (sessionId) => {
@@ -542,7 +552,12 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
         }
       },
 
-      acceptChanges: (sessionId) => patch(sessionId, (v) => ({ ...v, changes: [] })),
+      acceptChanges: async (sessionId) => {
+        // Only after the core has let go: a failed call keeps the list, so a row that is
+        // still shown can still be reverted.
+        await deps.ipc.reviewAccept(sessionId, null);
+        patch(sessionId, (v) => ({ ...v, changes: [] }));
+      },
 
       revertChange: async (sessionId, path) => {
         const result = await deps.ipc.reviewRevert(sessionId, path);

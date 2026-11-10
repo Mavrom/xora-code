@@ -351,7 +351,50 @@ describe("review", () => {
     s().flush();
     expect(await s().revertChange(id, "/a")).toBe("reverted");
     expect(s().sessions[id].changes.map((c) => c.path)).toEqual(["/b"]);
-    s().acceptChanges(id);
+    await s().acceptChanges(id);
     expect(s().sessions[id].changes).toEqual([]);
+  });
+
+  it("tells the core to drop its snapshots on accept", async () => {
+    const { s, ipc } = setup();
+    const id = await s().newSession("claude", "C:\\p");
+    s().ingest({ type: "fileWritten", sessionId: id, path: "/a" });
+    s().flush();
+    await s().acceptChanges(id);
+    expect(ipc.reviewAccept).toHaveBeenCalledWith(id, null);
+  });
+
+  it("keeps the list when the core refuses the accept", async () => {
+    const { s } = setup({ ipc: { reviewAccept: () => Promise.reject(new Error("gone")) } });
+    const id = await s().newSession("claude", "C:\\p");
+    s().ingest({ type: "fileWritten", sessionId: id, path: "/a" });
+    s().flush();
+    await expect(s().acceptChanges(id)).rejects.toThrow("gone");
+    expect(s().sessions[id].changes.map((c) => c.path)).toEqual(["/a"]);
+  });
+
+  it("starts a turn with an empty list, as the core does", async () => {
+    const { s } = setup();
+    const id = await s().newSession("claude", "C:\\p");
+    s().ingest({ type: "fileWritten", sessionId: id, path: "/a" });
+    s().flush();
+    await s().prompt(id, "next");
+    expect(s().sessions[id].changes).toEqual([]);
+  });
+
+  it("restores the files the core still tracks when a session is reopened", async () => {
+    const { s } = setup({
+      ipc: {
+        reviewChanges: async () => [
+          { path: "/kept", created: false },
+          { path: "/new", created: true },
+        ],
+      },
+    });
+    await s().loadSession("claude", "old-session", "C:\\p");
+    expect(s().sessions["old-session"].changes).toEqual([
+      { path: "/kept", oldText: undefined, newText: undefined },
+      { path: "/new", oldText: null, newText: undefined },
+    ]);
   });
 });

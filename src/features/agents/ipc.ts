@@ -50,6 +50,10 @@ export interface AgentIpc {
   setModel: (sessionId: string, modelId: string) => Promise<void>;
   permissionRespond: (requestId: string, optionId: string | null) => Promise<void>;
   reviewRevert: (sessionId: string, path: string) => Promise<"reverted" | "conflict">;
+  /** Files the core still holds a revert snapshot for (current turn). */
+  reviewChanges: (sessionId: string) => Promise<ChangedFile[]>;
+  /** Drops the core's revert snapshot of one file, or of all (`null`). */
+  reviewAccept: (sessionId: string, path: string | null) => Promise<void>;
   shutdown: () => Promise<void>;
 }
 
@@ -89,6 +93,8 @@ export const tauriAgentIpc: AgentIpc = {
     invoke<void>("agent_permission_respond", { requestId, optionId }),
   reviewRevert: (sessionId, path) =>
     invoke<"reverted" | "conflict">("agent_review_revert", { sessionId, path }),
+  reviewChanges: (sessionId) => invoke<ChangedFile[]>("agent_review_changes", { sessionId }),
+  reviewAccept: (sessionId, path) => invoke<void>("agent_review_accept", { sessionId, path }),
   shutdown: () => invoke<void>("agents_shutdown"),
 };
 
@@ -113,16 +119,9 @@ export function stripAuthPrefix(message: string): string {
     : message;
 }
 
-/** A file the agent changed in the current turn. */
+/** A file the agent changed in the current turn (mirror of Rust's `review::ChangedFile`). */
 export interface ChangedFile {
   path: string;
-  /** The file did not exist before the turn ("Geri al" deletes it). */
+  /** The file did not exist before the turn ("Revert" deletes it). */
   created: boolean;
 }
-
-/** Turn review helpers (outside `AgentIpc`: only the changes bar needs them). */
-export const agentReviewIpc = {
-  changes: (sessionId: string) => invoke<ChangedFile[]>("agent_review_changes", { sessionId }),
-  accept: (sessionId: string, path: string | null = null) =>
-    invoke<void>("agent_review_accept", { sessionId, path }),
-};

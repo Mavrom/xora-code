@@ -1,11 +1,13 @@
 import { describe, expect, it, vi } from "vitest";
 import {
+  beginTurn,
   createAgentData,
   createSessionView,
   reduceEvents,
   TERMINAL_OUTPUT_LIMIT,
   type AgentData,
   type SessionView,
+  withCoreChanges,
 } from "./reducer";
 import type { AcpSessionUpdate, AgentEvent, SessionSetup } from "./types";
 
@@ -209,6 +211,35 @@ describe("tool calls", () => {
       { type: "fileWritten", sessionId: SID, path: "/b" },
     ]);
     expect(v.changes).toEqual([{ path: "/b", oldText: undefined, newText: undefined }]);
+  });
+
+  it("clears the list when a turn begins (the core forgets the last turn's snapshots)", () => {
+    const v = run([{ type: "fileWritten", sessionId: SID, path: "/b" }]);
+    expect(beginTurn(v, [{ type: "text", text: "next" }], 2000).changes).toEqual([]);
+  });
+
+  it("adds the core's tracked files the view does not list yet", () => {
+    const v = run([
+      up({
+        sessionUpdate: "tool_call",
+        toolCallId: "t1",
+        title: "e",
+        kind: "edit",
+        status: "completed",
+        content: [{ type: "diff", path: "/a", oldText: "1", newText: "2" }],
+      }),
+    ]);
+    const next = withCoreChanges(v, [
+      { path: "/a", created: false },
+      { path: "/b", created: false },
+      { path: "/c", created: true },
+    ]);
+    expect(next.changes).toEqual([
+      { path: "/a", oldText: "1", newText: "2" },
+      { path: "/b", oldText: undefined, newText: undefined },
+      { path: "/c", oldText: null, newText: undefined },
+    ]);
+    expect(withCoreChanges(next, [{ path: "/a", created: false }])).toBe(next);
   });
 });
 

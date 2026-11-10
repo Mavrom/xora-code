@@ -3,6 +3,7 @@
 // each touched session and item once instead of once per event.
 
 import { deriveControls, type ControlSource, type SessionControls } from "./controls";
+import type { ChangedFile } from "./ipc";
 import type {
   AcpAgentCapabilities,
   AcpCommand,
@@ -509,7 +510,8 @@ export function reduceEvents(
 /** Adds (or replaces) a session and replays events that arrived before it. */
 /**
  * Starts a turn locally: appends the user's message (agents echo user chunks
- * only on replay) and marks the session running.
+ * only on replay) and marks the session running. The change list starts over,
+ * because the core drops the last turn's revert snapshots when a turn begins.
  */
 export function beginTurn(view: SessionView, blocks: AcpContentBlock[], now: number): SessionView {
   const d = new SessionDraft(view);
@@ -518,9 +520,33 @@ export function beginTurn(view: SessionView, blocks: AcpContentBlock[], now: num
     turn: "running",
     error: null,
     lastStopReason: null,
+    changes: [],
     updatedAt: new Date(now).toISOString(),
   } satisfies Partial<SessionView>);
   return d.view;
+}
+
+/**
+ * Adds the files the core still holds a revert snapshot for (`agent_review_changes`)
+ * that the view does not list, e.g. after a window reload. The core sends no content,
+ * so the diff stays unknown; a created file is marked as new. Returns `view` itself
+ * when nothing is missing.
+ */
+export function withCoreChanges(view: SessionView, files: readonly ChangedFile[]): SessionView {
+  const known = new Set(view.changes.map((c) => c.path));
+  const missing = files.filter((f) => !known.has(f.path));
+  if (missing.length === 0) return view;
+  return {
+    ...view,
+    changes: [
+      ...view.changes,
+      ...missing.map((f) => ({
+        path: f.path,
+        oldText: f.created ? null : undefined,
+        newText: undefined,
+      })),
+    ],
+  };
 }
 
 export function attachSession(data: AgentData, view: SessionView, now: number): AgentData {

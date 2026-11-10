@@ -234,8 +234,8 @@ How often an agent asks is the agent's own mode: Settings' approval policy (`ask
 
 1. An agent that writes through ACP calls `fs/write_text_file`. `Bridges::write_text_file` resolves the path with `resolve_in_roots`, keeps the file's previous bytes, writes atomically (`write_text_atomic`), records both in `ReviewStore::record_write` and emits `fileWritten`.
 2. An agent that writes files itself (Codex) reports ACP `diff` content on its tool calls; `PendingDiffs` holds them until the call completes and `ReviewStore::record_diff` records them.
-3. The reducer collects the turn's changed files in the session's `changes`; `ChangesBar` lists them, and a row opens a read-only diff tab through `openDiffInEditor`.
-4. "Accept" clears the list in the UI (`acceptChanges`). The Rust snapshots stay until the next turn starts (`begin_turn`) or the session closes.
+3. The reducer collects the turn's changed files in the session's `changes`; `ChangesBar` lists them, and a row opens a read-only diff tab through `openDiffInEditor`. Starting the next turn empties the list (`beginTurn`), as the core drops the last turn's snapshots then (`begin_turn`). Reopening a session (`loadSession`) adds back the files the core still tracks (`agent_review_changes`), for example after a window reload.
+4. "Accept" (`acceptChanges`) calls `agent_review_accept`, which drops the session's snapshots, and clears the list only once that succeeds; a failure keeps the list and shows the error. Snapshots also go when the session closes.
 5. "Revert" calls `revertChange` → `agent_review_revert`. `ReviewStore::revert` restores the original (or deletes a file the turn created) only while the disk still holds what the agent wrote; otherwise it returns `conflict` and leaves the file alone.
 
 ### Open, edit and save a file; follow the disk
