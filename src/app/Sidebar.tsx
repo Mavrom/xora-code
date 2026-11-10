@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from "react";
+import { useEffect, useMemo } from "react";
 import {
   ArrowLeft,
   ArrowRight,
@@ -7,15 +7,11 @@ import {
   MessagesSquare,
   PanelLeft,
   Search,
-  Settings,
   SquarePen,
-  type LucideIcon,
 } from "lucide-react";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
 import { FrostedGround } from "@/features/backdrop/FrostedGround";
-import { AgentGlyph } from "@/features/chat/AgentGlyph";
 import { ChipMenu } from "@/features/chat/ChipMenu";
-import { statusNote } from "@/features/chat/controlsView";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
 import { SessionList } from "@/features/chat/SessionList";
 import { attentionCount } from "@/features/chat/sessionStatus";
@@ -29,14 +25,13 @@ import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { openCount } from "@/features/inbox/sortNotes";
 import { useInboxStore } from "@/features/inbox/store";
-import { closeSettings, openSettings, useSettingsView } from "@/features/settings/viewStore";
-import { UpdateNotice } from "@/features/updates/UpdateNotice";
-import { useHostname } from "@/shared/lib/useHostname";
+import { closeSettings, useSettingsView } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
-import { describeShortcut } from "@/shared/ui/keys";
 import type { ActionId } from "@/features/keymap/actions";
-import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
+import { matchesAction, useShortcut } from "@/features/keymap/keymap";
+import { AccountCard } from "./AccountCard";
+import { BarButton, CountBadge, NavItem } from "./SidebarButtons";
 import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
 import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET } from "./WindowControls";
 import { t } from "@/shared/i18n";
@@ -226,54 +221,6 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   );
 }
 
-function CountBadge({ count }: { count: number }) {
-  if (count <= 0) return null;
-  return (
-    <span className="rounded-full bg-white/[0.08] px-1.5 text-[11px] leading-4.5 font-medium text-fg-muted tabular-nums">
-      {count > 99 ? "99+" : count}
-    </span>
-  );
-}
-
-interface NavItemProps {
-  icon: LucideIcon;
-  label: string;
-  /** The keymap action that opens this view; its binding goes in the tooltip. */
-  action: ActionId;
-  active: boolean;
-  meta?: ReactNode;
-  onClick: () => void;
-}
-
-function NavItem({ icon: Icon, label, action, active, meta, onClick }: NavItemProps) {
-  const shortcut = useShortcut(action);
-  const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
-  return (
-    <button
-      type="button"
-      aria-current={active ? "page" : undefined}
-      aria-keyshortcuts={keys}
-      title={keys ? `${label} (${keys})` : label}
-      onClick={onClick}
-      className={cn(
-        "flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] transition-[background-color,color] duration-fast",
-        active
-          ? "bg-white/[0.07] text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.04)]"
-          : "text-fg-muted hover:bg-white/[0.04] hover:text-fg",
-      )}
-    >
-      <Icon
-        size={15}
-        strokeWidth={1.75}
-        aria-hidden
-        className={active ? "text-fg" : "text-fg-subtle"}
-      />
-      {label}
-      {meta && <span className="ml-auto">{meta}</span>}
-    </button>
-  );
-}
-
 /** "Tüm projeler ▾": narrows the conversations to one project folder. */
 function ProjectPicker() {
   const groups = useAgentStore(selectProjectGroups);
@@ -305,91 +252,5 @@ function ProjectPicker() {
         ]}
       />
     </div>
-  );
-}
-
-/** Bottom card: this computer, the selected agent's state and the way into settings. */
-function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
-  const hostname = useHostname();
-  const agentId = useAgentStore((s) => s.selectedAgent);
-  const agent = useAgentStore((s) => s.agents[s.selectedAgent]);
-  const note = statusNote(agent.status) || t("Ready");
-  const ready = agent.status.state === "ready" || agent.status.state === "stopped";
-  const name = hostname ?? t("This computer");
-
-  return (
-    <div className="relative shrink-0 border-t border-white/[0.05] p-2">
-      <UpdateNotice />
-      <div className="flex items-center gap-1">
-        <button
-          type="button"
-          onClick={() => openSettings("accounts")}
-          title={t("Accounts")}
-          className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-fast hover:bg-white/[0.04]"
-        >
-          <span
-            aria-hidden
-            className="grid size-7 shrink-0 place-items-center rounded-full bg-[conic-gradient(from_210deg,#d97757,#7aa7f5,#e8e8e8,#d97757)] p-px"
-          >
-            <span className="grid size-full place-items-center rounded-full bg-[#141415] text-[11px] font-semibold text-fg">
-              {name.charAt(0).toUpperCase()}
-            </span>
-          </span>
-          <span className="min-w-0 flex-1">
-            <span className="block truncate text-xs font-medium text-fg">{name}</span>
-            <span className="flex items-center gap-1.5 text-[11px] text-fg-subtle">
-              <AgentGlyph agent={agentId} size={10} tinted />
-              <span className="truncate">
-                {agent.displayName} · {note}
-              </span>
-              <span
-                aria-hidden
-                className={cn(
-                  "size-1.5 shrink-0 rounded-full",
-                  ready ? "bg-emerald-400/80" : "bg-amber-400/80",
-                )}
-              />
-            </span>
-          </span>
-        </button>
-        <button
-          type="button"
-          aria-pressed={settingsOpen}
-          aria-label={t("Settings (Ctrl+,)")}
-          title={t("Settings (Ctrl+,)")}
-          onClick={() => useSettingsView.getState().toggleSettings()}
-          className={cn(
-            "grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-fast",
-            settingsOpen
-              ? "bg-white/[0.08] text-fg"
-              : "text-fg-subtle hover:bg-white/[0.05] hover:text-fg",
-          )}
-        >
-          <Settings size={15} strokeWidth={1.75} aria-hidden />
-        </button>
-      </div>
-    </div>
-  );
-}
-
-interface BarButtonProps {
-  icon: LucideIcon;
-  label: string;
-  disabled?: boolean;
-  onClick: () => void;
-}
-
-function BarButton({ icon: Icon, label, disabled, onClick }: BarButtonProps) {
-  return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      disabled={disabled}
-      onClick={onClick}
-      className="grid size-7 place-items-center rounded-md text-fg-subtle transition-colors duration-fast hover:bg-white/[0.05] hover:text-fg disabled:text-fg-subtle/40 disabled:hover:bg-transparent"
-    >
-      <Icon size={15} strokeWidth={1.5} aria-hidden />
-    </button>
   );
 }
