@@ -149,44 +149,61 @@ pub async fn agent_session_close(
     manager.session_close(&session_id).await.map_err(ipc)
 }
 
+/// Runs a session-index write on the blocking pool: it rewrites and syncs
+/// `sessions.json`. `SessionIndex` serializes its own read-modify-write, so
+/// concurrent marks never lose each other's changes.
+async fn index_write(
+    manager: &AgentManager,
+    job: impl FnOnce(&AgentManager) -> Result<(), AgentError> + Send + 'static,
+) -> CmdResult<()> {
+    let manager = manager.clone();
+    tauri::async_runtime::spawn_blocking(move || job(&manager))
+        .await
+        .map_err(|err| err.to_string())?
+        .map_err(ipc)
+}
+
 #[tauri::command]
-pub fn agent_session_archive(
+pub async fn agent_session_archive(
     manager: State<'_, AgentManager>,
     agent_id: AgentId,
     session_id: String,
     cwd: PathBuf,
     archived: bool,
 ) -> CmdResult<()> {
-    manager
-        .session_archive(agent_id, &session_id, &cwd, archived)
-        .map_err(ipc)
+    index_write(&manager, move |m| {
+        m.session_archive(agent_id, &session_id, &cwd, archived)
+    })
+    .await
 }
 
 #[tauri::command]
-pub fn agent_session_pin(
+pub async fn agent_session_pin(
     manager: State<'_, AgentManager>,
     agent_id: AgentId,
     session_id: String,
     cwd: PathBuf,
     pinned: bool,
 ) -> CmdResult<()> {
-    manager
-        .session_mark(agent_id, &session_id, &cwd, Mark::Pinned(pinned))
-        .map_err(ipc)
+    index_write(&manager, move |m| {
+        m.session_mark(agent_id, &session_id, &cwd, Mark::Pinned(pinned))
+    })
+    .await
 }
 
 /// Renames a conversation; `None` (or a blank name) gives the agent's title back.
 #[tauri::command]
-pub fn agent_session_rename(
+pub async fn agent_session_rename(
     manager: State<'_, AgentManager>,
     agent_id: AgentId,
     session_id: String,
     cwd: PathBuf,
     title: Option<String>,
 ) -> CmdResult<()> {
-    manager
-        .session_mark(agent_id, &session_id, &cwd, Mark::Renamed(title))
-        .map_err(ipc)
+    index_write(&manager, move |m| {
+        m.session_mark(agent_id, &session_id, &cwd, Mark::Renamed(title))
+    })
+    .await
 }
 
 #[tauri::command]

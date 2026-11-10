@@ -392,6 +392,43 @@ mod tests {
     }
 
     #[test]
+    fn concurrent_marks_do_not_lose_each_other() {
+        // The commands run marks on the blocking pool, so several can overlap.
+        let dir = tempfile::tempdir().unwrap();
+        let index = SessionIndex::default();
+        index.set_path(dir.path().join("sessions.json"));
+        let threads: Vec<_> = (0..16)
+            .map(|i| {
+                let index = index.clone();
+                std::thread::spawn(move || {
+                    let id = format!("s{i}");
+                    index
+                        .mark(AgentId::Gemini, &id, "C:\\p", Mark::Pinned(true))
+                        .unwrap();
+                    index
+                        .mark(
+                            AgentId::Gemini,
+                            &id,
+                            "C:\\p",
+                            Mark::Renamed(Some(id.clone())),
+                        )
+                        .unwrap();
+                })
+            })
+            .collect();
+        for thread in threads {
+            thread.join().unwrap();
+        }
+        let entries = load(&dir.path().join("sessions.json"));
+        assert_eq!(entries.len(), 16);
+        assert!(
+            entries
+                .iter()
+                .all(|e| e.pinned && e.custom_title.as_deref() == Some(e.session_id.as_str()))
+        );
+    }
+
+    #[test]
     fn touch_and_list_round_trip() {
         let dir = tempfile::tempdir().unwrap();
         let index = SessionIndex::default();
