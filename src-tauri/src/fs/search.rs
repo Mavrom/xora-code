@@ -134,8 +134,10 @@ impl Matcher {
     pub fn new(options: &SearchOptions) -> io::Result<Self> {
         let pattern = if options.regex {
             options.query.clone()
-        } else {
+        } else if options.case_sensitive {
             regex::escape(&options.query)
+        } else {
+            literal_ignoring_case(&options.query)
         };
         let re = RegexBuilder::new(&pattern)
             .case_insensitive(!options.case_sensitive)
@@ -157,6 +159,25 @@ impl Matcher {
             .map(|m| (m.start(), m.end()))
             .collect()
     }
+}
+
+/// The Turkish dotted and dotless i in both cases. Unicode simple case folding (what the regex
+/// crate uses) pairs none of `İ` / `ı` with `i` / `I`, so `istanbul` would miss `İstanbul`.
+const TURKISH_I: &[char] = &['i', 'I', 'İ', 'ı'];
+
+/// An escaped literal pattern for a case-insensitive search in which any of [`TURKISH_I`]
+/// matches the others. Regex queries are left to the regex crate's own folding.
+fn literal_ignoring_case(query: &str) -> String {
+    let mut pattern = String::with_capacity(query.len() + 8);
+    let mut buf = [0u8; 4];
+    for c in query.chars() {
+        if TURKISH_I.contains(&c) {
+            pattern.push_str("[iIİı]");
+        } else {
+            pattern.push_str(&regex::escape(c.encode_utf8(&mut buf)));
+        }
+    }
+    pattern
 }
 
 fn is_word_char(c: char) -> bool {
@@ -457,6 +478,39 @@ mod tests {
         .unwrap();
         assert!(err.to_string().starts_with("[bad_regex] "), "{err}");
         assert!(err.to_string().contains("unclosed group"), "{err}");
+    }
+
+    #[test]
+    fn literal_search_matches_turkish_dotted_and_dotless_i() {
+        // `İ` and `ı` are two bytes in UTF-8.
+        assert_eq!(matcher(opts("istanbul")).find("İstanbul", 10), [(0, 9)]);
+        assert_eq!(matcher(opts("İSTANBUL")).find("istanbul", 10), [(0, 8)]);
+        assert_eq!(matcher(opts("ISI")).find("ısı", 10), [(0, 5)]);
+        assert_eq!(matcher(opts("ısı")).find("ISI", 10), [(0, 3)]);
+        // Other characters are still escaped.
+        assert_eq!(matcher(opts("i.(")).find("ixx İ.(", 10), [(4, 8)]);
+        // Match case keeps them apart, and regex mode keeps the regex crate's folding.
+        let exact = SearchOptions {
+            case_sensitive: true,
+            ..opts("istanbul")
+        };
+        assert!(matcher(exact).find("İstanbul", 10).is_empty());
+        let regex = SearchOptions {
+            regex: true,
+            ..opts("istanbul")
+        };
+        assert!(matcher(regex).find("İstanbul", 10).is_empty());
+    }
+
+    #[test]
+    fn a_match_with_dotted_i_has_utf16_column_and_range() {
+        let hits = search_text("ağ İstanbul", &matcher(opts("istanbul")), 10, &|| false).unwrap();
+        let m = &hits.matches[0];
+        // "ağ " is three UTF-16 units; `İstanbul` is eight.
+        assert_eq!(m.column, 4);
+        assert_eq!(m.ranges, [[3, 11]]);
+        let units: Vec<u16> = m.text.encode_utf16().collect();
+        assert_eq!(String::from_utf16(&units[3..11]).unwrap(), "İstanbul");
     }
 
     #[test]
