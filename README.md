@@ -38,6 +38,7 @@ Most AI editors are a code editor with a chat bolted on. Xora turns that around:
 | **Model, mode, effort**      | Pickers filled from what each agent reports. Hide the models you never use.                                                                                                |
 | **Hand-off**                 | Continue a conversation with another agent: a new chat opens with what happened so far, ready to send.                                                                     |
 | **Worktrees**                | Run a chat in its own git worktree on an `xora/<name>` branch, then merge its work into your branch or throw it away.                                                      |
+| **Changes**                  | A sidebar view (`Ctrl+Shift+G`) for the checkout the chat works in: stage, unstage or discard files, read each diff inline, commit, then pull or push.                     |
 | **Review**                   | Permission prompts with a diff preview, a changes bar listing every file a turn touched, accept or revert per file.                                                        |
 | **Attachments**              | Drop in files, folders and screenshots, paste images, or type `@` to attach a file of the project. Pictures the agent creates show up in the chat.                         |
 | **Attention**                | When Xora is in the background, its taskbar button flashes as soon as an agent finishes or needs approval.                                                                 |
@@ -96,6 +97,7 @@ Windows and macOS are supported. The code is written to stay cross-platform; Lin
 | `Ctrl+Shift+E`                 | Pin or unpin the files drawer  |
 | `Ctrl+Shift+H`                 | Conversations                  |
 | `Ctrl+Shift+N`                 | New Inbox note                 |
+| `Ctrl+Shift+G`                 | Changes: stage, commit, push   |
 | ``Ctrl+` ``                    | Toggle the terminal            |
 | `Ctrl+S` / `Ctrl+W`            | Save / close the active tab    |
 | `Ctrl+,`                       | Settings                       |
