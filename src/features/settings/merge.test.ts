@@ -48,3 +48,28 @@ describe("isEmptyPatch", () => {
     expect(isEmptyPatch({ editor: { minimap: false } })).toBe(false);
   });
 });
+
+describe("keybindings", () => {
+  const withSave = { ...DEFAULT_SETTINGS, keybindings: { "editor.save": "mod+alt+s" } };
+
+  it("are replaced whole, not merged", () => {
+    const next = applyPatch(withSave, { keybindings: { "chat.new": null } });
+    expect(next.keybindings).toEqual({ "chat.new": null });
+    expect(next.editor).toBe(withSave.editor);
+    expect(applyPatch(withSave, { keybindings: {} }).keybindings).toEqual({});
+  });
+
+  it("keep the settings object when the map is the same", () => {
+    expect(applyPatch(withSave, { keybindings: { "editor.save": "mod+alt+s" } })).toBe(withSave);
+  });
+
+  it("count as a change even when emptied, and the later map wins", () => {
+    expect(isEmptyPatch({ keybindings: {} })).toBe(false);
+    expect(
+      mergePatches(
+        { keybindings: { "editor.save": null }, editor: { minimap: true } },
+        { keybindings: { "chat.new": "mod+j" } },
+      ),
+    ).toEqual({ keybindings: { "chat.new": "mod+j" }, editor: { minimap: true } });
+  });
+});

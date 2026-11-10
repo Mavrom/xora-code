@@ -1,8 +1,9 @@
 // A setting addressed as "section.key" (e.g. "editor.fontSize"): lets a row know whether
 // it differs from the default, put it back, and be found by the settings search.
-import { DEFAULT_SETTINGS, type Settings, type SettingsPatch } from "./types";
+import { DEFAULT_SETTINGS, type MergedSection, type Settings, type SettingsPatch } from "./types";
 
-type Section = Exclude<keyof Settings, "version">;
+// Shortcuts are not addressed this way: the keymap has its own per-action reset.
+type Section = MergedSection;
 
 export type SettingPath = {
   [S in Section]: `${S}.${Extract<keyof Settings[S], string>}`;

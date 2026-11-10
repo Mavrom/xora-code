@@ -1,4 +1,5 @@
 pub mod commands;
+pub mod keybindings;
 pub mod wallpaper;
 
 use serde::{Deserialize, Serialize};
@@ -22,6 +23,9 @@ pub struct Settings {
     pub editor: Editor,
     pub terminal: Terminal,
     pub appearance: Appearance,
+    /// Shortcut overrides, action id to binding or `null` (unbound); see [`keybindings`].
+    /// Patches replace this map as a whole instead of merging into it.
+    pub keybindings: keybindings::Keybindings,
 }
 
 impl Default for Settings {
@@ -33,6 +37,7 @@ impl Default for Settings {
             editor: Editor::default(),
             terminal: Terminal::default(),
             appearance: Appearance::default(),
+            keybindings: keybindings::Keybindings::new(),
         }
     }
 }
@@ -385,17 +390,24 @@ pub enum SettingsError {
     WallpaperTooLarge(u64),
 }
 
+/// The settings key whose value is a map kept entry by entry ([`keybindings::sanitize`])
+/// rather than field by field, and replaced whole by a patch.
+const KEYBINDINGS: &str = "keybindings";
+
 /// Builds settings from arbitrary JSON, keeping every field that is valid on
 /// its own and using the default for the rest. Unknown keys are dropped.
 pub fn from_value(value: &Value) -> Settings {
     let mut merged = serde_json::to_value(Settings::default()).expect("defaults serialize");
     let mut path = Vec::new();
+    let mut stored_keybindings = None;
     if let Value::Object(source) = value {
-        overlay_valid(&mut merged, source, &mut path);
+        let mut source = source.clone();
+        stored_keybindings = source.remove(KEYBINDINGS);
+        overlay_valid(&mut merged, &source, &mut path);
     }
-    serde_json::from_value::<Settings>(merged)
-        .unwrap_or_default()
-        .normalized()
+    let mut settings = serde_json::from_value::<Settings>(merged).unwrap_or_default();
+    settings.keybindings = keybindings::sanitize(stored_keybindings.as_ref());
+    settings.normalized()
 }
 
 /// Walks `source` against `root` (which always deserializes). Each leaf is
@@ -436,6 +448,9 @@ pub fn apply_patch(current: &Settings, patch: &Value) -> Result<Settings, Settin
     };
     let mut value = serde_json::to_value(current)?;
     deep_merge(&mut value, patch);
+    if let (Some(map), Value::Object(target)) = (patch.get(KEYBINDINGS), &mut value) {
+        target.insert(KEYBINDINGS.into(), map.clone());
+    }
     Ok(from_value(&value))
 }
 
@@ -670,6 +685,76 @@ mod tests {
         assert_eq!(next.editor.font_size, 13);
         assert_eq!(next.general.reduced_motion, ReducedMotion::Always);
         assert!(next.general.open_last_folder);
+    }
+
+    #[test]
+    fn keybindings_default_empty_and_survive_a_round_trip() {
+        let value = serde_json::to_value(Settings::default()).unwrap();
+        assert_eq!(value["keybindings"], json!({}));
+
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("settings.json");
+        let mut settings = Settings::default();
+        settings
+            .keybindings
+            .insert("chat.new".into(), Some("mod+alt+n".into()));
+        settings.keybindings.insert("editor.save".into(), None);
+        save(&file, &settings).unwrap();
+        assert_eq!(load(&file).unwrap(), settings);
+    }
+
+    #[test]
+    fn bad_keybindings_are_dropped_and_the_rest_of_the_file_survives() {
+        let settings = from_value(&json!({
+            "editor": { "fontSize": 16 },
+            "keybindings": {
+                "chat.new": "Ctrl+Alt+N",
+                "editor.save": null,
+                "unknown.action": "mod+j",
+                "view.changes": "not a binding",
+                "view.inbox": ["mod+i"]
+            },
+            "terminal": { "shell": "cmd" }
+        }));
+        assert_eq!(settings.editor.font_size, 16);
+        assert_eq!(settings.terminal.shell, ShellKind::Cmd);
+        assert_eq!(
+            settings.keybindings,
+            keybindings::Keybindings::from([
+                ("chat.new".into(), Some("ctrl+alt+n".into())),
+                ("editor.save".into(), None),
+            ])
+        );
+
+        let wrong_type =
+            from_value(&json!({ "keybindings": "mod+k", "general": { "language": "en" } }));
+        assert!(wrong_type.keybindings.is_empty());
+        assert_eq!(wrong_type.general.language, Language::En);
+    }
+
+    #[test]
+    fn a_keybindings_patch_replaces_the_map() {
+        let mut current = Settings::default();
+        current
+            .keybindings
+            .insert("chat.new".into(), Some("mod+alt+n".into()));
+        current.keybindings.insert("editor.save".into(), None);
+
+        let next = apply_patch(
+            &current,
+            &json!({ "keybindings": { "editor.save": "mod+alt+s" } }),
+        )
+        .unwrap();
+        assert_eq!(
+            next.keybindings,
+            keybindings::Keybindings::from([("editor.save".into(), Some("mod+alt+s".into()))])
+        );
+
+        let reset = apply_patch(&next, &json!({ "keybindings": {} })).unwrap();
+        assert!(reset.keybindings.is_empty());
+
+        let untouched = apply_patch(&next, &json!({ "editor": { "minimap": true } })).unwrap();
+        assert_eq!(untouched.keybindings, next.keybindings);
     }
 
     #[test]

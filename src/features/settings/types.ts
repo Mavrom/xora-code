@@ -89,6 +89,12 @@ export interface AppearanceSettings {
   uiScale: number;
 }
 
+/**
+ * Shortcut overrides: action id (see `features/keymap/actions.ts`) to a binding in canonical
+ * form, or `null` for unbound. Actions without an entry keep their default binding.
+ */
+export type Keybindings = Record<string, string | null>;
+
 export interface Settings {
   version: number;
   general: GeneralSettings;
@@ -96,12 +102,19 @@ export interface Settings {
   editor: EditorSettings;
   terminal: TerminalSettings;
   appearance: AppearanceSettings;
+  keybindings: Keybindings;
 }
 
-/** A partial update: any subset of fields in any section. */
+/** The sections a patch merges into field by field. */
+export type MergedSection = Exclude<keyof Settings, "version" | "keybindings">;
+
+/**
+ * A partial update: any subset of fields in any section. `keybindings`, when present,
+ * replaces the whole map (so an entry can be removed, and `{}` resets every shortcut).
+ */
 export type SettingsPatch = {
-  [K in Exclude<keyof Settings, "version">]?: Partial<Settings[K]>;
-};
+  [K in MergedSection]?: Partial<Settings[K]>;
+} & { keybindings?: Keybindings };
 
 export const SETTINGS_VERSION = 1;
 
@@ -156,4 +169,5 @@ export const DEFAULT_SETTINGS: Settings = {
     tint: 72,
     uiScale: 100,
   },
+  keybindings: {},
 };
