@@ -305,6 +305,7 @@ export function ChatPanel() {
               .catch((e: unknown) => say(errorMessage(e)))
           }
           onRevert={(path) => store().revertChange(session.sessionId, path)}
+          onRevertFailed={(e) => say(errorMessage(e))}
         />
       )}
       {session && session.queued.length > 0 && <QueuedPrompts session={session} />}

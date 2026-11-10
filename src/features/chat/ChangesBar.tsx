@@ -14,6 +14,8 @@ interface ChangesBarProps {
   changes: ReviewChange[];
   onAccept: () => void;
   onRevert: (path: string) => Promise<"reverted" | "conflict">;
+  /** A revert that failed outright (not a conflict), for the chat's notice line. */
+  onRevertFailed: (err: unknown) => void;
 }
 
 /**
@@ -21,7 +23,7 @@ interface ChangesBarProps {
  * its snapshots and clears the list; "Revert" restores the old content unless the file
  * changed again since (then the diff opens so the user can decide).
  */
-export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
+export function ChangesBar({ changes, onAccept, onRevert, onRevertFailed }: ChangesBarProps) {
   const id = useId();
   const [open, setOpen] = useState(false);
   const [conflicts, setConflicts] = useState<ReadonlySet<string>>(() => new Set());
@@ -35,6 +37,8 @@ export function ChangesBar({ changes, onAccept, onRevert }: ChangesBarProps) {
         setConflicts((prev) => new Set(prev).add(change.path));
         openChangeDiff(change);
       }
+    } catch (err) {
+      onRevertFailed(err);
     } finally {
       setBusy(null);
     }
