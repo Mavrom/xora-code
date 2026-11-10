@@ -3,7 +3,7 @@
 // chunks becomes a single render.
 
 import { create } from "zustand";
-import { applyControlValue, findControl, type Control } from "./controls";
+import { applyControlValue, findControl, type Control, type SessionControls } from "./controls";
 import {
   getAgentSettings,
   loadLastModel,
@@ -12,6 +12,7 @@ import {
   type AgentSettings,
   type ControlChange,
 } from "./defaults";
+import { branchItems, branchVia, inheritedControls, planBranch, type BranchVia } from "./branch";
 import { errorMessage, tauriAgentIpc, type AgentIpc } from "./ipc";
 import {
   AGENT_IDS,
@@ -23,6 +24,7 @@ import {
   withCoreChanges,
   withSource,
   type AgentData,
+  type ChatItem,
   type SessionView,
 } from "./reducer";
 import {
@@ -38,6 +40,7 @@ import type {
   AgentEvent,
   AgentId,
   AgentSessionInfo,
+  SessionSetup,
 } from "./types";
 
 export interface AgentStoreDeps {
@@ -78,6 +81,17 @@ export interface AgentStoreState extends AgentData {
   setActiveSession: (sessionId: string | null) => void;
   /** Opens a session, applies the settings defaults and makes it active. */
   newSession: (agentId: AgentId, cwd: string) => Promise<string>;
+  /**
+   * "Edit and retry": opens a new chat that continues from before the user message
+   * `userItemId` of `sessionId` (a fork where the agent can cut one, else a fresh session
+   * for a transcript-seeded prompt) and makes it active. The original is left as it is.
+   * Rejects only when no session could be opened at all.
+   */
+  branchSession: (
+    sessionId: string,
+    userItemId: string,
+    opts?: { title?: string | null },
+  ) => Promise<BranchResult>;
   /** Opens a past session (replay) or activates it when already open. */
   loadSession: (agentId: AgentId, sessionId: string, cwd: string) => Promise<void>;
   closeSession: (sessionId: string) => Promise<void>;
@@ -132,6 +146,16 @@ export function frameScheduler(flush: () => void) {
 
 const textBlocks = (input: string | AcpContentBlock[]): AcpContentBlock[] =>
   typeof input === "string" ? [{ type: "text", text: input }] : input;
+
+/** What `branchSession` opened, and what the composer should get. */
+export interface BranchResult {
+  sessionId: string;
+  via: BranchVia;
+  /** The edited message, to put back in the composer. */
+  blocks: AcpContentBlock[];
+  /** The conversation before it (for the summary fallback's transcript). */
+  kept: ChatItem[];
+}
 
 export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: AgentIpc }) {
   const deps: AgentStoreDeps = {
@@ -228,6 +252,26 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
         await applyChange(sessionId, change, false).catch((e) =>
           console.warn("agents: default", change.key, e),
         );
+      }
+    }
+
+    /** Gives a branched session the original's model, then its mode and effort. */
+    async function inheritControls(sessionId: string, from: SessionControls) {
+      const run = (change: ControlChange) =>
+        applyChange(sessionId, change, false).catch((e) =>
+          console.warn("agents: branch control", change.key, e),
+        );
+      const view = get().sessions[sessionId];
+      if (!view) return;
+      const model = inheritedControls(from, view.controls).find(
+        (c) => c.key === view.controls.model?.key,
+      );
+      if (model) await run(model);
+      // The model can change the effort options: plan the rest on fresh controls.
+      const fresh = get().sessions[sessionId];
+      if (!fresh) return;
+      for (const change of inheritedControls(from, fresh.controls, { skipModel: true })) {
+        await run(change);
       }
     }
 
@@ -340,6 +384,52 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
         });
         await applyDefaults(setup.sessionId);
         return setup.sessionId;
+      },
+
+      branchSession: async (sessionId, userItemId, opts = {}) => {
+        const source = get().sessions[sessionId];
+        const plan = source && planBranch(source.items, userItemId);
+        if (!source || !plan) throw new Error(`nothing to branch from: ${userItemId}`);
+        let via = branchVia(plan, source.capabilities);
+        let setup: SessionSetup | null = null;
+        if (via === "fork" && plan.forkAfter) {
+          try {
+            setup = await deps.ipc.sessionFork(
+              source.agentId,
+              sessionId,
+              source.cwd,
+              plan.forkAfter,
+            );
+          } catch (err) {
+            // Any refusal (unknown id, adapter without the extension, crash): fall back.
+            console.warn("agents: fork failed, starting from a summary", err);
+            via = "summary";
+          }
+        }
+        setup ??= await deps.ipc.sessionNew(source.agentId, source.cwd);
+        const now = deps.now();
+        const seed = branchItems(source, plan, via);
+        const view = createSessionView(setup, source.cwd, {
+          ...seed,
+          title: opts.title ?? null,
+          updatedAt: new Date(now).toISOString(),
+          // Kept tool cards still show their terminal output.
+          terminals: via === "fork" ? source.terminals : {},
+        });
+        const next = attachSession(data(), view, now);
+        set({
+          sessions: next.sessions,
+          orphans: next.orphans,
+          activeSessionId: setup.sessionId,
+          selectedAgent: source.agentId,
+        });
+        await inheritControls(setup.sessionId, source.controls);
+        return {
+          sessionId: setup.sessionId,
+          via,
+          blocks: plan.blocks,
+          kept: source.items.slice(0, plan.index),
+        };
       },
 
       loadSession: async (agentId, sessionId, cwd) => {

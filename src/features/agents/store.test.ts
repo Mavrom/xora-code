@@ -1,4 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
+import { FILES_NOT_REVERTED, STARTED_FROM_SUMMARY } from "./branch";
 import { DEFAULT_AGENT_SETTINGS, type AgentSettings } from "./defaults";
 import { FIXTURE_SETUPS, FIXTURE_STATUSES, createFixtureIpc, fixtureAgents } from "./fixtures";
 import type { AgentIpc } from "./ipc";
@@ -215,6 +216,140 @@ describe("turns", () => {
     expect(s().sessions[id]).toMatchObject({ turn: "idle", error: { message: "agent gone" } });
     const items = s().sessions[id].items;
     expect(items[items.length - 1]).toMatchObject({ kind: "notice", severity: "error" });
+  });
+});
+
+describe("branchSession", () => {
+  /** A Claude (or `agentId`) chat with two finished turns; the second edits a file. */
+  async function twoTurns(
+    opts: Parameters<typeof setup>[0] = {},
+    agentId: AgentId = "claude",
+    messageIds = true,
+  ) {
+    const env = setup({ ...opts, ipc: { prompt: async () => {}, ...opts.ipc } });
+    const { s } = env;
+    const id = await s().newSession(agentId, "C:\\p");
+    const reply = (text: string, messageId: string): AgentEvent => ({
+      type: "sessionUpdate",
+      sessionId: id,
+      update: {
+        sessionUpdate: "agent_message_chunk",
+        content: { type: "text", text },
+        ...(messageIds ? { messageId } : {}),
+      },
+    });
+    await s().prompt(id, "first");
+    s().ingest(reply("one", "msg_fixture_1"));
+    s().ingest(ended(id));
+    s().flush();
+    await s().prompt(id, [
+      { type: "text", text: "second" },
+      { type: "resource_link", uri: "file:///C:/p/a.ts", name: "a.ts" },
+    ]);
+    s().ingest({
+      type: "sessionUpdate",
+      sessionId: id,
+      update: {
+        sessionUpdate: "tool_call",
+        toolCallId: "t-edit",
+        title: "Edit a.ts",
+        kind: "edit",
+        status: "completed",
+      },
+    });
+    s().ingest(reply("two", "msg_fixture_2"));
+    s().ingest(ended(id));
+    s().flush();
+    const second = s().sessions[id].items.filter((i) => i.kind === "user")[1].id;
+    const first = s().sessions[id].items[0].id;
+    return { ...env, id, first, second };
+  }
+
+  it("forks after the last agent message of the turn before and keeps the original", async () => {
+    const { s, ipc, id, second } = await twoTurns();
+    await s().setControl(id, "mode", "plan");
+    const before = s().sessions[id];
+    const result = await s().branchSession(id, second, { title: "Dal: first" });
+
+    expect(ipc.sessionFork).toHaveBeenCalledWith("claude", id, "C:\\p", "msg_fixture_1");
+    expect(ipc.sessionNew).toHaveBeenCalledTimes(1); // only the original
+    expect(result.via).toBe("fork");
+    expect(result.blocks[0]).toEqual({ type: "text", text: "second" });
+    expect(s().activeSessionId).toBe(result.sessionId);
+    const v = s().sessions[result.sessionId];
+    expect(v.title).toBe("Dal: first");
+    expect(v.items.map((i) => i.kind)).toEqual(["user", "agent", "notice"]);
+    expect(v.items[2]).toMatchObject({ severity: "info", title: FILES_NOT_REVERTED() });
+    // The original's mode carries over; the original itself is untouched.
+    expect(v.controls.mode?.current).toBe("plan");
+    expect(s().sessions[id]).toBe(before);
+  });
+
+  it("falls back to a fresh session with a summary when the fork is refused", async () => {
+    const { s, ipc, id, second } = await twoTurns({
+      ipc: {
+        sessionFork: async () => {
+          throw "Fork point message msg_fixture_1 was not found (-32602)";
+        },
+      },
+    });
+    const result = await s().branchSession(id, second);
+    expect(ipc.sessionFork).toHaveBeenCalledTimes(1);
+    expect(ipc.sessionNew).toHaveBeenCalledTimes(2);
+    expect(result.via).toBe("summary");
+    expect(result.kept.map((i) => i.kind)).toEqual(["user", "agent"]);
+    const v = s().sessions[result.sessionId];
+    expect(v.items.map((i) => (i.kind === "notice" ? i.title : i.kind))).toEqual([
+      STARTED_FROM_SUMMARY(),
+      FILES_NOT_REVERTED(),
+    ]);
+  });
+
+  it("uses the summary without asking when the agent cannot fork", async () => {
+    const { s, ipc, id, second } = await twoTurns({}, "gemini");
+    const result = await s().branchSession(id, second);
+    expect(ipc.sessionFork).not.toHaveBeenCalled();
+    expect(result.via).toBe("summary");
+  });
+
+  it("uses the summary when the turn before has no message ids", async () => {
+    const { s, ipc, id, second } = await twoTurns({}, "claude", false);
+    const result = await s().branchSession(id, second);
+    expect(ipc.sessionFork).not.toHaveBeenCalled();
+    expect(result.via).toBe("summary");
+  });
+
+  it("opens a plain new chat for the first message", async () => {
+    const { s, ipc, id, first } = await twoTurns();
+    const result = await s().branchSession(id, first);
+    expect(ipc.sessionFork).not.toHaveBeenCalled();
+    expect(result).toMatchObject({ via: "new", kept: [] });
+    // Later turns edited a file: the new chat says they stay.
+    expect(s().sessions[result.sessionId].items).toEqual([
+      { kind: "notice", id: "notice-1", severity: "info", title: FILES_NOT_REVERTED() },
+    ]);
+  });
+
+  it("rejects, leaving everything as it was, when no session can be opened at all", async () => {
+    const base = createFixtureIpc({ stepMs: 0 });
+    let opened = 0;
+    const { s, id, second } = await twoTurns({
+      ipc: {
+        sessionFork: async () => {
+          throw "boom";
+        },
+        // The original opens; the fallback cannot (signed out meanwhile).
+        sessionNew: async (agentId, cwd) => {
+          if (opened++ > 0) throw "auth_required: sign in";
+          return base.sessionNew(agentId, cwd);
+        },
+      },
+    });
+    const sessions = s().sessions;
+    await expect(s().branchSession(id, second)).rejects.toBe("auth_required: sign in");
+    expect(s().sessions).toBe(sessions);
+    expect(s().activeSessionId).toBe(id);
+    await expect(s().branchSession(id, "agent-2")).rejects.toThrow();
   });
 });
 

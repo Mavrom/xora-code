@@ -23,6 +23,16 @@ export interface AgentIpc {
   sessionNew: (agentId: AgentId, cwd: string) => Promise<SessionSetup>;
   sessionLoad: (agentId: AgentId, sessionId: string, cwd: string) => Promise<SessionSetup>;
   sessionResume: (agentId: AgentId, sessionId: string, cwd: string) => Promise<SessionSetup>;
+  /**
+   * A new session with `sessionId`'s conversation up to and including the agent message
+   * `messageId` ("Edit and retry"). Rejects when the adapter cannot cut a fork there.
+   */
+  sessionFork: (
+    agentId: AgentId,
+    sessionId: string,
+    cwd: string,
+    messageId: string,
+  ) => Promise<SessionSetup>;
   sessionClose: (sessionId: string) => Promise<void>;
   sessionsList: (agentId: AgentId, cwd: string) => Promise<AgentSessionInfo[]>;
   sessionArchive: (
@@ -72,6 +82,8 @@ export const tauriAgentIpc: AgentIpc = {
     invoke<SessionSetup>("agent_session_load", { agentId, sessionId, cwd }),
   sessionResume: (agentId, sessionId, cwd) =>
     invoke<SessionSetup>("agent_session_resume", { agentId, sessionId, cwd }),
+  sessionFork: (agentId, sessionId, cwd, messageId) =>
+    invoke<SessionSetup>("agent_session_fork", { agentId, sessionId, cwd, messageId }),
   sessionClose: (sessionId) => invoke<void>("agent_session_close", { sessionId }),
   sessionsList: (agentId, cwd) =>
     invoke<AgentSessionInfo[]>("agent_sessions_list", { agentId, cwd }),

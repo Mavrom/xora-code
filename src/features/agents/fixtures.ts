@@ -89,7 +89,7 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
     agentCapabilities: {
       loadSession: true,
       promptCapabilities: { image: true, embeddedContext: true },
-      sessionCapabilities: { list: {}, resume: {}, close: {}, delete: {} },
+      sessionCapabilities: { list: {}, resume: {}, close: {}, delete: {}, fork: {} },
     },
   },
   codex: {
@@ -168,7 +168,7 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
     agentCapabilities: {
       loadSession: true,
       promptCapabilities: { image: true, embeddedContext: true },
-      sessionCapabilities: { list: {}, resume: {}, close: {}, delete: {} },
+      sessionCapabilities: { list: {}, resume: {}, close: {}, delete: {}, fork: {} },
     },
   },
   gemini: {
@@ -361,10 +361,14 @@ export function chunkText(text: string, size = 12): string[] {
   return out;
 }
 
-const say = (text: string): AgentEvent[] =>
-  chunkText(text).map((t) =>
-    up({ sessionUpdate: "agent_message_chunk", content: { type: "text", text: t } }),
+let sayCount = 0;
+/** One agent message, streamed; its chunks carry one `messageId` like the adapters send. */
+const say = (text: string): AgentEvent[] => {
+  const messageId = `msg_fixture_${++sayCount}`;
+  return chunkText(text).map((t) =>
+    up({ sessionUpdate: "agent_message_chunk", messageId, content: { type: "text", text: t } }),
   );
+};
 const think = (text: string): AgentEvent[] =>
   chunkText(text).map((t) =>
     up({ sessionUpdate: "agent_thought_chunk", content: { type: "text", text: t } }),
@@ -645,12 +649,40 @@ export const FIXTURE_SCENARIOS: Record<FixtureScenarioName, FixtureScenario> = {
   },
 };
 
+/** The second message `?fixture=…&branch=1` sends before it edits and retries it. */
+export const FIXTURE_BRANCH_PROMPT = "Saatleri 24 saatlik biçimde göster";
+
 export function isFixtureScenario(name: string | null | undefined): name is FixtureScenarioName {
   return !!name && name in FIXTURE_SCENARIOS;
 }
 
 const withSession = (ev: AgentEvent, sessionId: string): AgentEvent =>
   "sessionId" in ev ? { ...ev, sessionId } : ev;
+
+const ID_KEYS = ["toolCallId", "terminalId", "requestId", "messageId"] as const;
+
+/** `ev` with its ids suffixed for the `round`-th play of a scenario (the first keeps them). */
+function renumber(ev: AgentEvent, round: number): AgentEvent {
+  if (round === 1) return ev;
+  const suffix = (o: Record<string, unknown>) => {
+    const out = { ...o };
+    for (const key of ID_KEYS) {
+      if (typeof out[key] === "string") out[key] = `${out[key] as string}-${round}`;
+    }
+    if (Array.isArray(out.content)) {
+      out.content = (out.content as Record<string, unknown>[]).map((c) =>
+        c && typeof c === "object" && typeof c.terminalId === "string" ? suffix(c) : c,
+      );
+    }
+    return out;
+  };
+  const next = suffix(ev as unknown as Record<string, unknown>);
+  if (ev.type === "sessionUpdate") next.update = suffix(ev.update as Record<string, unknown>);
+  if (ev.type === "permissionRequested") {
+    next.toolCall = suffix(ev.toolCall as unknown as Record<string, unknown>);
+  }
+  return next as unknown as AgentEvent;
+}
 
 /**
  * A ready-made session view for a scenario (no store needed). By default it
@@ -706,14 +738,20 @@ export function createFixtureIpc(opts: FixtureIpcOptions = {}): AgentIpc {
   const sleep = (ms: number) =>
     ms > 0 ? new Promise((r) => setTimeout(r, ms)) : Promise.resolve();
 
+  const plays = new Map<string, number>();
+
   async function play(sessionId: string, scenario: FixtureScenario) {
     cancelled.delete(sessionId);
+    // A scenario played again in the same session gets fresh tool, terminal, request and
+    // message ids, as a real agent's next turn would.
+    const round = (plays.get(sessionId) ?? 0) + 1;
+    plays.set(sessionId, round);
     for (let i = 0; i < scenario.events.length; i++) {
       if (cancelled.has(sessionId)) {
         emit({ type: "turnEnded", sessionId, stopReason: "cancelled" });
         return;
       }
-      const ev = withSession(scenario.events[i], sessionId);
+      const ev = renumber(withSession(scenario.events[i], sessionId), round);
       emit(ev);
       if (ev.type === "permissionRequested") {
         const optionId = await new Promise<string | null>((resolve) =>
@@ -777,6 +815,17 @@ export function createFixtureIpc(opts: FixtureIpcOptions = {}): AgentIpc {
       return setupFor(agentId, sessionId);
     },
     sessionResume: async (agentId, sessionId) => setupFor(agentId, sessionId),
+    // Like the adapters: only agents that advertise `session/fork` take one, and a cut at
+    // an id the conversation never had is refused.
+    sessionFork: async (agentId, sessionId, _cwd, messageId) => {
+      if (!FIXTURE_SETUPS[agentId].agentCapabilities.sessionCapabilities?.fork) {
+        throw `method not found: session/fork (-32601)`;
+      }
+      if (!messageId.startsWith("msg_fixture_")) {
+        throw `Fork point message ${messageId} was not found in session ${sessionId} (-32602)`;
+      }
+      return setupFor(agentId, `fixture-${agentId}-fork-${++counter}`);
+    },
     sessionClose: async () => {},
     sessionsList: async (agentId) => FIXTURE_HISTORY.filter((h) => h.agentId === agentId),
     sessionArchive: async () => {},

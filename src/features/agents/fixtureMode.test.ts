@@ -12,12 +12,15 @@ describe("fixtureParams", () => {
       fixture: "permission",
       agent: "claude",
       status: null,
+      branch: false,
     });
     expect(fixtureParams("?fixture=welcome&agent=gemini&status=crashed")).toEqual({
       fixture: "welcome",
       agent: "gemini",
       status: "crashed",
+      branch: false,
     });
     expect(fixtureParams("?fixture=&agent=bogus")?.agent).toBe("claude");
+    expect(fixtureParams("?fixture=toolRun&branch=1")?.branch).toBe(true);
   });
 });
