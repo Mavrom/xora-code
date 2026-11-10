@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { basename } from "@/shared/lib/path";
+import { diffTabKey, isDiffKey } from "./tabKind";
 
 export interface Tab {
   path: string;
@@ -11,7 +12,25 @@ export interface Tab {
    * reloaded. Cleared by saving (the user's version wins) or by a reload.
    */
   diskChanged?: boolean;
+  /**
+   * Set on a read-only diff tab (key from {@link diffTabKey}). Its `content` and
+   * `savedContent` stay empty, so it is never dirty and nothing ever saves it.
+   */
+  diff?: DiffSource;
 }
+
+/** The two sides a diff tab compares. */
+export interface DiffSource {
+  /** Left side; `null` when the file is new there. */
+  oldText: string | null;
+  /** Right side. */
+  newText: string;
+}
+
+export type DiffTab = Tab & { diff: DiffSource };
+
+/** Whether the tab is a read-only diff rather than a file. */
+export const isDiffTab = (tab: Tab): tab is DiffTab => isDiffKey(tab.path) && !!tab.diff;
 
 /** A failed save, shown in the status bar until it times out or the next save. */
 export interface SaveError {
@@ -41,6 +60,11 @@ interface EditorState {
   reveal: PendingReveal | null;
   setReveal: (reveal: PendingReveal | null) => void;
   openFile: (path: string, content: string) => void;
+  /**
+   * Opens (or refreshes and focuses) the read-only diff tab of `file`; it sits beside the
+   * file's own tab. The content-changing actions below ignore diff tabs.
+   */
+  openDiff: (file: string, oldText: string | null, newText: string) => void;
   updateContent: (path: string, content: string) => void;
   markSaved: (path: string, content: string) => void;
   closeTab: (path: string) => void;
@@ -77,13 +101,26 @@ export const useEditorStore = create<EditorState>((set) => ({
       return { tabs: [...state.tabs, tab], activePath: path };
     }),
 
+  openDiff: (file, oldText, newText) =>
+    set((state) => {
+      const path = diffTabKey(file);
+      const diff: DiffSource = { oldText, newText };
+      if (state.tabs.some((t) => t.path === path)) {
+        return { tabs: patchTab(state.tabs, path, { diff }), activePath: path };
+      }
+      const tab: DiffTab = { path, name: basename(file), content: "", savedContent: "", diff };
+      return { tabs: [...state.tabs, tab], activePath: path };
+    }),
+
   updateContent: (path, content) =>
-    set((state) => ({ tabs: patchTab(state.tabs, path, { content }) })),
+    set((state) => (isDiffKey(path) ? {} : { tabs: patchTab(state.tabs, path, { content }) })),
 
   markSaved: (path, content) =>
-    set((state) => ({
-      tabs: patchTab(state.tabs, path, { savedContent: content, diskChanged: undefined }),
-    })),
+    set((state) =>
+      isDiffKey(path)
+        ? {}
+        : { tabs: patchTab(state.tabs, path, { savedContent: content, diskChanged: undefined }) },
+    ),
 
   closeTab: (path) =>
     set((state) => {
@@ -103,7 +140,7 @@ export const useEditorStore = create<EditorState>((set) => ({
   applyDiskContent: (path, content) =>
     set((state) => {
       const tab = state.tabs.find((t) => t.path === path);
-      if (!tab) return {};
+      if (!tab || isDiffTab(tab)) return {};
       if (content === tab.savedContent) {
         // Disk matches what we last saved or loaded; at most clear a stale "missing" flag.
         return tab.diskChanged
@@ -123,14 +160,22 @@ export const useEditorStore = create<EditorState>((set) => ({
     }),
 
   reloadContent: (path, content) =>
-    set((state) => ({
-      tabs: patchTab(state.tabs, path, { content, savedContent: content, diskChanged: undefined }),
-    })),
+    set((state) =>
+      isDiffKey(path)
+        ? {}
+        : {
+            tabs: patchTab(state.tabs, path, {
+              content,
+              savedContent: content,
+              diskChanged: undefined,
+            }),
+          },
+    ),
 
   markDiskChanged: (path) =>
     set((state) => {
       const tab = state.tabs.find((t) => t.path === path);
-      if (!tab || tab.diskChanged) return {};
+      if (!tab || tab.diskChanged || isDiffTab(tab)) return {};
       return { tabs: patchTab(state.tabs, path, { diskChanged: true }) };
     }),
 }));

@@ -1,6 +1,7 @@
 import { ipc } from "@/shared/lib/ipc";
 import { parseFsError } from "@/features/files/fsErrors";
 import { useEditorStore } from "@/features/editor/store";
+import { fileKey, fileTabPaths } from "@/features/editor/tabKind";
 import { makeSession, parseSession } from "./session";
 import { useWorkspaceStore } from "./store";
 
@@ -84,11 +85,8 @@ export function persistWorkspaceSession() {
       const root = useWorkspaceStore.getState().root;
       if (!root) return;
       const { tabs, activePath } = useEditorStore.getState();
-      const session = makeSession(
-        root,
-        tabs.map((t) => t.path),
-        activePath,
-      );
+      // Diff tabs are views of a moment; only file tabs come back.
+      const session = makeSession(root, fileTabPaths(tabs), fileKey(activePath));
       try {
         localStorage.setItem(SESSION_KEY, JSON.stringify(session));
       } catch {

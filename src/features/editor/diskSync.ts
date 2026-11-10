@@ -4,6 +4,7 @@ import { parseFsError } from "@/features/files/fsErrors";
 import { onFsChange, type FsChange } from "@/features/workspace/fsWatch";
 import { pathKey } from "@/features/workspace/recents";
 import { useEditorStore } from "./store";
+import { fileTabPaths } from "./tabKind";
 
 /**
  * Open tabs a file system change may concern: a changed path equal to the tab's file, or a
@@ -37,7 +38,7 @@ export function useDiskSync() {
   useEffect(
     () =>
       onFsChange((change) => {
-        const paths = useEditorStore.getState().tabs.map((t) => t.path);
+        const paths = fileTabPaths(useEditorStore.getState().tabs);
         for (const path of tabsAffected(paths, change)) void syncTabFromDisk(path);
       }),
     [],

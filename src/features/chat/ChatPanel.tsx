@@ -9,6 +9,7 @@ import { ipc } from "@/shared/lib/ipc";
 import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import { useEditorStore } from "@/features/editor/store";
+import { fileKey } from "@/features/editor/tabKind";
 import { basename } from "@/shared/lib/path";
 import { useHostname } from "@/shared/lib/useHostname";
 import { Kbd } from "@/shared/ui/Kbd";
@@ -92,7 +93,7 @@ export function ChatPanel() {
   const turn = session?.turn ?? "idle";
   const running = turn !== "idle";
   const hostname = useHostname();
-  const activeFile = useEditorStore((s) => s.activePath);
+  const activeFile = useEditorStore((s) => fileKey(s.activePath));
   const branch = useGitBranch(cwd, session?.lastStopReason, FIXTURE ? "main" : null);
 
   useWarmSession(session === null, agentId, cwd, agent.status);

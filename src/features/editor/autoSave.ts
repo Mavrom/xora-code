@@ -4,16 +4,16 @@
 // automatically: that would silently overwrite someone else's change.
 import { useSettingsStore } from "@/features/settings/store";
 import { saveTab } from "./saveActiveTab";
-import { isDirty, useEditorStore, type Tab } from "./store";
+import { isDiffTab, isDirty, useEditorStore, type Tab } from "./store";
 
 /** Quiet time after the last keystroke before a "delay" save. */
 export const AUTO_SAVE_DELAY_MS = 1000;
 
 const mode = () => useSettingsStore.getState().settings.editor.autoSave;
 
-/** Tabs an automatic save may write. */
+/** Tabs an automatic save may write (never a diff tab). */
 export const autoSavable = (tabs: readonly Tab[]) =>
-  tabs.filter((t) => isDirty(t) && !t.diskChanged);
+  tabs.filter((t) => !isDiffTab(t) && isDirty(t) && !t.diskChanged);
 
 /** Saves every dirty tab that is safe to save (focus change, window blur). */
 export function saveAllAutomatically() {

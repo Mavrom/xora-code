@@ -41,4 +41,13 @@ describe("saveActiveTab", () => {
     await expect(saveActiveTab()).resolves.toEqual({ ok: false, error: "permission denied" });
     expect(isDirty(s().tabs[0])).toBe(true);
   });
+
+  it("never writes a diff tab", async () => {
+    s().openDiff("/a.ts", "old", "new");
+    useEditorStore.setState({
+      tabs: s().tabs.map((t) => ({ ...t, content: "forced" })),
+    });
+    await expect(saveActiveTab()).resolves.toEqual({ ok: true });
+    expect(writeFile).not.toHaveBeenCalled();
+  });
 });

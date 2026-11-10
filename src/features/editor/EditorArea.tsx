@@ -6,6 +6,7 @@ import { EDITOR_EMPTY_ID } from "./editorKeys";
 import { EditorStatusBar } from "./EditorStatusBar";
 import { EditorTabs } from "./EditorTabs";
 import { useEditorStore } from "./store";
+import { tabFile } from "./tabKind";
 import { t } from "@/shared/i18n";
 
 // Monaco is several MB: it is only fetched once the first file is opened.
@@ -56,7 +57,7 @@ function EditorShell() {
     <div className="flex h-full flex-col">
       <EditorTabs />
       <div className="min-h-0 flex-1" />
-      <EditorStatusBar path={activePath} />
+      <EditorStatusBar path={activePath && tabFile(activePath)} />
     </div>
   );
 }

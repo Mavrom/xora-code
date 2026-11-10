@@ -1,5 +1,6 @@
 import { beforeEach, describe, expect, it } from "vitest";
-import { isDirty, useEditorStore } from "./store";
+import { isDiffTab, isDirty, useEditorStore } from "./store";
+import { diffTabKey } from "./tabKind";
 
 const s = () => useEditorStore.getState();
 
@@ -111,5 +112,49 @@ describe("disk changes", () => {
     expect(s().saveError).not.toBeNull();
     s().closeTab("/a.ts");
     expect(s().saveError).toBeNull();
+  });
+});
+
+describe("diff tabs", () => {
+  const key = diffTabKey("/a.ts");
+
+  it("opens beside the file's own tab, read-only and clean", () => {
+    s().openFile("/a.ts", "x");
+    s().openDiff("/a.ts", "old", "new");
+    expect(s().tabs.map((t) => t.path)).toEqual(["/a.ts", key]);
+    expect(s().activePath).toBe(key);
+    const tab = s().tabs[1];
+    expect(isDiffTab(tab)).toBe(true);
+    expect(isDiffTab(s().tabs[0])).toBe(false);
+    expect(tab).toMatchObject({ name: "a.ts", diff: { oldText: "old", newText: "new" } });
+    expect(isDirty(tab)).toBe(false);
+  });
+
+  it("opening it again updates the one tab and focuses it", () => {
+    s().openDiff("/a.ts", null, "v1");
+    s().openFile("/b.ts", "");
+    s().openDiff("/a.ts", "v1", "v2");
+    expect(s().tabs.filter((t) => t.path === key)).toHaveLength(1);
+    expect(s().tabs[0].diff).toEqual({ oldText: "v1", newText: "v2" });
+    expect(s().activePath).toBe(key);
+  });
+
+  it("ignores content, save and disk updates", () => {
+    s().openDiff("/a.ts", "old", "new");
+    const before = s().tabs;
+    s().updateContent(key, "typed");
+    s().markSaved(key, "typed");
+    s().applyDiskContent(key, "disk");
+    s().reloadContent(key, "disk");
+    s().markDiskChanged(key);
+    expect(s().tabs).toBe(before);
+  });
+
+  it("closes like any tab and leaves the file tab alone", () => {
+    s().openFile("/a.ts", "x");
+    s().openDiff("/a.ts", "old", "new");
+    s().closeTab(key);
+    expect(s().tabs.map((t) => t.path)).toEqual(["/a.ts"]);
+    expect(s().activePath).toBe("/a.ts");
   });
 });
