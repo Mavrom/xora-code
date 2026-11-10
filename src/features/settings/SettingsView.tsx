@@ -99,7 +99,7 @@ export default function SettingsView() {
     };
   }, []);
 
-  // Switching the sidebar (Ctrl+Shift+E/N) means "take me back to work".
+  // Switching the sidebar (Ctrl+Shift+E/H/N/G) means "take me back to work".
   useEffect(() => {
     const onKeyDown = (e: globalThis.KeyboardEvent) => {
       if (isSidebarShortcut(e)) close();

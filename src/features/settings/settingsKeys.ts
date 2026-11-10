@@ -8,11 +8,15 @@ export function isSettingsShortcut(e: KeyLike) {
   return (e.ctrlKey || e.metaKey) && !e.altKey && !e.shiftKey && e.key === ",";
 }
 
-/** Sidebar switches (Ctrl+Shift+E / N / G) leave the settings view to show that sidebar. */
+/** Sidebar switches (Ctrl+Shift+E / H / N / G) leave the settings view to show that sidebar. */
 export function isSidebarShortcut(
   e: Pick<KeyboardEvent, "code" | "ctrlKey" | "shiftKey" | "altKey" | "metaKey">,
 ) {
   return (
-    e.ctrlKey && e.shiftKey && !e.altKey && !e.metaKey && ["KeyE", "KeyN", "KeyG"].includes(e.code)
+    e.ctrlKey &&
+    e.shiftKey &&
+    !e.altKey &&
+    !e.metaKey &&
+    ["KeyE", "KeyH", "KeyN", "KeyG"].includes(e.code)
   );
 }
