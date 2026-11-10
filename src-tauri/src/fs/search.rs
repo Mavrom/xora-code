@@ -26,7 +26,9 @@ pub const MAX_TOTAL_MATCHES: usize = 2000;
 pub const MAX_FILE_MATCHES: usize = 250;
 /// Characters of a line shown in a result (an ellipsis marks each cut).
 pub const MAX_TEXT_CHARS: usize = 200;
-/// Characters kept before the first match when a long line is cut.
+/// A match further into the line than this many characters gets the start of the line cut.
+const MAX_LEAD_CHARS: usize = 60;
+/// Characters kept before the first match when the start of a line is cut.
 const CONTEXT_CHARS: usize = 40;
 /// How often (in lines) a worker checks for cancellation inside one file.
 const CANCEL_EVERY_LINES: usize = 512;
@@ -197,17 +199,18 @@ fn chars_back(s: &str, floor: usize, to: usize, n: usize) -> usize {
 }
 
 /// The line as shown in the results and its matches as UTF-16 `[start, end)` offsets in it.
-/// Indentation is dropped; a line over [`MAX_TEXT_CHARS`] is cut to a window that starts a
-/// little before the first match, with `…` marking each cut. `matches` are sorted byte ranges.
+/// Indentation is dropped. When the first match starts more than [`MAX_LEAD_CHARS`] in, the
+/// text starts [`CONTEXT_CHARS`] before it instead, so the match is on screen in a one-line
+/// row; the text is at most [`MAX_TEXT_CHARS`] long, with `…` marking each cut.
+/// `matches` are sorted byte ranges.
 pub fn snippet(line: &str, matches: &[(usize, usize)]) -> (String, Vec<[u32; 2]>) {
     let first = matches.first().map_or(0, |m| m.0);
     let indent = line.len() - line.trim_start().len();
     let mut start = indent.min(first);
-    let mut end = chars_ahead(line, start, MAX_TEXT_CHARS);
-    if end < line.len() {
+    if line[start..first].chars().nth(MAX_LEAD_CHARS).is_some() {
         start = chars_back(line, start, first, CONTEXT_CHARS);
-        end = chars_ahead(line, start, MAX_TEXT_CHARS);
     }
+    let end = chars_ahead(line, start, MAX_TEXT_CHARS);
     let cut_before = start > indent;
     let cut_after = end < line.len();
 
@@ -525,6 +528,19 @@ mod tests {
         assert_eq!(text.chars().count(), MAX_TEXT_CHARS + 2);
         // The ellipsis plus the 40 characters of context come first.
         assert_eq!(ranges, [[41, 47]]);
+    }
+
+    #[test]
+    fn snippet_keeps_a_late_match_near_the_start_of_the_text() {
+        let line = format!("  {}foo", "x".repeat(100));
+        let m = matcher(opts("foo")).find(&line, 10);
+        let (text, ranges) = snippet(&line, &m);
+        assert_eq!(text, format!("…{}foo", "x".repeat(40)));
+        assert_eq!(ranges, [[41, 44]]);
+        // Up to 60 characters in, the line is shown from its start.
+        let line = format!("{}foo", "x".repeat(60));
+        let m = matcher(opts("foo")).find(&line, 10);
+        assert_eq!(snippet(&line, &m).0, line);
     }
 
     #[test]
