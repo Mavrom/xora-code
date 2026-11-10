@@ -452,8 +452,8 @@ fn deep_merge(target: &mut Value, patch: &Map<String, Value>) {
 }
 
 /// Reads the settings file. A missing file means defaults. A file that is not
-/// valid JSON is moved aside to `settings.json.corrupt` (so the next save does
-/// not destroy it) and defaults are returned.
+/// valid JSON is moved aside (see [`move_aside`], so the next save does not
+/// destroy it) and defaults are returned.
 pub fn load(path: &Path) -> Result<Settings, SettingsError> {
     let bytes = match std::fs::read(path) {
         Ok(bytes) => bytes,
@@ -463,10 +463,35 @@ pub fn load(path: &Path) -> Result<Settings, SettingsError> {
     match serde_json::from_slice::<Value>(&bytes) {
         Ok(value) => Ok(from_value(&value)),
         Err(_) => {
-            let _ = std::fs::rename(path, sibling(path, ".corrupt"));
+            move_aside(path);
             Ok(Settings::default())
         }
     }
+}
+
+/// How many corrupt settings files are kept.
+pub const CORRUPT_BACKUPS: usize = 5;
+
+/// `settings.json.corrupt` for the newest backup, then `.corrupt.1`, `.corrupt.2`, …
+fn corrupt_backup(path: &Path, age: usize) -> PathBuf {
+    if age == 0 {
+        sibling(path, ".corrupt")
+    } else {
+        sibling(path, &format!(".corrupt.{age}"))
+    }
+}
+
+/// Moves a corrupt settings file to `settings.json.corrupt`, shifting earlier
+/// backups one place older, so a second corruption does not overwrite the
+/// first. Past [`CORRUPT_BACKUPS`] the oldest is dropped. Best effort.
+fn move_aside(path: &Path) {
+    for age in (1..CORRUPT_BACKUPS).rev() {
+        let older = corrupt_backup(path, age - 1);
+        if older.exists() {
+            let _ = std::fs::rename(&older, corrupt_backup(path, age));
+        }
+    }
+    let _ = std::fs::rename(path, corrupt_backup(path, 0));
 }
 
 /// Atomically replaces the settings file (synced temp file + rename), the same
@@ -670,5 +695,30 @@ mod tests {
         assert!(!file.exists());
         let aside = dir.path().join("settings.json.corrupt");
         assert_eq!(std::fs::read_to_string(aside).unwrap(), "{ not json");
+    }
+
+    #[test]
+    fn repeated_corruption_keeps_earlier_backups_up_to_the_cap() {
+        let dir = tempfile::tempdir().unwrap();
+        let file = dir.path().join("settings.json");
+        let rounds = CORRUPT_BACKUPS + 2;
+        for round in 0..rounds {
+            std::fs::write(&file, format!("broken {round}")).unwrap();
+            assert_eq!(load(&file).unwrap(), Settings::default());
+        }
+
+        let read = |name: &str| std::fs::read_to_string(dir.path().join(name)).unwrap();
+        assert_eq!(
+            read("settings.json.corrupt"),
+            format!("broken {}", rounds - 1)
+        );
+        for age in 1..CORRUPT_BACKUPS {
+            assert_eq!(
+                read(&format!("settings.json.corrupt.{age}")),
+                format!("broken {}", rounds - 1 - age)
+            );
+        }
+        let files = std::fs::read_dir(dir.path()).unwrap().count();
+        assert_eq!(files, CORRUPT_BACKUPS, "the folder cannot fill up");
     }
 }

@@ -74,7 +74,7 @@ The Inbox. `mod.rs` has `Note`, `load` (missing file is an empty list, a corrupt
 
 Every persisted preference (`general`, `agent`, `editor`, `terminal`, `appearance`) in `settings.json` in the app data folder.
 
-- `mod.rs`: the `Settings` struct with defaults; `from_value` keeps each valid field and falls back to the default per field, so a typo never resets the rest; `apply_patch` deep-merges a JSON patch and sanitizes it; `load` moves invalid JSON aside to `settings.json.corrupt` and returns defaults; `save` is atomic like the notes.
+- `mod.rs`: the `Settings` struct with defaults; `from_value` keeps each valid field and falls back to the default per field, so a typo never resets the rest; `apply_patch` deep-merges a JSON patch and sanitizes it; `load` moves invalid JSON aside to `settings.json.corrupt` (earlier ones shift to `.corrupt.1` … `.corrupt.4`, `CORRUPT_BACKUPS` in all) and returns defaults; `save` is atomic like the notes.
 - `wallpaper.rs`: copies a picked image into `<app data>/wallpapers/` (`WALLPAPER_DIR`, 40 MB cap, image extensions only) and removes old ones.
 - `commands.rs`: `settings_get`, `settings_update` (returns the sanitized result), `settings_wallpaper_import`, `settings_wallpaper_remove`. `SettingsLock` serializes read-modify-write. `commands::read` lets other modules read settings; the agent core uses it at spawn time.
 - **Errors:** `SettingsError` messages, no codes. **Events:** none; the UI owns the live copy.
