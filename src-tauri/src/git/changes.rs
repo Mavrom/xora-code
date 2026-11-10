@@ -147,9 +147,13 @@ fn cap(text: String, max: usize) -> Diff {
 }
 
 /// Unified diff of one file: index against HEAD when `staged`, else working tree against
-/// the index. An untracked file shows as entirely added.
-pub fn diff(dir: &Path, path: &str, staged: bool) -> Result<Diff> {
+/// the index. An untracked file shows as entirely added; a staged rename (its old path in
+/// `orig`) shows as a rename with its real line changes.
+pub fn diff(dir: &Path, path: &str, orig: Option<&str>, staged: bool) -> Result<Diff> {
     checked(path)?;
+    if let Some(orig) = orig {
+        checked(orig)?;
+    }
     let root = PathBuf::from(toplevel(dir)?);
     let base = ["diff", "--no-color", "--no-ext-diff"];
     let untracked = !staged && git(&root, &["ls-files", "--", path])?.is_empty();
@@ -161,6 +165,11 @@ pub fn diff(dir: &Path, path: &str, staged: bool) -> Result<Diff> {
             return Err(failure(&args, &out));
         }
         String::from_utf8_lossy(&out.stdout).trim_end().to_owned()
+    } else if let (true, Some(orig)) = (staged, orig) {
+        git(
+            &root,
+            &[&base[..], &["--cached", "-M", "--", orig, path]].concat(),
+        )?
     } else if staged {
         git(&root, &[&base[..], &["--cached", "--", path]].concat())?
     } else {
@@ -418,15 +427,41 @@ mod tests {
         fs::write(p.join("a.txt"), "one\ntwo\n").unwrap();
         fs::write(p.join("new file.txt"), "hello\n").unwrap();
 
-        let unstaged = diff(p, "a.txt", false).unwrap();
+        let unstaged = diff(p, "a.txt", None, false).unwrap();
         assert!(unstaged.text.contains("+two") && !unstaged.truncated);
-        assert!(diff(p, "a.txt", true).unwrap().text.is_empty());
+        assert!(diff(p, "a.txt", None, true).unwrap().text.is_empty());
 
-        let untracked = diff(p, "new file.txt", false).unwrap();
+        let untracked = diff(p, "new file.txt", None, false).unwrap();
         assert!(untracked.text.contains("+hello"), "{}", untracked.text);
 
         stage(p, &strings(&["a.txt"])).unwrap();
-        assert!(diff(p, "a.txt", true).unwrap().text.contains("+two"));
+        assert!(diff(p, "a.txt", None, true).unwrap().text.contains("+two"));
+    }
+
+    #[test]
+    fn diffs_a_staged_rename_as_a_rename() {
+        let Some(dir) = test_repo() else { return };
+        let p = dir.path();
+        let body: String = (1..=20).map(|n| format!("line {n}\n")).collect();
+        fs::write(p.join("old.txt"), &body).unwrap();
+        stage(p, &strings(&["old.txt"])).unwrap();
+        commit(p, "add old").unwrap();
+
+        fs::rename(p.join("old.txt"), p.join("new name.txt")).unwrap();
+        let edited = body.replace("line 7\n", "line seven\n");
+        fs::write(p.join("new name.txt"), edited).unwrap();
+        stage(p, &strings(&["old.txt", "new name.txt"])).unwrap();
+        let entry = status(p).unwrap().entries.remove(0);
+        assert_eq!(entry.orig_path.as_deref(), Some("old.txt"));
+
+        let renamed = diff(p, "new name.txt", Some("old.txt"), true).unwrap().text;
+        assert!(renamed.contains("rename from old.txt"), "{renamed}");
+        assert!(renamed.contains("-line 7") && renamed.contains("+line seven"));
+        assert!(!renamed.contains("+line 1\n"), "not shown as all new");
+        assert!(matches!(
+            diff(p, "new name.txt", Some("../x"), true),
+            Err(GitError::BadPath(_))
+        ));
     }
 
     #[test]

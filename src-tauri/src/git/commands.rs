@@ -71,8 +71,13 @@ pub async fn git_discard(dir: PathBuf, paths: Vec<String>) -> AppResult<()> {
 }
 
 #[tauri::command]
-pub async fn git_diff(dir: PathBuf, path: String, staged: bool) -> AppResult<Diff> {
-    blocking(move || super::changes::diff(&dir, &path, staged)).await
+pub async fn git_diff(
+    dir: PathBuf,
+    path: String,
+    orig_path: Option<String>,
+    staged: bool,
+) -> AppResult<Diff> {
+    blocking(move || super::changes::diff(&dir, &path, orig_path.as_deref(), staged)).await
 }
 
 #[tauri::command]

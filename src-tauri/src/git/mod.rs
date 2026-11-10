@@ -359,12 +359,7 @@ fn test_repo() -> Option<tempfile::TempDir> {
     git(p, &["config", "user.name", "Test"]).ok()?;
     git(p, &["config", "commit.gpgsign", "false"]).ok()?;
     git(p, &["config", "core.autocrlf", "false"]).ok()?;
-    std::fs::write(
-        p.join("a.txt"),
-        "one
-",
-    )
-    .unwrap();
+    std::fs::write(p.join("a.txt"), "one\n").unwrap();
     git(p, &["add", "-A"]).ok()?;
     git(p, &["commit", "-q", "-m", "init"]).ok()?;
     Some(dir)

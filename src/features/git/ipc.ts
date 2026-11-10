@@ -44,8 +44,9 @@ export const gitIpc = {
   unstage: (dir: string, paths: string[]) => invoke<void>("git_unstage", { dir, paths }),
   /** Destructive: restores tracked files, deletes untracked ones. Staged content stays. */
   discard: (dir: string, paths: string[]) => invoke<void>("git_discard", { dir, paths }),
-  diff: (dir: string, path: string, staged: boolean) =>
-    invoke<GitDiff>("git_diff", { dir, path, staged }),
+  /** `origPath`: the old path of a staged rename, so it diffs as a rename. */
+  diff: (dir: string, path: string, staged: boolean, origPath: string | null = null) =>
+    invoke<GitDiff>("git_diff", { dir, path, origPath, staged }),
   /** Resolves with the new commit's short id. */
   commit: (dir: string, message: string) => invoke<string>("git_commit", { dir, message }),
   push: (dir: string) => invoke<void>("git_push", { dir }),

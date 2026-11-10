@@ -167,14 +167,14 @@ function RowDiff({ id, row }: { id: string; row: Row }) {
   useEffect(() => {
     if (!dir) return;
     let alive = true;
-    gitIpc.diff(dir, row.path, row.staged).then(
+    gitIpc.diff(dir, row.path, row.staged, row.origPath).then(
       (d) => alive && setState({ diff: parseUnifiedDiff(d.text), truncated: d.truncated }),
       (err: unknown) => alive && setState({ error: describeChangesError(err) }),
     );
     return () => {
       alive = false;
     };
-  }, [dir, row.path, row.staged, version]);
+  }, [dir, row.path, row.staged, row.origPath, version]);
 
   const note = (text: string, danger = false) => (
     <p className={cn("px-3 py-2 text-2xs", danger ? "text-danger" : "text-fg-subtle")}>{text}</p>

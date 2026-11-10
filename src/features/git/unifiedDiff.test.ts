@@ -41,6 +41,38 @@ describe("parseUnifiedDiff", () => {
     ]);
   });
 
+  it("reads a rename with changes past its extra header lines", () => {
+    const text = [
+      "diff --git a/old.txt b/new name.txt",
+      "similarity index 90%",
+      "rename from old.txt",
+      "rename to new name.txt",
+      "index 1..2 100644",
+      "--- a/old.txt",
+      "+++ b/new name.txt",
+      "@@ -6,3 +6,3 @@",
+      " line 6",
+      "-line 7",
+      "+line seven",
+      " line 8",
+    ].join("\n");
+    const { hunks, binary } = parseUnifiedDiff(text);
+    expect(binary).toBe(false);
+    expect(hunks).toHaveLength(1);
+    expect(hunks[0].lines.map((l) => [l.type, l.text, l.oldNo, l.newNo])).toEqual([
+      ["context", "line 6", 6, 6],
+      ["del", "line 7", 7, null],
+      ["add", "line seven", null, 7],
+      ["context", "line 8", 8, 8],
+    ]);
+  });
+
+  it("finds no lines in a pure rename", () => {
+    const text =
+      "diff --git a/a.txt b/b.txt\nsimilarity index 100%\nrename from a.txt\nrename to b.txt";
+    expect(parseUnifiedDiff(text)).toEqual({ hunks: [], binary: false });
+  });
+
   it("flags binary files and empty diffs", () => {
     expect(parseUnifiedDiff("Binary files /dev/null and b/x.png differ").binary).toBe(true);
     expect(parseUnifiedDiff("")).toEqual({ hunks: [], binary: false });
