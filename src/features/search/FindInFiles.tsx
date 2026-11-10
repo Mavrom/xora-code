@@ -44,8 +44,15 @@ export function FindInFiles({ onClose }: { onClose: () => void }) {
   const failure = status === "error" ? describeSearchError(error) : null;
   const searching = status === "searching";
 
+  // The first run after opening refreshes the shown results; later ones follow the typing.
+  // (Reset on every mount, StrictMode's second one included.)
+  const opened = useRef(false);
+  useLayoutEffect(() => {
+    opened.current = false;
+  }, []);
   useEffect(() => {
-    useSearchStore.getState().request(root);
+    useSearchStore.getState().request(root, !opened.current);
+    opened.current = true;
   }, [root, query, caseSensitive, wholeWord, regex]);
 
   // Focus the input with its text selected (the last or seeded query); give focus back on
@@ -107,7 +114,8 @@ export function FindInFiles({ onClose }: { onClose: () => void }) {
           : failure.message
         : hasRows
           ? null
-          : status === "done" && results
+          : // Kept while a refresh runs, so reopening never flashes "Searching…".
+            results
             ? t("No results for “{query}”.", { query: resultsQuery })
             : t("Searching…");
 

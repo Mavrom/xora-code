@@ -1,5 +1,6 @@
 // Find in files state. It outlives the dialog, so reopening Ctrl+Shift+F shows the last
-// query, options and results. Searches are debounced and latest-wins: the Rust side stops a
+// query, options and results at once, and runs that search again (agents keep rewriting
+// files, so old line numbers go stale). Searches are debounced and latest-wins: Rust stops a
 // superseded search, and the gate drops any answer that arrives after a newer request.
 import { create } from "zustand";
 import { focusedEditorSelection } from "@/features/editor/editorFocus";
@@ -27,8 +28,12 @@ interface SearchState extends SearchOptions {
   setQuery: (query: string) => void;
   toggle: (option: keyof SearchOptions) => void;
   setActive: (active: number) => void;
-  /** Searches `root` for the current query and options unless that search is already shown. */
-  request: (root: string | null) => void;
+  /**
+   * Searches `root` for the current query and options unless that search is already shown.
+   * `refresh` (the dialog just opened): run a shown search again at once, since files may
+   * have changed; its results stay on screen meanwhile and the selected row is kept.
+   */
+  request: (root: string | null, refresh?: boolean) => void;
   /** Stops a pending or running search (the dialog closed). */
   stop: () => void;
 }
@@ -39,6 +44,8 @@ const gate = createLatestGate();
 let timer: ReturnType<typeof setTimeout> | undefined;
 /** Root, query and options of the search last requested; equal requests are skipped. */
 let requested: string | null = null;
+/** The same for the results on screen. */
+let shown: string | null = null;
 
 export const useSearchStore = create<SearchState>((set, get) => ({
   query: "",
@@ -56,11 +63,13 @@ export const useSearchStore = create<SearchState>((set, get) => ({
   toggle: (option) => set((s) => ({ [option]: !s[option] })),
   setActive: (active) => set({ active }),
 
-  request: (root) => {
+  request: (root, refresh = false) => {
     const { query, caseSensitive, wholeWord, regex, status } = get();
     const options = { caseSensitive, wholeWord, regex };
     const key = JSON.stringify([root, query, options]);
-    if (key === requested && status !== "idle") return;
+    // Re-running the shown search keeps the selection; any other search starts at the top.
+    const rerun = refresh && key === shown && status === "done";
+    if (!rerun && key === requested && status !== "idle") return;
     requested = key;
     clearTimeout(timer);
     const token = gate.begin();
@@ -71,27 +80,33 @@ export const useSearchStore = create<SearchState>((set, get) => ({
       return;
     }
     set({ status: "searching" });
-    timer = setTimeout(() => {
-      searchIpc.search(root, query, options).then(
-        (outcome) => {
-          // A cancelled search was superseded: the newer one reports.
-          if (!gate.isLatest(token) || outcome.status === "cancelled") return;
-          const { files, totalMatches, totalFiles, truncated } = outcome;
-          set({
-            status: "done",
-            results: { files, totalMatches, totalFiles, truncated },
-            resultsQuery: query,
-            resultsRoot: root,
-            error: null,
-            active: 0,
-          });
-        },
-        (error: unknown) => {
-          if (!gate.isLatest(token)) return;
-          set({ status: "error", ...NO_RESULTS, error });
-        },
-      );
-    }, SEARCH_DEBOUNCE_MS);
+    timer = setTimeout(
+      () => {
+        searchIpc.search(root, query, options).then(
+          (outcome) => {
+            // A cancelled search was superseded: the newer one reports.
+            if (!gate.isLatest(token) || outcome.status === "cancelled") return;
+            const { files, totalMatches, totalFiles, truncated } = outcome;
+            const rows = files.reduce((n, file) => n + file.matches.length, 0);
+            const { active } = get();
+            shown = key;
+            set({
+              status: "done",
+              results: { files, totalMatches, totalFiles, truncated },
+              resultsQuery: query,
+              resultsRoot: root,
+              error: null,
+              active: rerun && active < rows ? active : 0,
+            });
+          },
+          (error: unknown) => {
+            if (!gate.isLatest(token)) return;
+            set({ status: "error", ...NO_RESULTS, error });
+          },
+        );
+      },
+      rerun ? 0 : SEARCH_DEBOUNCE_MS,
+    );
   },
 
   stop: () => {

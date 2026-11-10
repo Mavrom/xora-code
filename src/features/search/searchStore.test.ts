@@ -21,6 +21,26 @@ const done = (totalMatches: number): SearchOutcome => ({
   truncated: false,
 });
 
+/** One file with `rows` matching lines. */
+const withRows = (rows: number): SearchOutcome => ({
+  status: "done",
+  files: [
+    {
+      path: "a.ts",
+      count: rows,
+      matches: Array.from({ length: rows }, (_, i) => ({
+        line: i + 1,
+        column: 1,
+        text: "x",
+        ranges: [[0, 1]],
+      })),
+    },
+  ],
+  totalMatches: rows,
+  totalFiles: 1,
+  truncated: false,
+});
+
 /** A promise resolved from the outside, to finish searches out of order. */
 function deferred<T>() {
   let resolve!: (value: T) => void;
@@ -113,6 +133,67 @@ describe("search store", () => {
     await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
     expect(s().status).toBe("error");
     expect(s().error).toBe("[bad_regex] oops");
+  });
+
+  describe("reopening", () => {
+    /** A finished search for `query` with `rows` matching lines, the third one selected. */
+    async function shownSearch(query: string, rows: number) {
+      search.mockResolvedValueOnce(withRows(rows));
+      s().setQuery(query);
+      s().request("/p");
+      await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+      s().setActive(2);
+      s().stop(); // the dialog closes
+    }
+
+    it("runs the shown search again at once, keeping the results and the row", async () => {
+      await shownSearch("reopen", 5);
+      const refreshed = deferred<SearchOutcome>();
+      search.mockReturnValueOnce(refreshed.promise);
+      s().request("/p", true);
+      // No flash of an empty list: the old results stay while the refresh runs.
+      expect(s().status).toBe("searching");
+      expect(s().results?.totalMatches).toBe(5);
+      expect(s().active).toBe(2);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(search).toHaveBeenCalledTimes(2);
+      refreshed.resolve(withRows(4));
+      await vi.runAllTimersAsync();
+      expect(s().status).toBe("done");
+      expect(s().results?.totalMatches).toBe(4);
+      expect(s().active).toBe(2);
+    });
+
+    it("goes back to the first row when the selected one is gone", async () => {
+      await shownSearch("shrinks", 5);
+      search.mockResolvedValueOnce(withRows(2));
+      s().request("/p", true);
+      await vi.runAllTimersAsync();
+      expect(s().results?.totalMatches).toBe(2);
+      expect(s().active).toBe(0);
+    });
+
+    it("treats a changed (seeded) query as a new search", async () => {
+      await shownSearch("before", 5);
+      search.mockResolvedValueOnce(withRows(5));
+      s().setQuery("seeded");
+      s().request("/p", true);
+      await vi.advanceTimersByTimeAsync(0);
+      expect(search).toHaveBeenCalledTimes(1);
+      await vi.advanceTimersByTimeAsync(SEARCH_DEBOUNCE_MS);
+      expect(search).toHaveBeenLastCalledWith("/p", "seeded", expect.anything());
+      expect(s().active).toBe(0);
+    });
+
+    it("only refreshes on open: later equal requests are skipped", async () => {
+      await shownSearch("once", 3);
+      search.mockResolvedValue(withRows(3));
+      s().request("/p", true);
+      await vi.runAllTimersAsync();
+      s().request("/p");
+      await vi.runAllTimersAsync();
+      expect(search).toHaveBeenCalledTimes(2);
+    });
   });
 
   it("stop cancels a running search and lets the next request run again", async () => {
