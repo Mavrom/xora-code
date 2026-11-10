@@ -292,6 +292,18 @@ export const TR: Record<string, string> = {
     "Bu konuşmayı {fromAgent} ile yürütüyordum; buradan sen devam et.",
   "First sum up where things stand in two or three sentences, then suggest the next step from where we left off.":
     "Önce durumu iki üç cümleyle özetle, sonra kaldığımız yerden sıradaki adımı öner.",
+  "Here is our conversation so far; continue from it with my next message.":
+    "Şimdiye kadarki konuşmamız aşağıda; bir sonraki mesajımla buradan devam et.",
+  // features/chat/branchChat.ts, MessageList.tsx, ChatPanel.tsx ("Edit and retry")
+  "Branch: {title}": "Dal: {title}",
+  "Edit and retry": "Düzenle ve yeniden dene",
+  "Edit and retry in a new chat": "Yeni bir sohbette düzenle ve yeniden dene",
+  "{count} attachment(s) could not be put back.": "{count} ek geri konamadı.",
+  // features/agents/branch.ts
+  "Files changed after this message are not reverted.":
+    "Bu mesajdan sonra değişen dosyalar geri alınmadı.",
+  "Started from a summary of the conversation: this agent cannot branch it directly.":
+    "Konuşmanın özetinden başlatıldı: bu agent konuşmayı doğrudan dallandıramıyor.",
   // features/commands/CommandPalette.tsx
   "Command palette": "Komut paleti",
   "Search commands, chats or folders…": "Komut, sohbet ya da klasör ara…",

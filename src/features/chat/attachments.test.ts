@@ -2,8 +2,10 @@ import { describe, expect, it } from "vitest";
 import {
   attachmentFromPath,
   bytesToBase64,
+  draftFromBlocks,
   fileUri,
   imageMime,
+  pathFromFileUri,
   toBlocks,
   type Attachment,
 } from "./attachments";
@@ -59,5 +61,46 @@ describe("attachmentFromPath", () => {
     const doc = await attachmentFromPath("C:\\x\\b.md", "file", read);
     expect(doc).toMatchObject({ kind: "file", name: "b.md", path: "C:\\x\\b.md" });
     expect(doc.data).toBeUndefined();
+  });
+});
+
+describe("pathFromFileUri", () => {
+  it("reverses fileUri for Windows and Unix paths", () => {
+    for (const path of ["C:\\a b\\c#1?.png", "/home/me/x y.ts"]) {
+      expect(pathFromFileUri(fileUri(path))).toBe(path);
+    }
+    expect(pathFromFileUri("file:///C:/repo/src/")).toBe("C:\\repo\\src");
+    expect(pathFromFileUri("https://example.com/a")).toBeNull();
+    expect(pathFromFileUri("file:///%E0%A4%A")).toBeNull();
+  });
+});
+
+describe("draftFromBlocks", () => {
+  it("puts back the text and the attachments toBlocks sent", () => {
+    const sent: Attachment[] = [
+      { id: "1", kind: "image", name: "shot.png", path: null, data: "AAAA", mimeType: "image/png" },
+      { id: "2", kind: "file", name: "a.ts", path: "C:\\repo\\a.ts" },
+      { id: "3", kind: "folder", name: "src", path: "C:\\repo\\src" },
+    ];
+    const draft = draftFromBlocks(toBlocks("fix it", sent, true));
+    expect(draft.text).toBe("fix it");
+    expect(draft.dropped).toBe(0);
+    expect(draft.attachments.map(({ kind, name, path }) => ({ kind, name, path }))).toEqual([
+      { kind: "image", name: "image-2", path: null },
+      { kind: "file", name: "a.ts", path: "C:\\repo\\a.ts" },
+      { kind: "folder", name: "src", path: "C:\\repo\\src" },
+    ]);
+    // Sent again, the draft makes the same blocks.
+    expect(toBlocks(draft.text, draft.attachments, true)).toEqual(toBlocks("fix it", sent, true));
+  });
+
+  it("counts what it cannot put back", () => {
+    const draft = draftFromBlocks([
+      { type: "text", text: "a" },
+      { type: "resource", resource: { uri: "file:///x.ts", text: "x" } },
+      { type: "resource_link", uri: "https://example.com", name: "site" },
+      { type: "text", text: "b" },
+    ]);
+    expect(draft).toEqual({ text: "a\n\nb", attachments: [], dropped: 2 });
   });
 });

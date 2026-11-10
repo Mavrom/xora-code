@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ChatItem } from "@/features/agents/reducer";
-import { handoffPrompt, transcriptFileName, transcriptMarkdown } from "./transcript";
+import { branchPrompt, handoffPrompt, transcriptFileName, transcriptMarkdown } from "./transcript";
 
 const items = [
   { kind: "user", id: "1", blocks: [{ type: "text", text: "README'yi özetle\nkısa olsun" }] },
@@ -55,5 +55,20 @@ describe("handoffPrompt", () => {
     const text = handoffPrompt("Codex", `${"a".repeat(50)}SON`, 10);
     expect(text).toContain("konuşmanın başı kısaltıldı");
     expect(text.endsWith("aaaaaaaSON")).toBe(true);
+  });
+});
+
+describe("branchPrompt", () => {
+  it("puts the conversation before the message, which comes last", () => {
+    const text = branchPrompt("# Başlık\n\niçerik", "yeni mesaj");
+    expect(text.startsWith("Şimdiye kadarki konuşmamız")).toBe(true);
+    expect(text).toContain("---\n\n# Başlık\n\niçerik\n\n---\n\nyeni mesaj");
+    expect(text.endsWith("yeni mesaj")).toBe(true);
+  });
+
+  it("keeps the latest part of a long transcript", () => {
+    const text = branchPrompt(`${"a".repeat(50)}SON`, "m", 10);
+    expect(text).toContain("konuşmanın başı kısaltıldı");
+    expect(text).toContain("aaaaaaaSON\n\n---\n\nm");
   });
 });

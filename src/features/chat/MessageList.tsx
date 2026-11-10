@@ -1,5 +1,15 @@
 import { memo, useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { ArrowDown, Check, CircleAlert, Copy, FileText, Info, TriangleAlert } from "lucide-react";
+import {
+  ArrowDown,
+  Check,
+  CircleAlert,
+  Copy,
+  FileText,
+  Info,
+  Pencil,
+  TriangleAlert,
+} from "lucide-react";
+import { canBranch } from "@/features/agents/branch";
 import type { ChatItem, SessionView } from "@/features/agents/reducer";
 import type { AcpContentBlock, AcpStopReason } from "@/features/agents/types";
 import { cn } from "@/shared/ui/cn";
@@ -26,6 +36,8 @@ const STOP_NOTE: Partial<Record<AcpStopReason, string>> = {
 
 interface MessageListProps {
   session: SessionView;
+  /** "Edit and retry" on a user message (its item id); offered while nothing runs. */
+  onEditAndRetry?: (itemId: string) => void;
 }
 
 /**
@@ -33,8 +45,15 @@ interface MessageListProps {
  * as they scroll up (a "jump to latest" button brings them back). Screen readers get the
  * finished turn, not every chunk: the log is `aria-busy` while the agent works.
  */
-export function MessageList({ session }: MessageListProps) {
+export function MessageList({ session, onEditAndRetry }: MessageListProps) {
   const scrollRef = useRef<HTMLDivElement>(null);
+  // A stable callback, so offering the action does not re-render every row.
+  const editRef = useRef(onEditAndRetry);
+  useLayoutEffect(() => {
+    editRef.current = onEditAndRetry;
+  });
+  const onEdit = useCallback((itemId: string) => editRef.current?.(itemId), []);
+  const editable = onEditAndRetry !== undefined && canBranch(session);
   const contentRef = useRef<HTMLDivElement>(null);
   const stuck = useRef(true);
   const [detached, setDetached] = useState(false);
@@ -144,6 +163,7 @@ export function MessageList({ session }: MessageListProps) {
                   streaming={running && item === last}
                   terminals={terminals}
                   shown={item.kind === "agent" ? shown : undefined}
+                  onEdit={item.kind === "user" && editable ? onEdit : undefined}
                 />
               </div>
             );
@@ -278,15 +298,18 @@ const Item = memo(function Item({
   streaming,
   terminals,
   shown,
+  onEdit,
 }: {
   item: ChatItem;
   streaming: boolean;
   terminals: SessionView["terminals"];
   shown?: ReadonlySet<string>;
+  /** "Edit and retry" for a user message; absent while it is not offered. */
+  onEdit?: (itemId: string) => void;
 }) {
   switch (item.kind) {
     case "user":
-      return <UserMessage blocks={item.blocks} />;
+      return <UserMessage blocks={item.blocks} onEdit={onEdit && (() => onEdit(item.id))} />;
     case "agent":
       return <AgentMessage text={item.text} streaming={streaming} shown={shown ?? NONE} />;
     case "thought":
@@ -314,7 +337,7 @@ const Item = memo(function Item({
   }
 });
 
-function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
+function UserMessage({ blocks, onEdit }: { blocks: AcpContentBlock[]; onEdit?: () => void }) {
   const text = blocks
     .flatMap((b) => (b.type === "text" ? [b.text] : []))
     .join("\n")
@@ -323,10 +346,12 @@ function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
     b.type === "resource_link" ? [b.name || b.uri] : b.type === "resource" ? [b.resource.uri] : [],
   );
   const images = blocks.flatMap((b) => (b.type === "image" ? [b] : []));
+  const bubble = text || files.length > 0;
+  const edit = onEdit && <EditAndRetry onEdit={onEdit} />;
   return (
-    <div className="flex flex-col items-end gap-1.5">
+    <div className="group/user flex flex-col items-end gap-1.5">
       {images.length > 0 && (
-        <div className="flex max-w-[85%] flex-wrap justify-end gap-1.5">
+        <div className="relative flex max-w-[85%] flex-wrap justify-end gap-1.5">
           {images.map((img, i) => (
             <img
               key={i}
@@ -335,10 +360,12 @@ function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
               className="max-h-48 max-w-72 rounded-xl border border-glass-border object-cover"
             />
           ))}
+          {!bubble && edit}
         </div>
       )}
-      {(text || files.length > 0) && (
-        <div className="max-w-[85%] rounded-2xl rounded-br-md border border-glass-border bg-glass-strong px-4 py-2.5 text-[length:var(--chat-text,13px)] leading-[1.7] whitespace-pre-wrap text-fg backdrop-blur-xl select-text [overflow-wrap:anywhere]">
+      {bubble && (
+        <div className="relative max-w-[85%] rounded-2xl rounded-br-md border border-glass-border bg-glass-strong px-4 py-2.5 text-[length:var(--chat-text,13px)] leading-[1.7] whitespace-pre-wrap text-fg backdrop-blur-xl select-text [overflow-wrap:anywhere]">
+          {edit}
           {text}
           {files.length > 0 && (
             <span className="mt-1.5 flex flex-wrap gap-1">
@@ -356,6 +383,24 @@ function UserMessage({ blocks }: { blocks: AcpContentBlock[] }) {
         </div>
       )}
     </div>
+  );
+}
+
+/**
+ * "Edit and retry": a new chat continues from before this message, with it in the
+ * composer. Left of the bubble, shown on hover or focus like "Copy reply".
+ */
+function EditAndRetry({ onEdit }: { onEdit: () => void }) {
+  return (
+    <button
+      type="button"
+      aria-label={t("Edit and retry")}
+      title={t("Edit and retry in a new chat")}
+      onClick={onEdit}
+      className="absolute right-full bottom-1 mr-1.5 grid size-6 place-items-center rounded-md text-fg-subtle opacity-0 transition-[opacity,color] duration-fast group-hover/user:opacity-100 hover:bg-hover hover:text-fg focus-visible:opacity-100"
+    >
+      <Pencil size={13} strokeWidth={1.75} aria-hidden />
+    </button>
   );
 }
 

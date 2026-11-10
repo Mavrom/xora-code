@@ -71,6 +71,61 @@ export function toBlocks(
   return blocks;
 }
 
+/** `file:///C:/a%20b/c.png` -> `C:\a b\c.png` (the reverse of {@link fileUri}), or null. */
+export function pathFromFileUri(uri: string): string | null {
+  if (!uri.startsWith("file://")) return null;
+  let path: string;
+  try {
+    path = decodeURIComponent(uri.slice("file://".length));
+  } catch {
+    return null;
+  }
+  if (/^\/[A-Za-z]:/.test(path)) path = path.slice(1).replace(/\//g, "\\");
+  return path.replace(/(?<=.)[\\/]+$/, "") || null;
+}
+
+/**
+ * A sent message back as a draft ("Edit and retry"): its text and the attachments the
+ * composer can show again (pictures, files and folders on disk). `dropped` counts the rest
+ * (embedded file contents, audio, non-file links), which cannot be put back as they were.
+ */
+export function draftFromBlocks(blocks: readonly AcpContentBlock[]): {
+  text: string;
+  attachments: Attachment[];
+  dropped: number;
+} {
+  const texts: string[] = [];
+  const attachments: Attachment[] = [];
+  let dropped = 0;
+  blocks.forEach((b, i) => {
+    if (b.type === "text") {
+      texts.push(b.text);
+    } else if (b.type === "image") {
+      attachments.push({
+        id: newId(),
+        kind: "image",
+        name: `image-${i + 1}`,
+        path: null,
+        data: b.data,
+        mimeType: b.mimeType,
+      });
+    } else if (b.type === "resource_link" && pathFromFileUri(b.uri)) {
+      const path = pathFromFileUri(b.uri)!;
+      const folder = /\/$/.test(b.uri);
+      attachments.push({
+        id: newId(),
+        kind: folder ? "folder" : "file",
+        name: b.name || basename(path),
+        path,
+        ...(b.mimeType ? { mimeType: b.mimeType } : {}),
+      });
+    } else {
+      dropped++;
+    }
+  });
+  return { text: texts.join("\n\n").trim(), attachments, dropped };
+}
+
 let nextId = 0;
 const newId = () => `att-${Date.now().toString(36)}-${nextId++}`;
 

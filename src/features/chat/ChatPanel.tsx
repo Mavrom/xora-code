@@ -29,6 +29,7 @@ import {
   type OpenChip,
 } from "./ComposerToolbar";
 import { attachmentFromBlob, attachmentFromPath, toBlocks, type Attachment } from "./attachments";
+import { editAndRetry } from "./branchChat";
 import { PermissionPrompt } from "./PermissionPrompt";
 import { StartingPointList } from "./StartingPointList";
 import type { XoraCommandName } from "./slash";
@@ -156,6 +157,26 @@ export function ChatPanel() {
       composerRef.current?.fill(text);
       setAttachments(sent);
       if (!isAuthRequired(err)) say(errorMessage(err));
+    }
+  };
+
+  // "Edit and retry": the branched chat opens and its composer gets the message back.
+  const branching = useRef(false);
+  const editAndRetryFrom = async (sourceId: string, itemId: string) => {
+    if (branching.current) return;
+    branching.current = true;
+    try {
+      const draft = await editAndRetry(sourceId, itemId);
+      setAttachments(draft.attachments);
+      // The branched chat's composer mounts on the next frame (as with a hand-off).
+      requestAnimationFrame(() => composerRef.current?.fill(draft.text));
+      if (draft.dropped > 0) {
+        say(t("{count} attachment(s) could not be put back.", { count: draft.dropped }));
+      }
+    } catch (err) {
+      if (!isAuthRequired(err)) say(errorMessage(err));
+    } finally {
+      branching.current = false;
     }
   };
 
@@ -410,7 +431,10 @@ export function ChatPanel() {
       {/* First, so the (positioned) transcript and composer paint over it. */}
       <ConversationScrim />
       <Suspense fallback={<div className="min-h-0 flex-1" />}>
-        <MessageList session={session} />
+        <MessageList
+          session={session}
+          onEditAndRetry={(itemId) => void editAndRetryFrom(session.sessionId, itemId)}
+        />
       </Suspense>
       <div className="relative mx-auto w-full max-w-180 px-4 pt-1 pb-2">{composer}</div>
       {dropping && <DropOverlay />}

@@ -86,17 +86,40 @@ export function transcriptFileName(title: string): string {
 /** Longest transcript put into a hand-off prompt; older parts are cut first. */
 export const HANDOFF_MAX = 12_000;
 
+/** The transcript, or its latest `max` characters with a note that the start was cut. */
+function latestPart(markdown: string, max: number): string {
+  return markdown.length > max
+    ? t("_(the start of the conversation was cut)_\n\n…{tail}", {
+        tail: markdown.slice(markdown.length - max),
+      })
+    : markdown;
+}
+
+/**
+ * "Edit and retry" where the agent cannot fork: the conversation up to the edited message
+ * (its latest part when long), then that message, so the new chat starts from the same
+ * point. The user reads and sends it.
+ */
+export function branchPrompt(markdown: string, message: string, max = HANDOFF_MAX): string {
+  return [
+    t("Here is our conversation so far; continue from it with my next message."),
+    "",
+    "---",
+    "",
+    latestPart(markdown, max).trim(),
+    "",
+    "---",
+    "",
+    message,
+  ].join("\n");
+}
+
 /**
  * The first message for the agent that takes over a conversation: what happened so far
  * (its latest part when long), and what to do with it.
  */
 export function handoffPrompt(fromAgent: string, markdown: string, max = HANDOFF_MAX): string {
-  const body =
-    markdown.length > max
-      ? t("_(the start of the conversation was cut)_\n\n…{tail}", {
-          tail: markdown.slice(markdown.length - max),
-        })
-      : markdown;
+  const body = latestPart(markdown, max);
   return [
     t("I was working through this conversation with {fromAgent}; take it from here.", {
       fromAgent,
