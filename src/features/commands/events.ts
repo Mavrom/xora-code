@@ -9,6 +9,8 @@ export const OPEN_PALETTE = "xora:open-palette";
 export const NEW_CHAT = "xora:new-chat";
 /** Quick open: any file of the folder by name (Ctrl+P). */
 export const QUICK_OPEN = "xora:quick-open";
+/** Find in files: search the folder's contents (Ctrl+Shift+F). */
+export const FIND_IN_FILES = "xora:find-in-files";
 /** Shows or hides the left sidebar (Ctrl+B). */
 export const TOGGLE_SIDEBAR = "xora:toggle-sidebar";
 
@@ -19,7 +21,8 @@ export type CommandEvent =
   | typeof OPEN_PALETTE
   | typeof NEW_CHAT
   | typeof TOGGLE_SIDEBAR
-  | typeof QUICK_OPEN;
+  | typeof QUICK_OPEN
+  | typeof FIND_IN_FILES;
 
 export const emitCommand = (name: CommandEvent) => window.dispatchEvent(new Event(name));
 

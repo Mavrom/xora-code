@@ -20,6 +20,7 @@ import {
   Settings,
   SquarePen,
   SquareTerminal,
+  TextSearch,
   X,
   type LucideIcon,
 } from "lucide-react";
@@ -39,6 +40,7 @@ import { openFolder } from "@/features/workspace/openFolder";
 import { useWorkspaceStore } from "@/features/workspace/store";
 import {
   emitCommand,
+  FIND_IN_FILES,
   NEW_CHAT,
   QUICK_OPEN,
   SAVE_ACTIVE_FILE,
@@ -126,6 +128,15 @@ export const COMMANDS: Command[] = [
     icon: FileSearch,
     when: () => useWorkspaceStore.getState().root !== null,
     run: () => emitCommand(QUICK_OPEN),
+  },
+  {
+    id: "search.findInFiles",
+    title: t("Find in files"),
+    group: t("File"),
+    shortcut: "ctrl+shift+f",
+    icon: TextSearch,
+    when: () => useWorkspaceStore.getState().root !== null,
+    run: () => emitCommand(FIND_IN_FILES),
   },
   {
     id: "chat.new",

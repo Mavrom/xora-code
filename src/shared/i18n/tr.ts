@@ -342,6 +342,25 @@ export const TR: Record<string, string> = {
   "No file matches “{query}”.": "“{query}” ile eşleşen dosya yok.",
   "Open file": "Dosya aç",
   "Type a file name…": "Dosya adı yaz…",
+  // features/search (find in files)
+  "Find in files": "Dosyalarda ara",
+  "Search in files…": "Dosyalarda ara…",
+  "Match case": "Büyük/küçük harf duyarlı",
+  "Match whole word": "Tam sözcük",
+  "Use regular expression": "Düzenli ifade kullan",
+  "Invalid regular expression": "Geçersiz düzenli ifade",
+  "Type at least {n} characters to search the folder.":
+    "Klasörde aramak için en az {n} karakter yaz.",
+  "No results for “{query}”.": "“{query}” için sonuç yok.",
+  "Searching…": "Aranıyor…",
+  "Some results are not shown; narrow the search.": "Bazı sonuçlar gösterilmiyor; aramayı daralt.",
+  "1 result in 1 file": "1 dosyada 1 sonuç",
+  "{n} results in 1 file": "1 dosyada {n} sonuç",
+  "{n} results in {files} files": "{files} dosyada {n} sonuç",
+  "{path}, line {line}: {text}": "{path}, satır {line}: {text}",
+  "The folder was not found.": "Klasör bulunamadı.",
+  "Search failed: {detail}": "Arama yapılamadı: {detail}",
+  open: "aç",
   // features/files/treeModel.ts
   "Empty folder": "Boş klasör",
   // features/files/useFileOpener.ts
