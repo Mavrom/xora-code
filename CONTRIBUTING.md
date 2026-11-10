@@ -45,26 +45,26 @@ cargo test --manifest-path src-tauri/Cargo.toml
 
 ### Frontend (`src/`)
 
-| Location                 | What goes there                                                                                                   |
-| ------------------------ | ----------------------------------------------------------------------------------------------------------------- |
-| `src/app/`               | App shell: `Layout`, title bar, activity bar, window controls, cross-feature UI state (`uiStore`).                |
-| `src/features/<name>/`   | One folder per feature. Co-locate its components, Zustand store, pure logic and tests (`foo.ts` + `foo.test.ts`). |
-| `src/shared/lib/`        | Framework-free helpers used by several features, including the typed IPC layer `ipc.ts`.                          |
-| `src/shared/ui/`         | Reusable UI primitives (`Button`, `IconButton`, `Kbd`, `EmptyState`, `PanelHeader`, `cn`).                        |
-| `src/styles/globals.css` | The only place design tokens are defined.                                                                         |
+| Location                 | What goes there                                                                                                                  |
+| ------------------------ | -------------------------------------------------------------------------------------------------------------------------------- |
+| `src/app/`               | App shell: `Layout`, `Sidebar`, `MainBar`, window controls, close guards, cross-feature UI state (`uiStore`).                    |
+| `src/features/<name>/`   | One folder per feature. Co-locate its components, Zustand store, pure logic and tests (`foo.ts` + `foo.test.ts`).                |
+| `src/shared/lib/`        | Framework-free helpers used by several features, including `ipc.ts` (wrappers for the shared file, Inbox and hostname commands). |
+| `src/shared/ui/`         | Reusable UI primitives (`Button`, `IconButton`, `Kbd`, `EmptyState`, `PanelHeader`, `cn`).                                       |
+| `src/styles/globals.css` | The only place design tokens are defined.                                                                                        |
 
 Rules of thumb:
 
 - Keep logic that can be pure out of components and test it directly.
 - A feature may import from `shared/` and, sparingly, from another feature's public pieces. `shared/` never imports from `features/` or `app/`.
 - Use the `@/` alias for imports across folders.
-- Never call `invoke` directly; add a typed wrapper to `src/shared/lib/ipc.ts`.
+- Never call `invoke` from a component; add a typed wrapper to the feature's `ipc.ts` (or to `src/shared/lib/ipc.ts` for commands several features share).
 
 ### Rust (`src-tauri/src/`)
 
 - Each domain gets its own module folder with `mod.rs` (domain logic and unit tests, no Tauri types where avoidable) and `commands.rs` (thin `#[tauri::command]` wrappers).
-- Register new commands in `lib.rs` and add the matching wrapper to `src/shared/lib/ipc.ts`. Command names are `snake_case` with a domain prefix: `fs_read_file`, `notes_save`.
-- Commands return `AppResult<T>`. Errors go through `AppError` in `error.rs`, which serializes to a plain message string for the frontend. Domain error types (like `NotesError`) convert into `AppError` with `#[from]`.
+- Register new commands in `lib.rs` and add the matching wrapper to the feature's `ipc.ts`. Command names are `snake_case` with a domain prefix: `fs_read_file`, `notes_save`.
+- Commands return `AppResult<T>`. Errors go through `AppError` in `error.rs`, which serializes to a plain message string for the frontend. Domain error types (like `NotesError`) convert into `AppError` with `#[from]`. The agent and terminal commands use their own error types, which also serialize to a message string. Errors the UI explains in its own words start with a `[code]`.
 - Commands are `async`; blocking disk work belongs on the blocking pool, never on the UI thread.
 - New window or plugin permissions go into `src-tauri/capabilities/default.json`, scoped as narrowly as possible.
 
