@@ -88,4 +88,24 @@ describe("groupByDay", () => {
       ["Daha eski", ["o"]],
     ]);
   });
+
+  it("files a closed chat with no time under older, where the list sorts it", () => {
+    const now = new Date(2026, 9, 26, 15, 0).getTime();
+    const at = (d: number, h = 12) => new Date(2026, 9, d, h).toISOString();
+    const list = flatSessions(
+      [
+        group("C:/a", [
+          entry("undated"),
+          entry("bad", { updatedAt: "not a date" }),
+          entry("t", { updatedAt: at(26, 9) }),
+          entry("live", { open: true, updatedAt: "not a date" }),
+        ]),
+      ],
+      null,
+    );
+    expect(groupByDay(list, now).map((g) => [g.label, g.entries.map((e) => e.sessionId)])).toEqual([
+      ["Bugün", ["live", "t"]],
+      ["Daha eski", ["undated", "bad"]],
+    ]);
+  });
 });

@@ -34,16 +34,24 @@ export function visibleGroups(
   return out;
 }
 
+/**
+ * When a session was last used, for sorting and the day headings. An open session without
+ * a (readable) timestamp is the one in use right now; a closed one without it is placed
+ * last, as the oldest. Both the order and the headings use this, so they never disagree.
+ */
+function sessionTime(e: SessionListEntry): number {
+  const time = e.updatedAt ? Date.parse(e.updatedAt) : NaN;
+  if (Number.isFinite(time)) return time;
+  return e.open ? Number.MAX_SAFE_INTEGER : 0;
+}
+
 /** One newest-first list across projects, or just `project`'s sessions when set. */
 export function flatSessions(
   groups: readonly ProjectGroup[],
   project: string | null,
 ): SessionListEntry[] {
   const picked = project ? groups.filter((g) => sameProject(g.cwd, project)) : groups;
-  // Open sessions without a timestamp are the ones in use right now: keep them on top.
-  const rank = (e: SessionListEntry) =>
-    e.updatedAt ? Date.parse(e.updatedAt) || 0 : e.open ? Number.MAX_SAFE_INTEGER : 0;
-  return picked.flatMap((g) => g.sessions).sort((a, b) => rank(b) - rank(a));
+  return picked.flatMap((g) => g.sessions).sort((a, b) => sessionTime(b) - sessionTime(a));
 }
 
 export interface DayGroup {
@@ -55,14 +63,14 @@ const DAY = 24 * 60 * 60 * 1000;
 const startOfDay = (ms: number) => new Date(ms).setHours(0, 0, 0, 0);
 
 /**
- * Splits a newest-first list into "Bugün", "Dün", "Bu hafta" and "Daha eski". Sessions with
- * no timestamp are the ones open right now and count as today.
+ * Splits a newest-first list into "Bugün", "Dün", "Bu hafta" and "Daha eski". An open
+ * session with no timestamp counts as today, a closed one as older (`sessionTime`).
  */
 export function groupByDay(entries: readonly SessionListEntry[], now = Date.now()): DayGroup[] {
   const today = startOfDay(now);
   const labelFor = (e: SessionListEntry) => {
-    const time = e.updatedAt ? Date.parse(e.updatedAt) : NaN;
-    if (!Number.isFinite(time) || time >= today) return t("Today");
+    const time = sessionTime(e);
+    if (time >= today) return t("Today");
     if (time >= today - DAY) return t("Yesterday");
     if (time >= today - 6 * DAY) return t("This week");
     return t("Older");
