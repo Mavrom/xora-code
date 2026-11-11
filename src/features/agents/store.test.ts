@@ -532,4 +532,34 @@ describe("review", () => {
       { path: "/new", oldText: null, newText: undefined },
     ]);
   });
+
+  it("lists only the core's files after a reload, not the replay's old diffs", async () => {
+    let ingest: (ev: AgentEvent) => void = () => {};
+    const { s } = setup({
+      ipc: {
+        sessionLoad: async (agentId, sessionId) => {
+          // The replay arrives before the answer, like a real adapter's.
+          ingest({
+            type: "sessionUpdate",
+            sessionId,
+            update: {
+              sessionUpdate: "tool_call",
+              toolCallId: "old-edit",
+              title: "Edit",
+              kind: "edit",
+              status: "completed",
+              content: [{ type: "diff", path: "/weeks-ago", oldText: "a", newText: "b" }],
+            },
+          });
+          return { ...FIXTURE_SETUPS[agentId], sessionId };
+        },
+        reviewChanges: async () => [{ path: "/kept", created: false }],
+      },
+    });
+    ingest = (ev) => s().ingest(ev);
+    await s().loadSession("claude", "old-session", "C:\\p");
+    const v = s().sessions["old-session"];
+    expect(v.items.some((i) => i.kind === "tool")).toBe(true);
+    expect(v.changes).toEqual([{ path: "/kept", oldText: undefined, newText: undefined }]);
+  });
 });

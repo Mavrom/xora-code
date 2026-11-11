@@ -121,6 +121,8 @@ struct Inner {
     statuses: Mutex<HashMap<AgentId, AgentStatus>>,
     /// Diffs seen on a tool call, recorded for review once the call completes.
     pending_diffs: Mutex<PendingDiffs>,
+    /// Sessions whose `session/load` is replaying history right now.
+    replays: Replays,
     agents_dir: Mutex<Option<PathBuf>>,
     shutting_down: AtomicBool,
 }
@@ -143,6 +145,7 @@ impl Default for AgentManager {
             conns: tokio::sync::Mutex::new(HashMap::new()),
             statuses: Mutex::new(HashMap::new()),
             pending_diffs: Mutex::new(PendingDiffs::default()),
+            replays: Replays::default(),
             agents_dir: Mutex::new(None),
             shutting_down: AtomicBool::new(false),
         }))
@@ -506,6 +509,10 @@ impl AgentManager {
             .sessions
             .insert(SessionState::new(agent, cwd.clone(), placeholder));
         let params = json!({ "sessionId": session_id, "cwd": cwd, "mcpServers": [] });
+        // The adapter sends the whole replay before its answer, and notifications are
+        // handled in order on the reader task, so the replay is over once the request
+        // returns (or fails, or this future is dropped: the guard ends it either way).
+        let _replay = (!resume).then(|| self.0.replays.begin(&session_id));
         let result = conn.peer.request(method, params).await.inspect_err(|err| {
             self.0.sessions.remove(&session_id);
             self.auth_required(&conn, err);
@@ -934,6 +941,11 @@ fn observe_update(manager: &AgentManager, agent: AgentId, session_id: &str, upda
             }
         }
         Some("tool_call" | "tool_call_update") => {
+            // A replayed diff is history, not a change of the current turn: recording it
+            // would list long-gone edits and let "Revert" restore content from before them.
+            if manager.0.replays.active(session_id) {
+                return;
+            }
             let Some(call_id) = update.get("toolCallId").and_then(Value::as_str) else {
                 return;
             };
@@ -950,6 +962,43 @@ fn observe_update(manager: &AgentManager, agent: AgentId, session_id: &str, upda
             }
         }
         _ => {}
+    }
+}
+
+/// Sessions in a `session/load` replay, counted so overlapping loads of one session
+/// end only with the last.
+#[derive(Debug, Default)]
+pub struct Replays(Mutex<HashMap<String, usize>>);
+
+impl Replays {
+    /// Marks `session_id` as replaying until the returned guard is dropped.
+    pub fn begin(&self, session_id: &str) -> ReplayGuard<'_> {
+        *lock(&self.0).entry(session_id.to_owned()).or_default() += 1;
+        ReplayGuard {
+            replays: self,
+            session_id: session_id.to_owned(),
+        }
+    }
+
+    pub fn active(&self, session_id: &str) -> bool {
+        lock(&self.0).contains_key(session_id)
+    }
+}
+
+pub struct ReplayGuard<'a> {
+    replays: &'a Replays,
+    session_id: String,
+}
+
+impl Drop for ReplayGuard<'_> {
+    fn drop(&mut self) {
+        let mut map = lock(&self.replays.0);
+        if let Some(count) = map.get_mut(&self.session_id) {
+            *count -= 1;
+            if *count == 0 {
+                map.remove(&self.session_id);
+            }
+        }
     }
 }
 
@@ -1281,6 +1330,29 @@ mod tests {
                 .observe("s", "t1", Vec::new(), Some("completed"))
                 .is_empty()
         );
+    }
+
+    #[test]
+    fn replayed_diffs_are_not_recorded_for_review() {
+        let manager = AgentManager::default();
+        let call = json!({ "sessionUpdate": "tool_call", "toolCallId": "t1", "status": "completed",
+            "content": [{ "type": "diff", "path": "C:/p/a.md", "oldText": "old", "newText": "new" }] });
+
+        let first = manager.0.replays.begin("s");
+        let second = manager.0.replays.begin("s");
+        observe_update(&manager, AgentId::Codex, "s", &call);
+        drop(first);
+        assert!(
+            manager.0.replays.active("s"),
+            "an overlapping load still replays"
+        );
+        observe_update(&manager, AgentId::Codex, "s", &call);
+        drop(second);
+        assert!(manager.0.bridges.changed_files("s").is_empty());
+
+        // After the load, a diff is the current turn's change again.
+        observe_update(&manager, AgentId::Codex, "s", &call);
+        assert_eq!(manager.0.bridges.changed_files("s").len(), 1);
     }
 
     #[test]

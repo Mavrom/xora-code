@@ -230,6 +230,27 @@ describe("tool calls", () => {
     ]);
   });
 
+  it("shows a replay's diffs in the chat but not as changes", () => {
+    const data = withSession();
+    data.sessions[SID] = { ...data.sessions[SID], loading: true };
+    const diff = up({
+      sessionUpdate: "tool_call",
+      toolCallId: "t1",
+      title: "e",
+      kind: "edit",
+      status: "completed",
+      content: [{ type: "diff", path: "/old", oldText: "1", newText: "2" }],
+    });
+    const replayed = reduceEvents(data, [diff], 1000);
+    expect(replayed.sessions[SID].changes).toEqual([]);
+    expect(replayed.sessions[SID].items.map((i) => i.kind)).toEqual(["tool"]);
+
+    // Once the load is over, the same kind of update is a change of the current turn.
+    const live = { ...replayed.sessions[SID], loading: false };
+    const after = reduceEvents({ ...replayed, sessions: { [SID]: live } }, [diff], 2000);
+    expect(after.sessions[SID].changes).toEqual([{ path: "/old", oldText: "1", newText: "2" }]);
+  });
+
   it("adds written files to changes once", () => {
     const v = run([
       { type: "fileWritten", sessionId: SID, path: "/b" },

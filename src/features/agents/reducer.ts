@@ -260,7 +260,9 @@ function upsertTool(d: SessionDraft, update: AcpToolCallUpdate, now: number) {
       now,
     );
   }
-  if (call.status === "completed") recordDiffs(d, call);
+  // A `session/load` replay is history: its diffs are not this turn's changes, and the
+  // core does not hold their snapshots either (`agent_review_changes` lists what it does).
+  if (call.status === "completed" && !d.view.loading) recordDiffs(d, call);
 }
 
 function recordChange(d: SessionDraft, change: ReviewChange) {
