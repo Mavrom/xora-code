@@ -584,10 +584,22 @@ impl AgentManager {
                 .request("session/delete", json!({ "sessionId": session_id }))
                 .await;
         }
-        self.0
-            .index
-            .mark(agent, session_id, &cwd.to_string_lossy(), Mark::Deleted)
+        let (session_id, cwd) = (session_id.to_owned(), cwd.to_string_lossy().into_owned());
+        self.on_index(move |index| index.mark(agent, &session_id, &cwd, Mark::Deleted))
+            .await?
             .map_err(AgentError::from)
+    }
+
+    /// Runs a write of the session index on the blocking pool (it rewrites and syncs
+    /// `sessions.json`), like the archive, pin and rename commands (`index_write`).
+    async fn on_index<T: Send + 'static>(
+        &self,
+        job: impl FnOnce(&SessionIndex) -> T + Send + 'static,
+    ) -> Result<T> {
+        let index = self.0.index.clone();
+        tauri::async_runtime::spawn_blocking(move || job(&index))
+            .await
+            .map_err(|err| AgentError::from(std::io::Error::other(err.to_string())))
     }
 
     pub async fn sessions_list(&self, agent: AgentId, cwd: PathBuf) -> Vec<SessionEntry> {
@@ -626,12 +638,12 @@ impl AgentManager {
                         .unwrap_or("end_turn")
                         .to_owned();
                     if let Some(state) = this.0.sessions.get(&session_id) {
-                        this.0.index.touch(
-                            state.agent_id,
-                            &session_id,
-                            &state.cwd.to_string_lossy(),
-                            None,
-                        );
+                        let (id, cwd) =
+                            (session_id.clone(), state.cwd.to_string_lossy().into_owned());
+                        // Before `TurnEnded`: the UI re-lists history when it sees it.
+                        let _ = this
+                            .on_index(move |index| index.touch(state.agent_id, &id, &cwd, None))
+                            .await;
                     }
                     this.0.events.emit(AgentEvent::TurnEnded {
                         session_id,
@@ -932,12 +944,17 @@ fn observe_update(manager: &AgentManager, agent: AgentId, session_id: &str, upda
                 update.get("title").and_then(Value::as_str),
                 manager.0.sessions.get(session_id),
             ) {
-                manager.0.index.touch(
+                // This runs on the adapter's reader task: queue the title and write it on
+                // the blocking pool. Out-of-order flushes still leave the newest title.
+                let index = manager.0.index.clone();
+                index.queue_title(
                     agent,
                     session_id,
                     &state.cwd.to_string_lossy(),
-                    Some(title.to_owned()),
+                    title.to_owned(),
                 );
+                let session_id = session_id.to_owned();
+                tauri::async_runtime::spawn_blocking(move || index.flush_title(agent, &session_id));
             }
         }
         Some("tool_call" | "tool_call_update") => {

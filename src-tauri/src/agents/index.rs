@@ -3,6 +3,7 @@
 
 use super::events::AgentId;
 use serde::{Deserialize, Serialize};
+use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, Mutex, PoisonError};
 
@@ -47,10 +48,17 @@ pub enum Mark {
 /// Keeps the newest entries only, so the file stays small.
 pub const MAX_ENTRIES: usize = 500;
 
+/// Agent titles waiting for [`SessionIndex::flush_title`]: the newest per session, with its cwd.
+type QueuedTitles = HashMap<(AgentId, String), (String, String)>;
+
+/// Every method that writes `sessions.json` does blocking IO (write and sync): call it on
+/// the blocking pool, never on a tokio worker or the adapter's reader task.
 #[derive(Clone, Default)]
 pub struct SessionIndex {
     path: Arc<Mutex<Option<PathBuf>>>,
+    /// Serializes read-modify-write of the file. Taken before `titles`, never after.
     lock: Arc<Mutex<()>>,
+    titles: Arc<Mutex<QueuedTitles>>,
 }
 
 fn now_rfc3339() -> String {
@@ -135,22 +143,32 @@ impl SessionIndex {
     pub fn touch(&self, agent_id: AgentId, session_id: &str, cwd: &str, title: Option<String>) {
         let Some(path) = self.path() else { return };
         let _guard = self.lock.lock().unwrap_or_else(PoisonError::into_inner);
-        let mut entries = load(&path);
-        upsert(
-            &mut entries,
-            SessionEntry {
-                agent_id,
-                session_id: session_id.to_owned(),
-                cwd: cwd.to_owned(),
-                title,
-                updated_at: Some(now_rfc3339()),
-                archived: false,
-                deleted: false,
-                pinned: false,
-                custom_title: None,
-            },
-        );
-        let _ = save(&path, &entries);
+        write_touch(&path, agent_id, session_id, cwd, title);
+    }
+
+    /// Remembers the agent's newest title for a session without touching the disk, so the
+    /// adapter's reader task never blocks on it; [`Self::flush_title`] writes it.
+    pub fn queue_title(&self, agent_id: AgentId, session_id: &str, cwd: &str, title: String) {
+        self.titles
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .insert((agent_id, session_id.to_owned()), (cwd.to_owned(), title));
+    }
+
+    /// Writes the session's queued title, if one is still queued. The queue is read under
+    /// the file lock, so flushes that overlap or run out of order still end with the
+    /// newest title on disk: a title queued after this flush took it waits for the lock.
+    pub fn flush_title(&self, agent_id: AgentId, session_id: &str) {
+        let Some(path) = self.path() else { return };
+        let _guard = self.lock.lock().unwrap_or_else(PoisonError::into_inner);
+        let queued = self
+            .titles
+            .lock()
+            .unwrap_or_else(PoisonError::into_inner)
+            .remove(&(agent_id, session_id.to_owned()));
+        if let Some((cwd, title)) = queued {
+            write_touch(&path, agent_id, session_id, &cwd, Some(title));
+        }
     }
 
     /// Archives, unarchives or deletes an entry, adding it (without a timestamp, so its
@@ -182,6 +200,26 @@ impl SessionIndex {
             .filter(|e| e.agent_id == agent_id && normalize(&e.cwd) == key)
             .collect()
     }
+}
+
+/// The body of a touch; the caller holds the file lock. IO errors are ignored.
+fn write_touch(path: &Path, agent_id: AgentId, session_id: &str, cwd: &str, title: Option<String>) {
+    let mut entries = load(path);
+    upsert(
+        &mut entries,
+        SessionEntry {
+            agent_id,
+            session_id: session_id.to_owned(),
+            cwd: cwd.to_owned(),
+            title,
+            updated_at: Some(now_rfc3339()),
+            archived: false,
+            deleted: false,
+            pinned: false,
+            custom_title: None,
+        },
+    );
+    let _ = save(path, &entries);
 }
 
 fn normalize(path: &str) -> String {
@@ -426,6 +464,39 @@ mod tests {
                 .iter()
                 .all(|e| e.pinned && e.custom_title.as_deref() == Some(e.session_id.as_str()))
         );
+    }
+
+    #[test]
+    fn title_flushes_in_any_order_keep_the_newest_title() {
+        // Titles are queued in order on the reader task, then flushed on the blocking pool,
+        // where the flushes can run in any order, alongside a delete mark.
+        let dir = tempfile::tempdir().unwrap();
+        let index = SessionIndex::default();
+        index.set_path(dir.path().join("sessions.json"));
+        let mut threads = Vec::new();
+        for i in 0..16 {
+            index.queue_title(AgentId::Claude, "s", "C:\\p", format!("t{i}"));
+            let index = index.clone();
+            threads.push(std::thread::spawn(move || {
+                index.flush_title(AgentId::Claude, "s");
+            }));
+        }
+        let marker = index.clone();
+        threads.push(std::thread::spawn(move || {
+            marker
+                .mark(AgentId::Claude, "other", "C:\\p", Mark::Deleted)
+                .unwrap();
+        }));
+        for thread in threads {
+            thread.join().unwrap();
+        }
+        let entries = load(&dir.path().join("sessions.json"));
+        let s = entries.iter().find(|e| e.session_id == "s").unwrap();
+        assert_eq!(s.title.as_deref(), Some("t15"));
+        assert!(entries.iter().any(|e| e.session_id == "other" && e.deleted));
+        // Nothing is left queued: a later flush writes nothing.
+        index.flush_title(AgentId::Claude, "s");
+        assert_eq!(load(&dir.path().join("sessions.json")), entries);
     }
 
     #[test]
