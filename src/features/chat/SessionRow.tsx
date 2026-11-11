@@ -1,16 +1,17 @@
 import { shortTitle } from "./sessionTitle";
-import { useState, type MouseEvent } from "react";
+import { memo, useState, type MouseEvent } from "react";
 import { Archive, ArchiveRestore, MessageSquare, Pencil, Pin, PinOff, Trash2 } from "lucide-react";
 import type { SessionListEntry } from "@/features/agents/sessionList";
 import { useAgentStore } from "@/features/agents/store";
 import { relativeTime } from "@/features/inbox/relativeTime";
-import { worktreeName, worktreeOf, type Worktree } from "@/features/git/worktrees";
+import { worktreeName, worktreeOf } from "@/features/git/worktrees";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { SEPARATOR } from "@/shared/ui/menuModel";
 import { AgentGlyph } from "./AgentGlyph";
 import { openEntry } from "./openEntry";
 import { RenameField, RowAction } from "./SessionRowControls";
+import { sameRowProps, type SessionRowProps } from "./sessionRowProps";
 import { sessionStatus, type SessionStatus } from "./sessionStatus";
 import { useUnreadStore } from "./unread";
 import { t } from "@/shared/i18n";
@@ -58,15 +59,11 @@ const remove = (entry: SessionListEntry) =>
 /**
  * One conversation. Hover shows archive and delete; right-click opens the same actions.
  * Delete asks once, inside the row, so a stray click never loses a chat.
+ *
+ * Memoised: the list re-renders on every streamed batch (the store's sessions change), but
+ * a row only depends on its entry's fields, the worktrees and its own store selectors.
  */
-export function SessionRow({
-  entry,
-  worktrees,
-}: {
-  entry: SessionListEntry;
-  /** The open repository's worktrees, to tag chats that run in one. */
-  worktrees: readonly Worktree[];
-}) {
+export const SessionRow = memo(function SessionRow({ entry, worktrees }: SessionRowProps) {
   const worktree = worktreeOf(worktrees, entry.cwd);
   const [menu, setMenu] = useState<{ x: number; y: number } | null>(null);
   const [confirming, setConfirming] = useState(false);
@@ -252,4 +249,4 @@ export function SessionRow({
       )}
     </>
   );
-}
+}, sameRowProps);
