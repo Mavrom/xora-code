@@ -1,6 +1,6 @@
 [package]
 name = "xora-code"
-version = "0.1.0"
+version = "0.2.0"
 description = "Open-source, agent-first code editor"
 authors = ["Xora Code contributors"]
 license = "MIT"
