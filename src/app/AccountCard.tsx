@@ -55,7 +55,7 @@ function ViewButton({ view, icon: Icon, label, action, count, open }: ViewButton
       {count > 0 && (
         <span
           aria-hidden
-          className="absolute top-0.5 right-0.5 min-w-3.5 rounded-full bg-white/[0.12] px-1 text-[9px] leading-3.5 font-medium text-fg-muted tabular-nums"
+          className="pointer-events-none absolute -top-0.5 -right-0.5 min-w-3.5 rounded-full bg-border-strong px-1 text-[9px] leading-3.5 font-medium text-fg-muted tabular-nums"
         >
           {count > 9 ? "9+" : count}
         </span>
