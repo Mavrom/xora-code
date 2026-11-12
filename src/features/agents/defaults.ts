@@ -6,7 +6,7 @@ import { findControl } from "./controls";
 import type { AgentId } from "./types";
 
 export type ApprovalPolicy = "ask" | "autoEdits" | "full";
-export type Effort = "low" | "medium" | "high";
+export type Effort = "auto" | "low" | "medium" | "high" | "xhigh" | "max";
 export type DefaultMode = "agent" | "plan" | "chat";
 
 /** Mirrors `settings.agent` from the settings feature (`@/features/settings/types`). */
@@ -36,7 +36,7 @@ const oneOf =
 const agentId = oneOf<AgentId>(["claude", "codex", "gemini"]);
 const mode = oneOf<DefaultMode>(["agent", "plan", "chat"]);
 const policy = oneOf<ApprovalPolicy>(["ask", "autoEdits", "full"]);
-const effort = oneOf<Effort>(["low", "medium", "high"]);
+const effort = oneOf<Effort>(["auto", "low", "medium", "high", "xhigh", "max"]);
 const bool = (v: unknown, fallback: boolean) => (typeof v === "boolean" ? v : fallback);
 
 /** Tolerant parse of `settings.agent` (unknown or invalid values fall back to defaults). */
@@ -87,6 +87,24 @@ const PLAN_MODE: Record<AgentId, { key?: string; value: string }> = {
   gemini: { value: "plan" },
 };
 
+/** Effort levels the agents use, lowest first; "auto" is the agent's own default. */
+const EFFORT_LADDER = ["none", "minimal", "low", "medium", "high", "xhigh", "max"];
+
+/**
+ * The agent's levels to try for a setting, best first: the same level, else the nearest one
+ * on the ladder (the lower one on a tie). "auto" asks for the agent's own default entry
+ * and otherwise leaves the level alone.
+ */
+export function effortCandidates(effort: Effort, offered: readonly string[]): string[] {
+  if (effort === "auto") return offered.filter((v) => v === "default" || v === "auto");
+  const target = EFFORT_LADDER.indexOf(effort);
+  return offered
+    .map((v) => ({ v, at: EFFORT_LADDER.indexOf(v.toLowerCase()) }))
+    .filter((o) => o.at !== -1)
+    .sort((a, b) => Math.abs(a.at - target) - Math.abs(b.at - target) || a.at - b.at)
+    .map((o) => o.v);
+}
+
 export interface ControlChange {
   key: string;
   via: Control["via"];
@@ -130,7 +148,10 @@ export function planDefaults(
     : MODE_BY_POLICY[agentId][settings.approvalPolicy];
   push(pick(controls.mode, modeCandidates));
 
-  push(pick(controls.effort, [settings.defaultEffort]));
+  if (controls.effort) {
+    const offered = controls.effort.options.map((o) => o.value);
+    push(pick(controls.effort, effortCandidates(settings.defaultEffort, offered)));
+  }
 
   if (settings.defaultMode === "plan" && plan.key) {
     push(pick(findControl(controls, plan.key), [plan.value]));

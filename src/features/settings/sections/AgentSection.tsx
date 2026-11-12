@@ -4,6 +4,7 @@ import { cn } from "@/shared/ui/cn";
 import { useAccountsStore } from "../accountsStore";
 import { AgentModels } from "./AgentModels";
 import { stepIndex } from "../controls/keyboard";
+import { QuietChoices } from "../controls/QuietChoices";
 import { Segmented } from "../controls/Segmented";
 import { Select } from "../controls/Select";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
@@ -20,10 +21,14 @@ const MODES: { value: AgentMode; label: string }[] = [
   { value: "plan", label: t("Plan") },
 ];
 
+/** The same names as the composer's Efor row; each maps to the agent's nearest level. */
 const EFFORTS: { value: Effort; label: string }[] = [
+  { value: "auto", label: t("Auto level") },
   { value: "low", label: t("Low") },
   { value: "medium", label: t("Medium") },
   { value: "high", label: t("High") },
+  { value: "xhigh", label: t("Very high") },
+  { value: "max", label: t("Max") },
 ];
 
 const POLICIES: { value: ApprovalPolicy; title: string; description: string; icon: LucideIcon }[] =
@@ -100,10 +105,10 @@ export function AgentSection() {
           label={t("Thinking effort")}
           setting="agent.defaultEffort"
           description={t(
-            "Applied where the agent supports it. Higher effort is slower but more thorough.",
+            "Applied where the agent supports it, as its nearest level. Higher effort is slower but more thorough.",
           )}
           control={(id) => (
-            <Segmented
+            <QuietChoices
               labelledBy={id}
               value={agent.defaultEffort}
               options={EFFORTS}

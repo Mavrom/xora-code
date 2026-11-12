@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { deriveControls, type ControlSource } from "./controls";
 import {
   DEFAULT_AGENT_SETTINGS,
+  effortCandidates,
   normalizeAgentSettings,
   planDefaults,
   type AgentSettings,
@@ -144,5 +145,26 @@ describe("normalizeAgentSettings", () => {
         debugLogs: 1,
       }),
     ).toEqual({ ...DEFAULT_AGENT_SETTINGS, defaultAgent: "codex", defaultEffort: "high" });
+  });
+});
+
+describe("effortCandidates", () => {
+  const claude = ["default", "low", "medium", "high", "xhigh", "max"];
+  const codex = ["low", "medium", "high", "xhigh"];
+
+  it("takes the same level when the agent has it", () => {
+    expect(effortCandidates("xhigh", claude)[0]).toBe("xhigh");
+    expect(effortCandidates("medium", codex)[0]).toBe("medium");
+  });
+
+  it("falls back to the nearest level, the lower one on a tie", () => {
+    expect(effortCandidates("max", codex)[0]).toBe("xhigh");
+    expect(effortCandidates("xhigh", ["low", "medium", "high", "max"])[0]).toBe("high");
+    expect(effortCandidates("low", ["Medium", "High"])[0]).toBe("Medium");
+  });
+
+  it("maps auto to the agent's default entry, else changes nothing", () => {
+    expect(effortCandidates("auto", claude)).toEqual(["default"]);
+    expect(effortCandidates("auto", codex)).toEqual([]);
   });
 });

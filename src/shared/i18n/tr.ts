@@ -649,8 +649,8 @@ export const TR: Record<string, string> = {
   "not installed": "kurulu değil",
   "Agent acts; Plan drafts a plan before changing anything.":
     "Ajan uygular; Plan değişiklik yapmadan önce bir plan çıkarır.",
-  "Applied where the agent supports it. Higher effort is slower but more thorough.":
-    "Destekleyen ajanlarda uygulanır. Yüksek efor daha yavaş ama daha titizdir.",
+  "Applied where the agent supports it, as its nearest level. Higher effort is slower but more thorough.":
+    "Destekleyen ajanlarda, ajanın en yakın düzeyiyle uygulanır. Yüksek efor daha yavaş ama daha titizdir.",
   Diagnostics: "Tanılama",
   "Logs the protocol traffic with the agent, for troubleshooting.":
     "Ajanla yapılan protokol trafiğini sorun gidermek için günlüğe yazar.",

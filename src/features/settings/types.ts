@@ -3,7 +3,7 @@
 export type AgentId = "claude" | "codex" | "gemini";
 export type AgentMode = "agent" | "plan" | "chat";
 export type ApprovalPolicy = "ask" | "autoEdits" | "full";
-export type Effort = "low" | "medium" | "high";
+export type Effort = "auto" | "low" | "medium" | "high" | "xhigh" | "max";
 export type ReducedMotion = "system" | "always" | "never";
 export type RenderWhitespace = "none" | "boundary" | "all";
 export type SendKey = "enter" | "ctrlEnter";

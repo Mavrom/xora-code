@@ -205,13 +205,20 @@ pub enum ApprovalPolicy {
     Full,
 }
 
+/// The thinking level a new chat starts with; mapped to the agent's nearest level. Older
+/// files only ever held `low`, `medium` or `high`, which keep their meaning.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq, Default)]
 #[serde(rename_all = "camelCase")]
 pub enum Effort {
+    /// The agent's own default level.
+    Auto,
     Low,
     #[default]
     Medium,
     High,
+    #[serde(rename = "xhigh")]
+    XHigh,
+    Max,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq)]
@@ -690,6 +697,24 @@ mod tests {
             from_value(&json!({ "general": { "language": "klingon", "sendKey": "ctrlEnter" } }));
         assert_eq!(unknown.general.language, Language::Auto);
         assert_eq!(unknown.general.send_key, SendKey::CtrlEnter);
+    }
+
+    #[test]
+    fn effort_takes_every_level_and_old_values_still_read() {
+        for (raw, level) in [
+            ("auto", Effort::Auto),
+            ("low", Effort::Low),
+            ("medium", Effort::Medium),
+            ("high", Effort::High),
+            ("xhigh", Effort::XHigh),
+            ("max", Effort::Max),
+        ] {
+            let settings = from_value(&json!({ "agent": { "defaultEffort": raw } }));
+            assert_eq!(settings.agent.default_effort, level);
+            assert_eq!(serde_json::to_value(level).unwrap(), json!(raw));
+        }
+        let unknown = from_value(&json!({ "agent": { "defaultEffort": "ultra" } }));
+        assert_eq!(unknown.agent.default_effort, Effort::Medium);
     }
 
     #[test]
