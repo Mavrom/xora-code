@@ -573,7 +573,6 @@ export const TR: Record<string, string> = {
   "Default agent": "Varsayılan ajan",
   "Default mode": "Varsayılan mod",
   "Thinking effort": "Düşünme eforu",
-  "Visible models": "Görünen modeller",
   "Approval policy": "Onay politikası",
   "Verbose agent logs": "Ayrıntılı ajan günlükleri",
   "Send message with": "Mesajı gönder",
@@ -652,9 +651,20 @@ export const TR: Record<string, string> = {
   Diagnostics: "Tanılama",
   "Logs the protocol traffic with the agent, for troubleshooting.":
     "Ajanla yapılan protokol trafiğini sorun gidermek için günlüğe yazar.",
-  "The models an agent offers are listed here once you start your first chat with it.":
-    "Bir ajanla ilk sohbeti başlattığınızda sunduğu modeller burada listelenir.",
-  "Visible models · {name}": "Görünen modeller · {name}",
+  // features/settings/sections/AgentModels.tsx
+  "Models · {name}": "Modeller · {name}",
+  "My models": "Modellerim",
+  "None: the composer offers only the model in use.":
+    "Yok: sohbet kutusu yalnızca kullanılan modeli sunar.",
+  "Filled in after the first chat with {name}.": "{name} ile ilk sohbetten sonra dolar.",
+  "Remove {name}": "{name} kaldır",
+  "Add model": "Model ekle",
+  "{name} has not reported its models yet; they appear here after its first chat. You can add an id by hand meanwhile.":
+    "{name} henüz modellerini bildirmedi; ilk sohbetten sonra burada görünürler. Bu arada bir kimliği elle ekleyebilirsin.",
+  "Model id": "Model kimliği",
+  "Model id, e.g. an older or newer one": "Model kimliği, ör. daha eski ya da yeni bir model",
+  "Type a model id.": "Bir model kimliği yaz.",
+  "This model is already in the list.": "Bu model zaten listede.",
   // features/settings/sections/AppearanceSection.tsx
   None: "Yok",
   Scanlines: "Tarama",

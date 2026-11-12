@@ -44,9 +44,9 @@ export const SEARCH_INDEX: SearchEntry[] = [
   },
   {
     section: "agent",
-    label: t("Visible models"),
-    setting: "agent.hiddenModels",
-    keywords: "model gizle göster liste opus sonnet gpt",
+    label: t("My models"),
+    setting: "agent.myModels",
+    keywords: "model ekle kaldır liste opus sonnet gpt codex gemini",
   },
   {
     section: "agent",

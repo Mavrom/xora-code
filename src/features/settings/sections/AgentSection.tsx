@@ -1,8 +1,8 @@
 import { useId, type KeyboardEvent } from "react";
 import { Hand, PencilLine, Zap, type LucideIcon } from "lucide-react";
-import { modelKey, useModelCatalog } from "@/features/agents/modelCatalog";
 import { cn } from "@/shared/ui/cn";
 import { useAccountsStore } from "../accountsStore";
+import { AgentModels } from "./AgentModels";
 import { stepIndex } from "../controls/keyboard";
 import { Segmented } from "../controls/Segmented";
 import { Select } from "../controls/Select";
@@ -113,10 +113,7 @@ export function AgentSection() {
         />
       </SettingGroup>
 
-      <ModelVisibility
-        hidden={agent.hiddenModels}
-        onChange={(hiddenModels) => update({ agent: { hiddenModels } })}
-      />
+      <AgentModels />
 
       <SettingGroup title={t("Approval policy")} setting="agent.approvalPolicy">
         <PolicyPicker
@@ -139,65 +136,6 @@ export function AgentSection() {
           )}
         />
       </SettingGroup>
-    </>
-  );
-}
-
-/**
- * One switch per model each agent has offered, so rarely used ones leave the composer's
- * picker. The lists come from the agents themselves: an agent shows up here after its
- * first chat.
- */
-function ModelVisibility({
-  hidden,
-  onChange,
-}: {
-  hidden: string[];
-  onChange: (hidden: string[]) => void;
-}) {
-  const catalog = useModelCatalog((s) => s.models);
-  const agents = PROVIDERS.filter((p) => (catalog[p.id]?.length ?? 0) > 0);
-
-  const set = (key: string, visible: boolean) =>
-    onChange(visible ? hidden.filter((k) => k !== key) : [...hidden, key]);
-
-  if (agents.length === 0) {
-    return (
-      <SettingGroup title={t("Visible models")} setting="agent.hiddenModels">
-        <p className="px-4 py-3 text-xs text-fg-subtle">
-          {t("The models an agent offers are listed here once you start your first chat with it.")}
-        </p>
-      </SettingGroup>
-    );
-  }
-
-  return (
-    <>
-      {agents.map((provider, i) => (
-        <SettingGroup
-          key={provider.id}
-          title={t("Visible models · {name}", { name: provider.name })}
-          setting={i === 0 ? "agent.hiddenModels" : undefined}
-        >
-          {catalog[provider.id]?.map((model) => {
-            const key = modelKey(provider.id, model.value);
-            return (
-              <SettingRow
-                key={key}
-                label={model.name}
-                description={model.description}
-                control={(id) => (
-                  <Toggle
-                    labelledBy={id}
-                    checked={!hidden.includes(key)}
-                    onChange={(visible) => set(key, visible)}
-                  />
-                )}
-              />
-            );
-          })}
-        </SettingGroup>
-      ))}
     </>
   );
 }
