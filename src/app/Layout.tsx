@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Group,
   Panel,
@@ -13,7 +13,6 @@ import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
 import { moveFocusOutOfEditor } from "@/features/editor/editorFocus";
 import { useEditorStore } from "@/features/editor/store";
-import { useReviewStore } from "@/features/review/store";
 import { TerminalDock } from "@/features/terminal/TerminalDock";
 import { SettingsHost } from "@/features/settings/SettingsHost";
 import { FilesDrawer } from "./FilesDrawer";
@@ -55,13 +54,6 @@ function togglePanel(panel: PanelImperativeHandle | null) {
 /** Share of the chat + editor area an auto-opened editor gets. */
 const EDITOR_OPEN_SIZE = 45;
 
-// The Review panel brings Monaco's diff view: loaded the first time it opens.
-const ReviewPanel = lazy(() =>
-  import("@/features/review/ReviewPanel").then((m) => ({ default: m.ReviewPanel })),
-);
-
-const closeReview = () => useReviewStore.getState().close();
-
 export function Layout() {
   const sidebarPanel = usePanelRef();
   const editorPanel = usePanelRef();
@@ -74,34 +66,11 @@ export function Layout() {
 
   const activePath = useEditorStore((s) => s.activePath);
   const firstLayout = center.defaultLayout === undefined;
-  // The Review panel takes the editor's card while open; the editor stays mounted under it.
-  const reviewOpen = useReviewStore((s) => s.open);
-  const [reviewMounted, setReviewMounted] = useState(false);
-  if (reviewOpen && !reviewMounted) setReviewMounted(true);
 
   // An empty editor is just a black slab: it only opens once a file is there to show.
   const toggleEditor = () => {
-    if (useReviewStore.getState().open) {
-      closeReview();
-      const panel = editorPanel.current;
-      if (panel?.isCollapsed() && useEditorStore.getState().tabs.length > 0) panel.expand();
-      return;
-    }
     if (useEditorStore.getState().tabs.length > 0) togglePanel(editorPanel.current);
   };
-
-  // Review opens the card at a readable width; closing it with no file folds the card away.
-  useEffect(() => {
-    const panel = editorPanel.current;
-    if (!panel) return;
-    if (reviewOpen) {
-      if (panel.isCollapsed()) panel.expand();
-      if (panel.getSize().asPercentage < EDITOR_OPEN_SIZE) panel.resize(`${EDITOR_OPEN_SIZE}%`);
-    } else if (useEditorStore.getState().tabs.length === 0 && !panel.isCollapsed()) {
-      moveFocusOutOfEditor();
-      panel.collapse();
-    }
-  }, [reviewOpen, editorPanel]);
 
   // Minimal frame: the chat owns the window until there is a file to look at.
   useEffect(() => {
@@ -119,14 +88,12 @@ export function Layout() {
     if (!panel) return;
     if (!activePath) {
       // Closing the last tab hands the window back to the chat.
-      if (!first && !panel.isCollapsed() && !useReviewStore.getState().open) {
+      if (!first && !panel.isCollapsed()) {
         moveFocusOutOfEditor();
         panel.collapse();
       }
       return;
     }
-    // Opening a file (also "open file" from a diff) shows the editor, not the review.
-    closeReview();
     if (panel.isCollapsed()) panel.expand();
     if (first && panel.getSize().asPercentage < EDITOR_OPEN_SIZE) {
       panel.resize(`${EDITOR_OPEN_SIZE}%`);
@@ -226,39 +193,21 @@ export function Layout() {
                       onResize={(size) => {
                         const open = size.asPercentage > 0;
                         // Nothing to show: an editor dragged open without a file folds back.
-                        if (
-                          open &&
-                          useEditorStore.getState().tabs.length === 0 &&
-                          !useReviewStore.getState().open
-                        ) {
+                        if (open && useEditorStore.getState().tabs.length === 0) {
                           editorPanel.current?.collapse();
                           return;
                         }
-                        // Dragged shut: same focus rescue as the toggle; the review closes too.
-                        if (!open) {
-                          moveFocusOutOfEditor();
-                          closeReview();
-                        }
+                        // Dragged shut: same focus rescue as the toggle.
+                        if (!open) moveFocusOutOfEditor();
                         setEditorOpen(open);
                       }}
                     >
                       {/* A card floating over the picture, not a slab cut out of it. */}
                       <div className="h-full pr-2 pb-2 pl-1">
                         <div className="h-full overflow-hidden rounded-xl border border-white/[0.07] bg-[rgb(11_11_12/0.88)] shadow-[0_12px_40px_rgb(0_0_0/0.5),inset_0_1px_0_rgb(255_255_255/0.04)]">
-                          <div className="h-full" hidden={reviewOpen}>
-                            <ErrorBoundary area={t("Editor")}>
-                              <EditorArea />
-                            </ErrorBoundary>
-                          </div>
-                          {reviewMounted && (
-                            <div className="h-full" hidden={!reviewOpen}>
-                              <ErrorBoundary area={t("Changes")}>
-                                <Suspense fallback={null}>
-                                  <ReviewPanel />
-                                </Suspense>
-                              </ErrorBoundary>
-                            </div>
-                          )}
+                          <ErrorBoundary area={t("Editor")}>
+                            <EditorArea />
+                          </ErrorBoundary>
                         </div>
                       </div>
                     </Panel>

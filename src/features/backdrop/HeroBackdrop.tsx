@@ -5,13 +5,11 @@ import { useSettingsStore } from "@/features/settings/store";
 import { backdropSrc } from "@/features/settings/wallpaper";
 import { cn } from "@/shared/ui/cn";
 import { BackdropCanvas } from "./BackdropCanvas";
-import { CONVERSATION_LIGHT, STEPS_BACK } from "./stepBack";
 
 /**
  * The picture over the top of a new chat (Settings > Görünüm). It runs under the
  * transparent title strip to the window's top edge and sinks into onyx just below the
- * composer; in a conversation it stays behind the transcript, faint (or, with the
- * step-back variant, the whole window darkens to a trace of it).
+ * composer; in a conversation it stays behind the transcript, faint.
  */
 export function HeroBackdrop() {
   const appearance = useSettingsStore((s) => s.settings.appearance);
@@ -21,26 +19,17 @@ export function HeroBackdrop() {
 
   if (!src || failed === src) return null;
   return (
-    <>
-      <BackdropCanvas
-        key={src}
-        src={src}
-        effect={appearance.effect}
-        dim={appearance.dim}
-        onError={() => setFailed(src)}
-        // In a conversation it stays, faint, so the transcript keeps its contrast.
-        className={cn(
-          "hero-backdrop absolute inset-x-0 top-0 h-[68%] transition-opacity duration-slow starting:opacity-0",
-          docked && !STEPS_BACK ? "opacity-50" : "opacity-100",
-        )}
-      />
-      {STEPS_BACK && (
-        <div
-          aria-hidden
-          style={{ opacity: docked ? 1 - CONVERSATION_LIGHT : 0 }}
-          className="pointer-events-none absolute inset-0 bg-black transition-opacity duration-slow ease-in-out-soft"
-        />
+    <BackdropCanvas
+      key={src}
+      src={src}
+      effect={appearance.effect}
+      dim={appearance.dim}
+      onError={() => setFailed(src)}
+      // In a conversation it stays, faint, so the transcript keeps its contrast.
+      className={cn(
+        "hero-backdrop absolute inset-x-0 top-0 h-[68%] transition-opacity duration-slow starting:opacity-0",
+        docked ? "opacity-50" : "opacity-100",
       )}
-    </>
+    />
   );
 }

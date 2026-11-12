@@ -9,7 +9,7 @@
 //   &branch=1             plays a second turn, then "Edit and retry" on it (a fork for
 //                         Claude and Codex, the summary fallback for Gemini)
 //   &history=0            no saved conversations (a first run)
-//   &view=<view>          the sidebar view to open on (sessions | inbox)
+//   &view=<view>          the sidebar view to open on (sessions | inbox | changes)
 
 import { useUiStore, type SidebarView } from "@/app/uiStore";
 import { useChangesStore } from "@/features/git/changesStore";
@@ -29,7 +29,7 @@ export interface FixtureParams {
   view: SidebarView | null;
 }
 
-const VIEWS: readonly SidebarView[] = ["sessions", "inbox"];
+const VIEWS: readonly SidebarView[] = ["sessions", "inbox", "changes"];
 
 /** Parsed `?fixture=` params, or null outside DEV or without the param. */
 export function fixtureParams(

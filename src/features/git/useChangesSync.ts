@@ -3,7 +3,7 @@ import { isTauri } from "@tauri-apps/api/core";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import { onFsChange } from "@/features/workspace/fsWatch";
 import { useWorkspaceStore } from "@/features/workspace/store";
-import { useReviewStore } from "@/features/review/store";
+import { useUiStore } from "@/app/uiStore";
 import { activeCheckout } from "./changes";
 import { useChangesStore } from "./changesStore";
 import { useWorktreeStore } from "./worktrees";
@@ -24,7 +24,7 @@ export function useActiveCheckout(): string | null {
 export function useChangesSync() {
   const dir = useActiveCheckout();
   const turn = useAgentStore((s) => selectActiveSession(s)?.turn ?? "idle");
-  const viewOpen = useReviewStore((s) => s.open);
+  const viewOpen = useUiStore((s) => s.sidebarView === "changes");
   const lastTurn = useRef(turn);
   const enabled = isTauri();
 

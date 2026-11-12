@@ -2,7 +2,6 @@ import type { CSSProperties } from "react";
 import { useSettingsStore } from "@/features/settings/store";
 import { backdropSrc } from "@/features/settings/wallpaper";
 import { scrimAlpha } from "./scrim";
-import { STEPS_BACK } from "./stepBack";
 
 /**
  * A soft shade behind the conversation column so muted and meta text stay readable over a
@@ -15,8 +14,7 @@ export function ConversationScrim() {
   const alpha = useSettingsStore((s) =>
     backdropSrc(s.settings.appearance) ? scrimAlpha(s.settings.appearance.dim) : 0,
   );
-  // With the step-back variant the whole picture is already dark behind a conversation.
-  if (alpha === 0 || STEPS_BACK) return null;
+  if (alpha === 0) return null;
   return (
     <div
       aria-hidden

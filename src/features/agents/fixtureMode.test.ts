@@ -30,7 +30,7 @@ describe("fixtureParams", () => {
 
   it("parses a first run and the sidebar view", () => {
     expect(fixtureParams("?fixture=welcome&history=0")?.history).toBe(false);
-    expect(fixtureParams("?fixture=toolDiff&view=inbox")?.view).toBe("inbox");
+    expect(fixtureParams("?fixture=toolDiff&view=changes")?.view).toBe("changes");
     expect(fixtureParams("?fixture=toolDiff&view=bogus")?.view).toBeNull();
   });
 });

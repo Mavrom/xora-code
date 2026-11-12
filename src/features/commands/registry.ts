@@ -27,8 +27,8 @@ import {
 import { toggleFiles, useUiStore } from "@/app/uiStore";
 import { closeActiveTab } from "@/features/editor/closeTab";
 import { groupChanges, rowPaths } from "@/features/git/changes";
+import { CHANGES_PANEL_ID } from "@/features/git/ChangesPanel";
 import { useChangesStore } from "@/features/git/changesStore";
-import { showReview } from "@/features/review/store";
 import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { useInboxStore } from "@/features/inbox/store";
@@ -68,10 +68,11 @@ function showInbox() {
   requestAnimationFrame(() => document.getElementById(INBOX_COMPOSER_ID)?.focus());
 }
 
-/** Shows the Review panel (where a git action's result appears) and focuses it. */
+/** Shows the Changes view (where a git action's result appears) and focuses it. */
 function showChanges() {
   closeSettings();
-  showReview();
+  useUiStore.getState().setSidebarView("changes");
+  requestAnimationFrame(() => document.getElementById(CHANGES_PANEL_ID)?.focus());
 }
 
 const gitStatus = () => useChangesStore.getState().status;

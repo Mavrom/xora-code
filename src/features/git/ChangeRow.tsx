@@ -26,18 +26,7 @@ import { t } from "@/shared/i18n";
  * diff; hover or keyboard focus reveals "open diff" (an editor tab), "open file" and
  * stage / unstage / discard.
  */
-export function ChangeRow({
-  row,
-  root,
-  onSelect,
-  selected = false,
-}: {
-  row: Row;
-  root: string;
-  /** In the Review panel: activating the row shows its diff there instead of unfolding it. */
-  onSelect?: () => void;
-  selected?: boolean;
-}) {
+export function ChangeRow({ row, root }: { row: Row; root: string }) {
   const [open, setOpen] = useState(false);
   const busy = useChangesStore((s) => s.busy !== null);
   const diffId = useId();
@@ -87,22 +76,16 @@ export function ChangeRow({
 
   return (
     <>
-      <div
-        className={cn(
-          "group flex h-7 items-center rounded-md text-fg-muted transition-[background-color,color] duration-fast focus-within:bg-white/[0.04] hover:bg-white/[0.04] hover:text-fg",
-          selected && "bg-white/[0.06] text-fg",
-        )}
-      >
+      <div className="group flex h-7 items-center rounded-md text-fg-muted transition-[background-color,color] duration-fast focus-within:bg-white/[0.04] hover:bg-white/[0.04] hover:text-fg">
         <button
           ref={button}
           type="button"
           data-change-row
-          aria-expanded={onSelect ? undefined : open}
-          aria-controls={!onSelect && open ? diffId : undefined}
-          aria-current={onSelect && selected ? "true" : undefined}
+          aria-expanded={open}
+          aria-controls={open ? diffId : undefined}
           aria-label={`${row.path}, ${label}`}
           title={row.origPath ? `${row.origPath} → ${row.path}` : row.path}
-          onClick={() => (onSelect ? onSelect() : setOpen((v) => !v))}
+          onClick={() => setOpen((v) => !v)}
           className="flex h-full min-w-0 flex-1 items-center gap-2 rounded-md pl-2.5 text-left text-[13px] outline-none focus-visible:ring-1 focus-visible:ring-border-strong"
         >
           <FileIcon name={name} />
@@ -110,7 +93,7 @@ export function ChangeRow({
           {dir && <span className="min-w-0 flex-1 truncate text-2xs text-fg-subtle">{dir}</span>}
         </button>
         <span className="flex max-w-0 shrink-0 items-center gap-0.5 overflow-hidden group-focus-within:max-w-32 group-hover:max-w-32">
-          {!onSelect && <RowAction icon={FileDiff} label={t("Open diff")} onClick={openDiff} />}
+          <RowAction icon={FileDiff} label={t("Open diff")} onClick={openDiff} />
           {row.kind !== "deleted" && (
             <RowAction
               icon={ExternalLink}
@@ -158,7 +141,7 @@ export function ChangeRow({
           {statusLetter(row.kind)}
         </span>
       </div>
-      {open && !onSelect && <RowDiff id={diffId} row={row} />}
+      {open && <RowDiff id={diffId} row={row} />}
     </>
   );
 }

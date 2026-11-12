@@ -4,7 +4,6 @@ import {
   Copy,
   Download,
   Ellipsis,
-  FileDiff,
   Files,
   PanelLeft,
   PanelRight,
@@ -16,9 +15,7 @@ import { attentionCount } from "@/features/chat/sessionStatus";
 import { useUnreadStore } from "@/features/chat/unread";
 import { isDocked, sessionTitle } from "@/features/chat/sessionTitle";
 import { useEditorStore } from "@/features/editor/store";
-import { PLATFORM, useShortcut } from "@/features/keymap/keymap";
-import { useReviewSections, useReviewStore } from "@/features/review/store";
-import { describeShortcut } from "@/shared/ui/keys";
+import { useShortcut } from "@/features/keymap/keymap";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { IconButton } from "@/shared/ui/IconButton";
@@ -59,7 +56,6 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
   const hasFiles = useEditorStore((s) => s.tabs.length > 0);
   const filesOpen = useUiStore((s) => s.filesOpen);
   const filesKeys = useShortcut("view.explorer");
-  const reviewOpen = useReviewStore((s) => s.open);
 
   return (
     <header
@@ -95,13 +91,12 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
       </div>
       <div className="flex h-full shrink-0 items-center">
         <div className="flex items-center gap-0.5 pr-1">
-          <ReviewButton />
           {/* Only once there is a file to show; a new chat stays bare like the window frame. */}
           {hasFiles && (
             <IconButton
               icon={PanelRight}
-              label={editorOpen && !reviewOpen ? t("Hide editor") : t("Show editor")}
-              active={editorOpen && !reviewOpen}
+              label={editorOpen ? t("Hide editor") : t("Show editor")}
+              active={editorOpen}
               onClick={onToggleEditor}
             />
           )}
@@ -142,36 +137,6 @@ function ShowSidebarButton({ onClick }: { onClick: () => void }) {
         </span>
       )}
     </span>
-  );
-}
-
-/**
- * The Review panel's toggle, with the number of changed files on it. Only there while
- * something changed (or the panel is open); Ctrl+Shift+G does the same.
- */
-function ReviewButton() {
-  const open = useReviewStore((s) => s.open);
-  const count = useReviewSections().count;
-  const shortcut = useShortcut("view.changes");
-  const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
-  if (count === 0 && !open) return null;
-  const label = t("Review changes");
-  return (
-    <button
-      type="button"
-      aria-pressed={open}
-      aria-label={count > 0 ? `${label} (${count})` : label}
-      aria-keyshortcuts={keys}
-      title={keys ? `${label} (${keys})` : label}
-      onClick={() => useReviewStore.getState().toggle()}
-      className={cn(
-        "inline-flex h-7 shrink-0 items-center gap-1.5 rounded-md px-2 text-xs tabular-nums transition-colors duration-fast",
-        open ? "bg-elevated text-fg" : "text-fg-subtle hover:bg-hover hover:text-fg",
-      )}
-    >
-      <FileDiff size={15} strokeWidth={1.75} aria-hidden />
-      {count > 0 && <span>{count}</span>}
-    </button>
   );
 }
 
