@@ -2,6 +2,7 @@ import { Fragment, memo, useMemo, useState } from "react";
 import { Columns2 } from "lucide-react";
 import { cn } from "@/shared/ui/cn";
 import { diffLines, diffStats, limitHunks, toHunks, type DiffHunk, type DiffLine } from "./diff";
+import { reviewFile, useReviewable } from "@/features/review/store";
 import { openDiffInEditor, revealInEditor } from "./editorBridge";
 import { fileName } from "./toolView";
 import { t } from "@/shared/i18n";
@@ -41,6 +42,9 @@ export const DiffPreview = memo(function DiffPreview({
     return { hunks: toHunks(lines), stats: diffStats(lines) };
   }, [oldText, newText]);
   const isNew = oldText === null || oldText === undefined;
+  // A file the Review panel lists opens there; one not written yet (a permission prompt)
+  // still opens as a diff tab.
+  const reviewable = useReviewable(path);
 
   return (
     <div className={cn("overflow-hidden rounded-lg border border-border bg-surface", className)}>
@@ -62,11 +66,13 @@ export const DiffPreview = memo(function DiffPreview({
         <span className="flex-1" />
         <button
           type="button"
-          onClick={() => openDiffInEditor(path, oldText ?? null, newText)}
+          onClick={() => {
+            if (!reviewable || !reviewFile(path)) openDiffInEditor(path, oldText ?? null, newText);
+          }}
           className="inline-flex h-6 shrink-0 items-center gap-1.5 rounded-md px-2 text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover hover:text-fg"
         >
           <Columns2 size={12} strokeWidth={1.75} aria-hidden />
-          {t("Open in editor")}
+          {reviewable ? t("Review") : t("Open in editor")}
         </button>
       </div>
       {hunks.length === 0 ? (

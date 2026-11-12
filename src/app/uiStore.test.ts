@@ -30,9 +30,9 @@ describe("ui store", () => {
     expect(storage.data.get("xora.sidebarView")).toBe("sessions");
   });
 
-  it("restores the changes view", async () => {
+  it("opens on the chats where the retired changes view was stored", async () => {
     vi.stubGlobal("localStorage", memoryStorage({ "xora.sidebarView": "changes" }));
-    expect((await loadStore()).getState().sidebarView).toBe("changes");
+    expect((await loadStore()).getState().sidebarView).toBe("sessions");
   });
 
   it("ignores unknown stored values", async () => {

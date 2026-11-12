@@ -6,10 +6,10 @@ import { ChipMenu } from "@/features/chat/ChipMenu";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
 import { SessionList } from "@/features/chat/SessionList";
 import { emitCommand, NEW_CHAT, OPEN_PALETTE } from "@/features/commands/events";
-import { ChangesPanel } from "@/features/git/ChangesPanel";
 import { useChangesSync } from "@/features/git/useChangesSync";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
 import { useInboxStore } from "@/features/inbox/store";
+import { showReview, useReviewStore } from "@/features/review/store";
 import { closeSettings, useSettingsView } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
@@ -24,13 +24,13 @@ import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET } from "./WindowControls";
 import { t } from "@/shared/i18n";
 
 /**
- * The keymap action per view (by default Ctrl+Shift+H / N / G, Control on macOS too).
- * The defaults avoid WebView2's Ctrl+Shift+I/J (devtools).
+ * The keymap action per view (by default Ctrl+Shift+H / N, Control on macOS too); the
+ * defaults avoid WebView2's Ctrl+Shift+I/J (devtools). Ctrl+Shift+G, once the Changes view,
+ * now toggles the Review panel.
  */
 const VIEW_ACTIONS: Record<SidebarView, ActionId> = {
   sessions: "view.sessions",
   inbox: "view.inbox",
-  changes: "view.changes",
 };
 const VIEWS = Object.keys(VIEW_ACTIONS) as SidebarView[];
 
@@ -62,6 +62,12 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       if (matchesAction(e, "view.explorer")) {
         e.preventDefault();
         toggleFiles();
+        return;
+      }
+      if (matchesAction(e, "view.changes")) {
+        e.preventDefault();
+        if (useReviewStore.getState().open) useReviewStore.getState().close();
+        else showReview();
         return;
       }
       const match = VIEWS.find((v) => matchesAction(e, VIEW_ACTIONS[v]));
@@ -150,9 +156,6 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
           <div className="min-h-0 flex-1">
             <InboxPanel />
           </div>
-        </div>
-        <div className="h-full" hidden={view !== "changes"}>
-          <ChangesPanel />
         </div>
       </div>
 

@@ -12,10 +12,13 @@ interface ChangeGroupProps {
   /** The "Staged" group (unstage actions) rather than "Changes" (stage and discard). */
   staged: boolean;
   root: string;
+  /** In the Review panel: the row whose diff is shown, and how to show another. */
+  onSelect?: (row: Row) => void;
+  isSelected?: (row: Row) => boolean;
 }
 
 /** A titled list of changed files with its group-wide actions. */
-export function ChangeGroup({ title, rows, staged, root }: ChangeGroupProps) {
+export function ChangeGroup({ title, rows, staged, root, onSelect, isSelected }: ChangeGroupProps) {
   const headingId = useId();
   const busy = useChangesStore((s) => s.busy !== null);
   const store = useChangesStore.getState;
@@ -68,7 +71,12 @@ export function ChangeGroup({ title, rows, staged, root }: ChangeGroupProps) {
       <ul className="flex flex-col gap-px">
         {rows.map((row) => (
           <li key={row.path}>
-            <ChangeRow row={row} root={root} />
+            <ChangeRow
+              row={row}
+              root={root}
+              onSelect={onSelect && (() => onSelect(row))}
+              selected={isSelected?.(row) ?? false}
+            />
           </li>
         ))}
       </ul>

@@ -1,8 +1,9 @@
 import { create } from "zustand";
 
-export type SidebarView = "sessions" | "inbox" | "changes";
+/** The sidebar body: the conversations, or the Inbox. (Changes moved to the Review panel.) */
+export type SidebarView = "sessions" | "inbox";
 
-const VIEWS: readonly SidebarView[] = ["sessions", "inbox", "changes"];
+const VIEWS: readonly SidebarView[] = ["sessions", "inbox"];
 
 const STORAGE_KEY = "xora.sidebarView";
 const FILES_KEY = "xora.filesOpen";

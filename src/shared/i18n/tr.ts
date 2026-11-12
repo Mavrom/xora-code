@@ -87,6 +87,14 @@ export const TR: Record<string, string> = {
   new: "yeni",
   "File changed since": "Dosya sonra değişti",
   Revert: "Geri al",
+  // features/chat/ChangesPill.tsx, features/review/
+  "{n} file(s) changed": "{n} dosya değişti",
+  Review: "İncele",
+  "Review changes": "Değişiklikleri incele",
+  "This turn": "Bu tur",
+  "Other uncommitted changes": "Commit edilmemiş diğer değişiklikler",
+  "Accept all": "Tümünü kabul et",
+  "Open the file to see this change.": "Bu değişikliği görmek için dosyayı aç.",
   // features/chat/ChatPanel.tsx
   "Sign-in failed: {reason}": "Giriş başarısız: {reason}",
   "Sign-in failed.": "Giriş başarısız.",
