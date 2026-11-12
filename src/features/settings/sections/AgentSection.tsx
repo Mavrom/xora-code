@@ -104,6 +104,7 @@ export function AgentSection() {
         <SettingRow
           label={t("Thinking effort")}
           setting="agent.defaultEffort"
+          stacked
           description={t(
             "Applied where the agent supports it, as its nearest level. Higher effort is slower but more thorough.",
           )}

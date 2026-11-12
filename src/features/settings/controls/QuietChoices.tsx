@@ -39,7 +39,7 @@ export function QuietChoices<T extends string>({
       role="radiogroup"
       aria-labelledby={labelledBy}
       onKeyDown={onKeyDown}
-      className="flex flex-wrap justify-end gap-px"
+      className="flex flex-wrap gap-px"
     >
       {options.map((option, i) => {
         const selected = i === index;
