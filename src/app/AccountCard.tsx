@@ -94,7 +94,10 @@ export function AccountCard({
         <button
           type="button"
           onClick={() => openSettings("accounts")}
-          title={t("Accounts")}
+          // The status word lives here; the card itself only has room for the name and dot.
+          title={`${name}
+${agent.displayName} · ${note}`}
+          aria-label={`${t("Accounts")}: ${name}, ${agent.displayName} · ${note}`}
           className="flex min-w-0 flex-1 items-center gap-2.5 rounded-lg p-1.5 text-left transition-colors duration-fast hover:bg-white/[0.04]"
         >
           <span
@@ -110,9 +113,7 @@ export function AccountCard({
             <span className="block truncate text-xs font-medium text-fg">{name}</span>
             <span className="flex items-center gap-1.5 text-[11px] text-fg-subtle">
               <AgentGlyph agent={agentId} size={10} tinted />
-              <span className="truncate">
-                {agent.displayName} · {note}
-              </span>
+              <span className="truncate">{agent.displayName}</span>
               <span
                 aria-hidden
                 className={cn(
