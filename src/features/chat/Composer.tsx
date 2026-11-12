@@ -365,7 +365,8 @@ export function Composer({
           )}
         />
         <div className="flex items-center gap-2 px-2 pt-1 pb-2">
-          <div className="flex min-w-0 flex-1 flex-wrap items-center gap-0.5">{toolbar}</div>
+          {/* One row: the settings chip truncates instead of wrapping. */}
+          <div className="flex min-w-0 flex-1 items-center gap-0.5">{toolbar}</div>
           {meter}
           <SendButton
             running={running}

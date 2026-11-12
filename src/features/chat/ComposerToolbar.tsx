@@ -1,69 +1,11 @@
 import { useState, type ReactNode } from "react";
 import { ChevronDown, FileCode, FilePlus, FolderPlus, Monitor, Paperclip } from "lucide-react";
-import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
-import { visibleModels } from "@/features/agents/modelCatalog";
-import { AGENT_IDS } from "@/features/agents/reducer";
-import type { AgentId, AgentInfo } from "@/features/agents/types";
-import { useSettingsStore } from "@/features/settings/store";
-import { openSettings } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import type { MenuEntry } from "@/shared/ui/menuModel";
-import { AgentGlyph } from "./AgentGlyph";
-import { ChipMenu, type ChipOption, type ChipSection } from "./ChipMenu";
-import { effortLabel, pickerSummary, statusNote } from "./controlsView";
+import { ChipMenu } from "./ChipMenu";
 import { contextRatio, formatTokens } from "./format";
 import { t } from "@/shared/i18n";
-
-type SetControl = (key: string, value: string | boolean) => void;
-
-/** Which chip a fixture screenshot opens on mount. */
-export type OpenChip = "picker" | "mode" | null;
-
-const toOptions = (control: SelectControl): ChipOption[] =>
-  control.options.map((o) => ({
-    value: o.value,
-    name: o.name,
-    description: o.description,
-    group: o.group,
-  }));
-
-const selectSection = (
-  key: string,
-  label: string,
-  control: SelectControl,
-  onSet: SetControl,
-  options: ChipOption[] = toOptions(control),
-): ChipSection => ({
-  key,
-  label,
-  value: control.current,
-  options,
-  onSelect: (value) => onSet(control.key, value),
-});
-
-/** Agent-specific extras (e.g. Codex fast mode): a toggle becomes an Açık/Kapalı choice. */
-function extraSection(control: Control, onSet: SetControl): ChipSection {
-  if ("boolean" in control) {
-    return {
-      key: control.key,
-      label: control.label,
-      value: control.current ? "on" : "off",
-      options: [
-        { value: "on", name: t("On") },
-        { value: "off", name: t("Off") },
-      ],
-      onSelect: (value) => onSet(control.key, value === "on"),
-    };
-  }
-  return selectSection(control.key, control.label, control, onSet);
-}
-
-/**
- * Agent options left out of the picker. `agent` is Claude Code's persona list (custom
- * subagents with paragraph-long descriptions); it needs its own, roomier UI.
- */
-const HIDDEN_EXTRAS = new Set(["agent"]);
 
 /** Muted chip look of the line above and below the composer. */
 const quietChip =
@@ -84,108 +26,6 @@ export function ContextChevron() {
       strokeWidth={2}
       aria-hidden
       className="shrink-0 opacity-60 transition-opacity duration-fast group-hover/part:opacity-100 group-focus-visible/part:opacity-100"
-    />
-  );
-}
-
-interface ModelPickerProps {
-  agents: Record<AgentId, AgentInfo>;
-  agentId: AgentId;
-  controls: SessionControls | null;
-  onSelectAgent: (id: AgentId) => void;
-  onSetControl: SetControl;
-  openChip?: OpenChip;
-  side: "top" | "bottom";
-}
-
-/**
- * The one chip inside the composer: the agent's mark, model and effort ("Opus 5.5 Orta").
- * Its menu also holds the agent, the approval mode and any agent-specific extras.
- */
-export function ModelPicker({
-  agents,
-  agentId,
-  controls,
-  onSelectAgent,
-  onSetControl,
-  openChip,
-  side,
-}: ModelPickerProps) {
-  const agent = agents[agentId];
-  const summary = pickerSummary(agent.displayName, controls?.model, controls?.effort);
-  const hiddenModels = useSettingsStore((s) => s.settings.agent.hiddenModels);
-
-  const sections: ChipSection[] = [
-    {
-      key: "agent",
-      label: t("Agent"),
-      value: agentId,
-      onSelect: (value) => onSelectAgent(value as AgentId),
-      options: AGENT_IDS.map((id) => ({
-        value: id,
-        name: agents[id].displayName,
-        leading: <AgentGlyph agent={id} tinted />,
-        meta: statusNote(agents[id].status),
-      })),
-    },
-  ];
-  if (controls?.model) {
-    const model = controls.model;
-    const options = toOptions({ ...model, options: visibleModels(agentId, model, hiddenModels) });
-    sections.push(selectSection("model", t("Model"), model, onSetControl, options));
-  }
-  if (controls?.effort) {
-    const effort = controls.effort;
-    sections.push(
-      selectSection(
-        "effort",
-        t("Thinking level"),
-        effort,
-        onSetControl,
-        effort.options.map((o) => ({ value: o.value, name: effortLabel(o.value, o.name) })),
-      ),
-    );
-  }
-  if (controls?.mode) {
-    sections.push(
-      selectSection("mode", controls.mode.label || t("Mode"), controls.mode, onSetControl),
-    );
-  }
-  for (const control of controls?.extra ?? []) {
-    if (!HIDDEN_EXTRAS.has(control.key)) sections.push(extraSection(control, onSetControl));
-  }
-  if (controls?.model) {
-    // Never checked: a link to the list of models the picker shows.
-    sections.push({
-      key: "models",
-      label: t("List"),
-      value: "",
-      options: [{ value: "edit", name: t("Choose visible models…") }],
-      onSelect: () => openSettings("agent"),
-    });
-  }
-
-  // The mark already names the agent: show model and effort, like "Opus 5.5 Orta".
-  const parts = summary.length > 1 ? summary.slice(1) : summary;
-  return (
-    <ChipMenu
-      label={t("Agent, model and settings")}
-      side={side}
-      defaultOpen={openChip === "picker" || openChip === "mode"}
-      chevron={false}
-      buttonClassName="inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 text-xs transition-colors duration-fast hover:bg-hover"
-      leading={<AgentGlyph agent={agentId} size={13} tinted />}
-      display={parts.map((part, i) => (
-        <span key={i} className={i === 0 ? "font-medium text-fg" : "text-fg-subtle"}>
-          {i > 0 && (
-            <span aria-hidden className="mx-1.5 text-fg-subtle/60">
-              ·
-            </span>
-          )}
-          {part}
-        </span>
-      ))}
-      sections={sections}
     />
   );
 }

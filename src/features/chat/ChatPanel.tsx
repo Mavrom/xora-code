@@ -15,15 +15,8 @@ import { AgentStatusCard } from "./AgentStatusCard";
 import { CheckoutChip } from "./CheckoutChip";
 import { ChangesPill } from "./ChangesPill";
 import { Composer, type ComposerHandle } from "./Composer";
-import {
-  AttachMenu,
-  ContextMeter,
-  ContextRow,
-  FolderChip,
-  HostChip,
-  ModelPicker,
-  type OpenChip,
-} from "./ComposerToolbar";
+import { AttachMenu, ContextMeter, ContextRow, FolderChip, HostChip } from "./ComposerToolbar";
+import { SettingsChip } from "./SettingsChip";
 import { attachmentFromBlob, toBlocks, type Attachment } from "./attachments";
 import { editAndRetry } from "./branchChat";
 import { PermissionPrompt } from "./PermissionPrompt";
@@ -67,14 +60,14 @@ function authFailureText(err: unknown): string {
 const MessageList = lazy(() => import("./MessageList").then((m) => ({ default: m.MessageList })));
 
 /** DEV-only `?fixture=` screenshot knobs: the cwd the fixture sessions use, an open chip. */
-function devFixture(): { cwd: string; open: OpenChip } | null {
+function devFixture(): { cwd: string; open: boolean } | null {
   if (!import.meta.env.DEV) return null;
   const params = new URLSearchParams(window.location.search);
   if (!params.has("fixture")) return null;
   const open = params.get("open");
   return {
     cwd: "C:\\Users\\dev\\projects\\xora-demo",
-    open: open === "picker" || open === "mode" ? open : null,
+    open: open === "picker",
   };
 }
 const FIXTURE = devFixture();
@@ -209,7 +202,6 @@ export function ChatPanel() {
 
   const sessionId = session?.sessionId ?? null;
   const permission = session?.permissions[0] ?? null;
-  const side = docked ? "top" : "bottom";
   const hero = !docked;
   // The repository's name, also while the chat runs in one of its worktrees.
   const repoPath = root || cwd;
@@ -283,14 +275,13 @@ export function ChatPanel() {
                   : null
               }
             />
-            <ModelPicker
+            <SettingsChip
               agents={agents}
               agentId={agentId}
               controls={session?.controls ?? null}
               onSelectAgent={(id) => void selectAgent(id)}
               onSetControl={setControl}
-              openChip={FIXTURE?.open}
-              side={side}
+              defaultOpen={FIXTURE?.open}
             />
           </>
         }

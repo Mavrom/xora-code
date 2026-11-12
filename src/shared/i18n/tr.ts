@@ -146,9 +146,9 @@ export const TR: Record<string, string> = {
   // features/chat/ComposerToolbar.tsx
   On: "Açık",
   Off: "Kapalı",
-  "Thinking level": "Düşünme düzeyi",
-  List: "Liste",
-  "Choose visible models…": "Görünen modelleri seç…",
+  // features/chat/SettingsChip.tsx
+  Effort: "Efor",
+  "Edit models…": "Modelleri düzenle…",
   "Agent, model and settings": "Agent, model ve ayarlar",
   "File…": "Dosya…",
   "Folder…": "Klasör…",

@@ -1,4 +1,4 @@
-// Labels for the composer's agent / model / effort chip, derived from the unified controls.
+// Labels for the composer's settings chip and panel, derived from the unified controls.
 import type { SelectControl } from "@/features/agents/controls";
 import type { AgentStatus } from "@/features/agents/types";
 import { t } from "@/shared/i18n";
@@ -36,19 +36,33 @@ export function modelLabel(control: SelectControl, agentName: string): string {
   return name.toLowerCase().startsWith(prefix.toLowerCase()) ? name.slice(prefix.length) : name;
 }
 
-/** "Claude · Sonnet 4.5 · Yüksek": the parts the session actually has. */
+/**
+ * "Sonnet 4.5 · Yüksek · Plan mode": the parts the session actually has, model first (the
+ * agent's name when it reports no model; its mark sits beside the chip's text).
+ */
 export function pickerSummary(
   agentName: string,
   model: SelectControl | undefined,
   effort: SelectControl | undefined,
+  mode: SelectControl | undefined,
 ): string[] {
-  const parts = [agentName];
-  if (model) parts.push(modelLabel(model, agentName));
+  const parts = [model ? modelLabel(model, agentName) : agentName];
   if (effort) {
     const option = effort.options.find((o) => o.value === effort.current);
     parts.push(effortLabel(effort.current, option?.name));
   }
+  if (mode) parts.push(currentName(mode));
   return parts;
+}
+
+/** Longest option name a segment shows before the choice falls back to a list. */
+const SEGMENT_NAME_MAX = 14;
+
+/** Whether a choice fits one segmented row in the panel: few options, short names. */
+export function fitsSegments(names: readonly string[], max = 4): boolean {
+  return (
+    names.length > 0 && names.length <= max && names.every((n) => n.length <= SEGMENT_NAME_MAX)
+  );
 }
 
 /** Short status note next to an agent in the picker; empty when there is nothing to say. */
