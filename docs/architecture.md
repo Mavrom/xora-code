@@ -136,7 +136,7 @@ The ACP client. One adapter process per agent kind, many sessions per process.
 
 ### `system`
 
-`system.rs`: `system_hostname` (the computer name shown above the composer, or `null` when there is none; the UI then shows its translated "This computer") and `adopt_login_shell_path`, which on macOS reads the login shell's `PATH` at startup (5 s limit) so `node` and `git` from Homebrew, nvm or Volta are found when the app is opened from Finder.
+`system.rs`: `system_hostname` (the computer name shown on the sidebar's account card, or `null` when there is none; the UI then shows its translated "This computer") and `adopt_login_shell_path`, which on macOS reads the login shell's `PATH` at startup (5 s limit) so `node` and `git` from Homebrew, nvm or Volta are found when the app is opened from Finder.
 
 ## Frontend
 
@@ -146,7 +146,7 @@ The ACP client. One adapter process per agent kind, many sessions per process.
 | ---------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | `App.tsx`                                                  | Installs the app-wide hooks before the first render (`installLanguage`, `installWindowLook`, `installUiPrefs`, `installAutoSave`, …), owns the overlays (palette, quick open, find in files) and mounts `useAgentEvents`. |
 | `Layout.tsx`                                               | Resizable panels: sidebar, chat, editor and the terminal dock, with the files drawer and Settings host.                                                                                                                   |
-| `Sidebar.tsx`                                              | Conversations, Inbox and Changes views; loads the Inbox on start.                                                                                                                                                         |
+| `Sidebar.tsx`                                              | The conversation list; the Inbox and Changes open in its place from the account card. Loads the Inbox on start.                                                                                                           |
 | `MainBar.tsx`                                              | The title strip over the chat: conversation title, panel toggles, export.                                                                                                                                                 |
 | `FilesDrawer.tsx`                                          | The file tree in a drawer; always mounted, because the tree runs the workspace lifecycle.                                                                                                                                 |
 | `WindowControls.tsx`, `useWindowState.ts`                  | Window buttons for the frameless window; on macOS `NATIVE_CAPTION` hides them for the native traffic lights.                                                                                                              |
