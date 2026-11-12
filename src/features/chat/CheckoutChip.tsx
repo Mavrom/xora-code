@@ -14,7 +14,7 @@ import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { SEPARATOR, type MenuEntry } from "@/shared/ui/menuModel";
 import { t } from "@/shared/i18n";
-import { contextPart } from "./ComposerToolbar";
+import { ContextChevron, contextPart } from "./ComposerToolbar";
 
 interface CheckoutChipProps {
   /** The open repository. */
@@ -172,12 +172,17 @@ export function CheckoutChip({ repo, cwd, chatTitle, branch, onNotice }: Checkou
     );
   }
 
+  const shown = current
+    ? worktreeName(current.path)
+    : (branch ?? main.branch ?? t("Current checkout"));
+
   return (
     <>
       <button
         type="button"
         aria-haspopup="menu"
         aria-expanded={at !== null}
+        aria-label={t("Checkout: {name}. Change where the agent works", { name: shown })}
         disabled={busy}
         title={
           current ? t("Worktree: {name}", { name: current.path }) : t("Checkout the agent works in")
@@ -186,19 +191,11 @@ export function CheckoutChip({ repo, cwd, chatTitle, branch, onNotice }: Checkou
           const r = e.currentTarget.getBoundingClientRect();
           setAt(at ? null : { x: r.left, y: r.bottom + 6 });
         }}
-        className={cn(
-          contextPart,
-          "disabled:opacity-60",
-          at && "bg-glass text-fg-muted",
-          busy && "animate-pulse",
-        )}
+        className={cn(contextPart, "disabled:opacity-60", busy && "animate-pulse")}
       >
-        {current && (
-          <FolderGit2 size={12} strokeWidth={1.75} aria-hidden className="mr-1 shrink-0" />
-        )}
-        <span className="truncate">
-          {current ? worktreeName(current.path) : (branch ?? main.branch ?? t("Current checkout"))}
-        </span>
+        {current && <FolderGit2 size={12} strokeWidth={1.75} aria-hidden className="shrink-0" />}
+        <span className="truncate">{shown}</span>
+        <ContextChevron />
       </button>
       {at && (
         <ContextMenu

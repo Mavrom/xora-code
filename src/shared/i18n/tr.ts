@@ -107,6 +107,8 @@ export const TR: Record<string, string> = {
   "Remove from queue": "Sıradan çıkar",
   // features/chat/CheckoutChip.tsx
   "Worktree: {name}": "Worktree: {name}",
+  "Checkout: {name}. Change where the agent works":
+    "Checkout: {name}. Agent'ın çalıştığı yeri değiştir",
   "New worktree: {name} ({branch})": "Yeni worktree: {name} ({branch})",
   "Changes from {name} were merged into {into}; the worktree was removed.":
     "{name} değişiklikleri {into} branch'ine alındı; worktree kaldırıldı.",
@@ -150,6 +152,7 @@ export const TR: Record<string, string> = {
   Environment: "Çalışma ortamı",
   "The agent runs on this computer.": "Agent bu bilgisayarda çalışır.",
   "Open another folder": "Başka bir klasör aç",
+  "Folder: {name}. Open another folder": "Klasör: {name}. Başka bir klasör aç",
   "Open folder": "Klasör aç",
   "Choose a folder": "Klasör seç",
   "Git branch: {branch}": "Git dalı: {branch}",

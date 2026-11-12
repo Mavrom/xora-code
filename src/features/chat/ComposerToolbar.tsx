@@ -1,5 +1,5 @@
 import { useState, type ReactNode } from "react";
-import { FileCode, FilePlus, FolderPlus, Monitor, Paperclip } from "lucide-react";
+import { ChevronDown, FileCode, FilePlus, FolderPlus, Monitor, Paperclip } from "lucide-react";
 import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
 import { visibleModels } from "@/features/agents/modelCatalog";
 import { AGENT_IDS } from "@/features/agents/reducer";
@@ -69,9 +69,24 @@ const HIDDEN_EXTRAS = new Set(["agent"]);
 const quietChip =
   "inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-xs text-fg-muted transition-colors duration-fast hover:bg-glass hover:text-fg";
 
-/** One part of the context line under the composer: plain muted text until hovered. */
+/**
+ * One part of the context line under the composer: muted text with a small chevron, lifted
+ * on hover and keyboard focus so it reads as a control without competing with the composer.
+ */
 export const contextPart =
-  "inline-flex h-6 max-w-full min-w-0 shrink items-center rounded-md px-1.5 text-xs text-fg-subtle transition-colors duration-fast hover:bg-glass hover:text-fg-muted";
+  "group/part inline-flex h-6 max-w-full min-w-0 shrink items-center gap-0.5 rounded-md pr-1 pl-1.5 text-xs text-fg-subtle transition-colors duration-fast hover:bg-glass hover:text-fg-muted focus-visible:bg-glass focus-visible:text-fg-muted aria-expanded:bg-glass aria-expanded:text-fg-muted";
+
+/** The chevron that marks a context-line part as something that opens. */
+export function ContextChevron() {
+  return (
+    <ChevronDown
+      size={11}
+      strokeWidth={2}
+      aria-hidden
+      className="shrink-0 opacity-60 transition-opacity duration-fast group-hover/part:opacity-100 group-focus-visible/part:opacity-100"
+    />
+  );
+}
 
 interface ModelPickerProps {
   agents: Record<AgentId, AgentInfo>;
@@ -293,14 +308,19 @@ export function FolderChip({
   folderName: string | null;
   onOpenFolder: () => void;
 }) {
+  const label = folderName
+    ? t("Folder: {name}. Open another folder", { name: folderName })
+    : t("Choose a folder");
   return (
     <button
       type="button"
       onClick={onOpenFolder}
+      aria-label={label}
       title={folderName ? t("Open another folder") : t("Open folder")}
       className={contextPart}
     >
       <span className="truncate">{folderName ?? t("Choose a folder")}</span>
+      <ContextChevron />
     </button>
   );
 }
@@ -322,8 +342,8 @@ const Dot = () => (
 );
 
 /**
- * The one quiet line under the composer: folder · branch (or worktree). Each part opens the
- * same menu its chip did; at rest it is plain muted text.
+ * The one quiet line under the composer: folder · branch (or worktree). The folder part opens
+ * another folder, the checkout part its menu; a branch outside a repository menu is plain text.
  */
 export function ContextRow({ folder, checkout, branch, aside }: ContextRowProps) {
   return (
@@ -340,7 +360,7 @@ export function ContextRow({ folder, checkout, branch, aside }: ContextRowProps)
             <Dot />
             <span
               title={t("Git branch: {branch}", { branch })}
-              className={cn(contextPart, "hover:bg-transparent hover:text-fg-subtle")}
+              className="inline-flex h-6 max-w-full min-w-0 shrink items-center px-1.5 text-xs text-fg-subtle"
             >
               <span className="truncate">{branch}</span>
             </span>
