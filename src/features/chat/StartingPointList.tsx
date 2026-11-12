@@ -3,14 +3,10 @@ import { Inbox, PenLine } from "lucide-react";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
 import { sendToChat } from "@/features/commands/events";
 import { selectWorktrees, useWorktreeStore } from "@/features/git/worktrees";
-import { relativeTime } from "@/features/inbox/relativeTime";
 import { useInboxStore } from "@/features/inbox/store";
 import { cn } from "@/shared/ui/cn";
 import { t } from "@/shared/i18n";
-import { AgentGlyph } from "./AgentGlyph";
 import { chipClass } from "./chipStyles";
-import { openEntry } from "./openEntry";
-import { shortTitle } from "./sessionTitle";
 import { emptySessionKey, flatSessions, visibleGroups } from "./sessionListView";
 import { noteLine, startingPoints, type StartingPoint } from "./startingPoints";
 
@@ -26,8 +22,8 @@ interface StartingPointListProps {
 }
 
 /**
- * A quiet row under the new-chat composer: back to the last conversation, the top Inbox
- * note, or a starter prompt. Nothing here sends; a prompt or note only fills the composer.
+ * A quiet row under the new-chat composer of a project with no conversation yet: the top
+ * Inbox note, or a starter prompt. Nothing here sends; a prompt or note only fills the composer.
  */
 export function StartingPointList({
   root,
@@ -68,11 +64,7 @@ export function StartingPointList({
 }
 
 const keyOf = (point: StartingPoint) =>
-  point.kind === "continue"
-    ? `c:${point.entry.agentId}:${point.entry.sessionId}`
-    : point.kind === "note"
-      ? `n:${point.note.id}`
-      : `p:${point.prompt.label}`;
+  point.kind === "note" ? `n:${point.note.id}` : `p:${point.prompt.label}`;
 
 function PointButton({
   point,
@@ -85,29 +77,6 @@ function PointButton({
   // secondary to the composer.
   const base = cn(chipClass(false, "outline"), "group w-full text-left");
   const icon = "shrink-0 text-fg-subtle transition-colors duration-fast group-hover:text-fg-muted";
-
-  if (point.kind === "continue") {
-    const { entry } = point;
-    const title = entry.title ? shortTitle(entry.title) : t("Untitled chat");
-    const updated = entry.updatedAt ? Date.parse(entry.updatedAt) : NaN;
-    return (
-      <button
-        type="button"
-        onClick={() => openEntry(entry)}
-        title={entry.title ?? undefined}
-        className={base}
-      >
-        <AgentGlyph agent={entry.agentId} size={13} className={icon} />
-        <span className="sr-only">{t("Continue:")}</span>
-        <span className="min-w-0 flex-1 truncate">{title}</span>
-        {Number.isFinite(updated) && (
-          <span className="shrink-0 text-2xs text-fg-subtle tabular-nums">
-            {relativeTime(updated)}
-          </span>
-        )}
-      </button>
-    );
-  }
 
   if (point.kind === "note") {
     const { note } = point;

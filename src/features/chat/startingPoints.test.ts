@@ -65,7 +65,7 @@ describe("startingPoints", () => {
     expect(startingPoints(input({ projectPaths: [] }))).toEqual([]);
   });
 
-  it("offers no prompts and no conversation without a folder, but keeps the note", () => {
+  it("offers no prompts without a folder, but keeps the note", () => {
     const points = startingPoints(
       input({ projectPaths: [], sessions: [entry("a")], notes: [note("n")] }),
     );

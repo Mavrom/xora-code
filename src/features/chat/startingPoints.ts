@@ -1,4 +1,4 @@
-// What a new chat offers under its composer: the last conversation of this project, the top
+// What a new chat offers under its composer, for a project with no conversation yet: the top
 // Inbox note and, while slots are left, a few starter prompts. Pure.
 import { sameProject, type SessionListEntry } from "@/features/agents/sessionList";
 import { sortNotes } from "@/features/inbox/sortNotes";
@@ -33,25 +33,23 @@ export const STARTER_PROMPTS: readonly StarterPrompt[] = [
 ];
 
 export type StartingPoint =
-  | { kind: "continue"; entry: SessionListEntry }
-  | { kind: "note"; note: Note }
-  | { kind: "prompt"; prompt: StarterPrompt };
+  { kind: "note"; note: Note } | { kind: "prompt"; prompt: StarterPrompt };
 
 export interface StartingPointsInput {
   /** Conversations newest first, without the untouched ones (`flatSessions(visibleGroups(…))`). */
   sessions: readonly SessionListEntry[];
   /** The open project's folders (the repository and its worktrees); empty when none is open. */
   projectPaths: readonly string[];
-  /** The chat this screen belongs to, never offered as its own continuation. */
+  /** The chat this screen belongs to; it does not count as the project's history. */
   currentSessionId: string | null;
   notes: readonly Note[];
   prompts?: readonly StarterPrompt[];
 }
 
 /**
- * Which starting points to show, in order: continue, Inbox, then starter prompts. Only for a
- * project with no conversation yet: a returning user gets a clean hero (the sidebar already
- * lists their chats).
+ * Which starting points to show, in order: the Inbox, then starter prompts. Only for a
+ * project with no conversation yet (archived ones count): a returning user gets a clean hero,
+ * the sidebar already lists their chats.
  */
 export function startingPoints({
   sessions,
@@ -60,19 +58,12 @@ export function startingPoints({
   notes,
   prompts = STARTER_PROMPTS,
 }: StartingPointsInput): StartingPoint[] {
-  const out: StartingPoint[] = [];
   const hasHistory = sessions.some(
     (e) => e.sessionId !== currentSessionId && projectPaths.some((p) => sameProject(e.cwd, p)),
   );
-  if (hasHistory) return out;
+  if (hasHistory) return [];
 
-  const last = sessions.find(
-    (e) =>
-      !e.archived &&
-      e.sessionId !== currentSessionId &&
-      projectPaths.some((path) => sameProject(e.cwd, path)),
-  );
-  if (last) out.push({ kind: "continue", entry: last });
+  const out: StartingPoint[] = [];
 
   const note = sortNotes(notes).find((n) => !n.done && n.text.trim() !== "");
   if (note) out.push({ kind: "note", note });

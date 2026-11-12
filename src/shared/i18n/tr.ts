@@ -824,7 +824,6 @@ export const TR: Record<string, string> = {
 
   // New chat: starting points under the composer
   "Starting points": "Başlangıç noktaları",
-  "Continue:": "Devam et:",
   "Inbox note:": "Inbox notu:",
   "Put this Inbox note in the message": "Bu Inbox notunu mesaj alanına koy",
   "Explain this project": "Bu projeyi açıkla",
