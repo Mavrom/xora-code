@@ -3,7 +3,8 @@ use crate::error::AppResult;
 use tauri::{AppHandle, Manager};
 
 fn env(app: &AppHandle) -> Env {
-    Env::current(app.path().home_dir().ok())
+    let agents_dir = app.path().app_data_dir().ok().map(|d| d.join("agents"));
+    Env::current(app.path().home_dir().ok(), agents_dir)
 }
 
 /// Detects every provider in parallel (each `--version` may take up to the
@@ -27,6 +28,7 @@ pub async fn accounts_detect(app: AppHandle) -> AppResult<Vec<ProviderStatus>> {
                         path: None,
                         version: None,
                         sign_in: super::SignIn::Unknown,
+                        bundled_cli: None,
                     })
                 })
                 .collect()
@@ -40,10 +42,14 @@ pub async fn accounts_detect(app: AppHandle) -> AppResult<Vec<ProviderStatus>> {
 #[tauri::command]
 pub async fn accounts_login(app: AppHandle, provider: Provider) -> AppResult<()> {
     let env = env(&app);
-    let exe = env.locate(provider).ok_or_else(|| {
+    // The CLI on PATH, else the one Xora's own install of the agent brought along.
+    let exe = env.login_cli(provider).ok_or_else(|| {
         std::io::Error::new(
             std::io::ErrorKind::NotFound,
-            format!("{} not found; install it first.", provider.title()),
+            format!(
+                "{} has no sign-in program yet; start a chat with it and sign in there.",
+                provider.title()
+            ),
         )
     })?;
     super::open_login(&exe, provider)?;

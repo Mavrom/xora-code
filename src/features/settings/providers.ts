@@ -1,3 +1,4 @@
+import type { AgentStatus } from "@/features/agents/types";
 import type { ProviderStatus, SignIn } from "./ipc";
 import type { AgentId } from "./types";
 import { t } from "@/shared/i18n";
@@ -8,8 +9,8 @@ export interface ProviderInfo {
   vendor: string;
   /** Two-letter monogram for the card's mark (no third-party logos). */
   mark: string;
-  /** Global npm install command shown under "Kur". */
-  install: string;
+  /** Oldest Node.js major the agent's adapter runs on (`registry.rs` `min_node_major`). */
+  minNode: number;
   /** What the user does in the console that "Giriş yap" opens. */
   loginHint: string;
 }
@@ -20,7 +21,7 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     name: "Claude Code",
     vendor: "Anthropic",
     mark: "Cc",
-    install: "npm i -g @anthropic-ai/claude-code",
+    minNode: 22,
     loginHint: t("Type /login in the window that opens and confirm in your browser."),
   },
   {
@@ -28,7 +29,7 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     name: "Codex",
     vendor: "OpenAI",
     mark: "Cx",
-    install: "npm i -g @openai/codex",
+    minNode: 20,
     loginHint: t("Follow the ChatGPT sign-in steps in the window that opens."),
   },
   {
@@ -36,22 +37,38 @@ export const PROVIDERS: readonly ProviderInfo[] = [
     name: "Gemini CLI",
     vendor: "Google",
     mark: "Gm",
-    install: "npm i -g @google/gemini-cli",
+    minNode: 20,
     loginHint: t("Choose “Login with Google” in the window that opens."),
   },
 ];
 
 export const providerInfo = (id: AgentId) => PROVIDERS.find((p) => p.id === id) ?? PROVIDERS[0];
 
-export type ProviderState = "missing" | "signedOut" | "ready" | "unknown";
+/**
+ * One word for the card, from what Xora needs to run the agent (Node.js and the adapter it
+ * installs itself, `runtime`) and the sign-in file the CLI leaves (`cli`); a global CLI on
+ * PATH is not required.
+ */
+export type ProviderState =
+  "needsNode" | "installable" | "installing" | "signedOut" | "ready" | "unknown";
 
-/** One word for the card: not installed, needs sign-in, ready, or cannot tell. */
-export function providerState(status: ProviderStatus | undefined): ProviderState {
-  if (!status?.path) return "missing";
-  if (status.signIn === "signedIn") return "ready";
-  if (status.signIn === "signedOut") return "signedOut";
+export function providerState(
+  cli: ProviderStatus | undefined,
+  runtime: AgentStatus | undefined,
+): ProviderState {
+  if (runtime?.state === "notInstalled") {
+    return runtime.reason === "package-missing" ? "installable" : "needsNode";
+  }
+  if (runtime?.state === "installing") return "installing";
+  if (runtime?.state === "authRequired") return "signedOut";
+  if (cli?.signIn === "signedIn") return "ready";
+  if (cli?.signIn === "signedOut") return "signedOut";
   return "unknown";
 }
+
+/** Whether "Giriş yap" can open a sign-in console: a CLI on PATH or one Xora installed. */
+export const canOpenLogin = (cli: ProviderStatus | undefined): boolean =>
+  Boolean(cli?.path || cli?.bundledCli);
 
 export const SIGN_IN_LABEL: Record<SignIn, string> = {
   signedIn: t("Signed in"),

@@ -4,18 +4,19 @@ import { Download, KeyRound, LogIn, RefreshCw, ShieldCheck } from "lucide-react"
 import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/ui/cn";
 import { useAccountsStore } from "../accountsStore";
-import { CopyField } from "../controls/CopyField";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { Toggle } from "../controls/Toggle";
 import { settingsIpc, type ProviderStatus } from "../ipc";
 import {
   PROVIDERS,
+  canOpenLogin,
   providerState,
   shortenPath,
   SIGN_IN_LABEL,
   type ProviderInfo,
   type ProviderState,
 } from "../providers";
+import { useAgentStore } from "@/features/agents/store";
 import { useSettingsStore } from "../store";
 import { t } from "@/shared/i18n";
 
@@ -103,7 +104,9 @@ export function AccountsSection() {
 const STATE_LABEL: Record<ProviderState, string> = {
   ready: t("Ready"),
   signedOut: t("Sign-in needed"),
-  missing: t("Not installed"),
+  installable: t("Not installed yet"),
+  installing: t("Installing"),
+  needsNode: t("Needs Node.js"),
   unknown: t("Status unknown"),
 };
 
@@ -123,7 +126,8 @@ function StatusChip({ state }: { state: ProviderState }) {
           "size-1.5 rounded-full",
           state === "ready" && "bg-fg shadow-[0_0_8px_var(--color-fg)]",
           state === "signedOut" && "bg-warning",
-          state === "missing" && "border border-fg-subtle",
+          (state === "installable" || state === "needsNode") && "border border-fg-subtle",
+          state === "installing" && "animate-pulse bg-fg-subtle",
           state === "unknown" && "bg-fg-subtle",
         )}
       />
@@ -163,9 +167,11 @@ function ProviderCard({
   onMakeDefault,
   onRefresh,
 }: ProviderCardProps) {
-  const state = providerState(status);
-  const installed = state !== "missing";
-  const [installOpen, setInstallOpen] = useState(!installed);
+  const runtime = useAgentStore((s) => s.agents[info.id]?.status);
+  const state = providerState(status, runtime);
+  const installed = state !== "installable" && state !== "needsNode" && state !== "installing";
+  const loginReady = canOpenLogin(status);
+  const [busy, setBusy] = useState(false);
   const [note, setNote] = useState<{ text: string; error?: boolean } | null>(null);
   const awaitingFocus = useRef(false);
 
@@ -190,13 +196,35 @@ function ProviderCard({
     }
   };
 
+  const install = async () => {
+    setBusy(true);
+    setNote(null);
+    try {
+      await useAgentStore.getState().install(info.id);
+    } catch (err) {
+      setNote({ text: String(err), error: true });
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const signIn = status?.signIn ?? "unknown";
-  const meta = installed
-    ? [
-        status?.version ? `v${status.version}` : t("version unknown"),
-        shortenPath(status?.path ?? "", home),
-      ]
-    : [t("not found on PATH")];
+  // The CLI on PATH when there is one; otherwise Xora runs its own install of the agent.
+  const meta = status?.path
+    ? [status.version ? `v${status.version}` : t("version unknown"), shortenPath(status.path, home)]
+    : [installed ? t("run by Xora") : t("Xora installs it; no global CLI needed")];
+  // What the card tells the user to do, when there is something only they can do.
+  const hint =
+    state === "needsNode"
+      ? t("Install Node.js {major} or newer, then press Refresh; Xora installs {name} itself.", {
+          major: info.minNode,
+          name: info.name,
+        })
+      : installed && signIn !== "signedIn" && !loginReady
+        ? t("Sign in from the first chat with {name}; the chat shows the steps.", {
+            name: info.name,
+          })
+        : null;
 
   return (
     <article
@@ -245,7 +273,7 @@ function ProviderCard({
               {t("Make default")}
             </Button>
           )}
-          {installed ? (
+          {installed && loginReady && (
             <Button
               variant={signIn === "signedIn" ? "ghost" : "secondary"}
               size="sm"
@@ -254,27 +282,25 @@ function ProviderCard({
             >
               {signIn === "signedIn" ? t("Sign in again") : t("Sign in")}
             </Button>
-          ) : (
+          )}
+          {(state === "installable" || state === "installing") && (
             <Button
               variant="secondary"
               size="sm"
               icon={Download}
-              aria-expanded={installOpen}
-              onClick={() => setInstallOpen((o) => !o)}
+              disabled={busy || state === "installing"}
+              onClick={() => void install()}
             >
-              {t("Install")}
+              {state === "installing" ? t("Installing") : t("Install")}
             </Button>
           )}
         </div>
       </div>
 
-      {!installed && installOpen && (
-        <div className="border-t border-border px-4 py-3 transition-opacity duration-base starting:opacity-0">
-          <CopyField value={info.install} label={t("Copy install command")} />
-          <p className="mt-2 text-2xs text-fg-subtle">
-            {t("Run it in a terminal (needs Node.js 20+), then press Refresh.")}
-          </p>
-        </div>
+      {hint && (
+        <p className="border-t border-border px-4 py-2.5 text-xs text-pretty text-fg-muted">
+          {hint}
+        </p>
       )}
 
       {note && (

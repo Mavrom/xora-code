@@ -622,13 +622,16 @@ export const TR: Record<string, string> = {
   "Status unknown": "Durum bilinmiyor",
   "A console opened. {loginHint}": "Konsol açıldı. {loginHint}",
   "version unknown": "sürüm okunamadı",
-  "not found on PATH": "PATH üzerinde bulunamadı",
+  "run by Xora": "Xora çalıştırıyor",
+  "Xora installs it; no global CLI needed": "Xora kurar; ayrıca CLI kurmak gerekmez",
+  "Not installed yet": "Henüz kurulmadı",
+  "Install Node.js {major} or newer, then press Refresh; Xora installs {name} itself.":
+    "Node.js {major} ya da daha yenisini kurup Yenile'ye basın; {name} ajanını Xora kendisi kurar.",
+  "Sign in from the first chat with {name}; the chat shows the steps.":
+    "{name} ile ilk sohbette giriş yapın; adımları sohbet gösterir.",
   "Make default": "Varsayılan yap",
   "Sign in again": "Yeniden giriş",
   "Sign in": "Giriş yap",
-  "Copy install command": "Kurulum komutunu kopyala",
-  "Run it in a terminal (needs Node.js 20+), then press Refresh.":
-    "Bir terminalde çalıştırın (Node.js 20+ gerekir), sonra Yenile'ye basın.",
   "Detecting {name}": "{name} algılanıyor",
   // features/settings/sections/AgentSection.tsx
   "Ask for everything": "Her şeyi sor",

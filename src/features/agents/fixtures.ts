@@ -3,6 +3,7 @@
 // scenarios. Used by tests, by the chat UI's `?fixture=` dev mode and by the
 // fake ipc below, which lets the real store run without Rust.
 
+import type { ProviderStatus } from "@/features/settings/ipc";
 import type { Note } from "@/shared/lib/ipc";
 import type { AgentIpc } from "./ipc";
 import {
@@ -281,6 +282,22 @@ export function fixtureAgents(
     },
   };
 }
+
+/**
+ * Settings > Accounts' detection: Claude's CLI on PATH and signed in; Codex and Gemini
+ * without a global CLI (Xora runs its own install), Codex signed out.
+ */
+export const FIXTURE_ACCOUNTS: ProviderStatus[] = [
+  {
+    provider: "claude",
+    path: "C:/Users/dev/AppData/Roaming/npm/claude.cmd",
+    version: "2.1.30",
+    signIn: "signedIn",
+    bundledCli: null,
+  },
+  { provider: "codex", path: null, version: null, signIn: "signedOut", bundledCli: null },
+  { provider: "gemini", path: null, version: null, signIn: "unknown", bundledCli: null },
+];
 
 export const FIXTURE_AGENTS: AgentInfo[] = Object.values(
   fixtureAgents({ claude: "ready", codex: "authRequired", gemini: "notInstalled" }),

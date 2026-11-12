@@ -10,6 +10,8 @@ export interface ProviderStatus {
   path: string | null;
   version: string | null;
   signIn: SignIn;
+  /** The sign-in CLI inside Xora's own install of the agent (Codex, Gemini), if any. */
+  bundledCli: string | null;
 }
 
 /** Typed wrappers around the settings and accounts commands (`src-tauri/src/{settings,accounts}`). */

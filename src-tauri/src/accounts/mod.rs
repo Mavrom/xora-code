@@ -8,6 +8,9 @@ use std::process::{Command, Stdio};
 use std::sync::mpsc;
 use std::time::Duration;
 
+use crate::agents::events::AgentId;
+use crate::agents::registry;
+
 /// How long `<cli> --version` may take before we give up on it.
 pub const VERSION_TIMEOUT: Duration = Duration::from_secs(3);
 
@@ -40,6 +43,26 @@ impl Provider {
             Provider::Codex => &["login"],
             // Gemini CLI asks for the auth method on first start.
             Provider::Gemini => &[],
+        }
+    }
+
+    /// The CLI that Xora's own install of the agent brings along, for its sign-in flow
+    /// when none is on PATH: Codex's adapter depends on `@openai/codex`, and Gemini's
+    /// package is the CLI itself. Claude's adapter has none; it signs in from the chat.
+    pub fn bundled_bin(self) -> Option<&'static str> {
+        match self {
+            Provider::Claude => None,
+            Provider::Codex => Some("codex"),
+            Provider::Gemini => Some("gemini"),
+        }
+    }
+
+    /// The matching adapter in the agents registry.
+    pub fn agent(self) -> AgentId {
+        match self {
+            Provider::Claude => AgentId::Claude,
+            Provider::Codex => AgentId::Codex,
+            Provider::Gemini => AgentId::Gemini,
         }
     }
 
@@ -85,6 +108,8 @@ pub struct ProviderStatus {
     /// Parsed `--version` output, if it answered in time.
     pub version: Option<String>,
     pub sign_in: SignIn,
+    /// The sign-in CLI inside Xora's own install of the agent, when there is one.
+    pub bundled_cli: Option<String>,
 }
 
 /// File names to try for `binary` in one directory. On Windows only
@@ -122,6 +147,19 @@ pub fn search_dirs(path_var: Option<&OsStr>, extra: &[PathBuf]) -> Vec<PathBuf> 
     }
     dirs.retain(|d| !d.as_os_str().is_empty());
     dirs
+}
+
+/// `<install>/node_modules/.bin/<bin>` (a `.cmd` shim on Windows) for an agent Xora
+/// installed itself, if present.
+pub fn bundled_cli(
+    install_dir: &Path,
+    bin: &str,
+    windows: bool,
+    pathext: Option<&str>,
+    is_file: &dyn Fn(&Path) -> bool,
+) -> Option<PathBuf> {
+    let dir = install_dir.join("node_modules").join(".bin");
+    resolve(&[dir], &candidate_names(bin, windows, pathext), is_file)
 }
 
 /// First `dir/name` that `is_file` accepts, in directory order.
@@ -215,12 +253,14 @@ pub fn read_version(exe: &Path, timeout: Duration) -> Option<String> {
 /// The real environment: PATH, PATHEXT and the usual extra install dirs.
 pub struct Env {
     pub home: Option<PathBuf>,
+    /// Where Xora installs the agents (`<app data>/agents`), when known.
+    pub agents_dir: Option<PathBuf>,
     pub dirs: Vec<PathBuf>,
     pub pathext: Option<String>,
 }
 
 impl Env {
-    pub fn current(home: Option<PathBuf>) -> Self {
+    pub fn current(home: Option<PathBuf>, agents_dir: Option<PathBuf>) -> Self {
         let mut extra = Vec::new();
         if let Some(home) = &home {
             extra.push(home.join(".local").join("bin"));
@@ -237,12 +277,31 @@ impl Env {
             dirs: search_dirs(std::env::var_os("PATH").as_deref(), &extra),
             pathext: std::env::var("PATHEXT").ok(),
             home,
+            agents_dir,
         }
     }
 
     pub fn locate(&self, provider: Provider) -> Option<PathBuf> {
         let names = candidate_names(provider.binary(), cfg!(windows), self.pathext.as_deref());
         resolve(&self.dirs, &names, &|p| p.is_file())
+    }
+
+    /// The sign-in CLI that came with Xora's own install of the agent.
+    pub fn bundled(&self, provider: Provider) -> Option<PathBuf> {
+        let bin = provider.bundled_bin()?;
+        let install = registry::spec(provider.agent()).install_dir(self.agents_dir.as_deref()?);
+        bundled_cli(
+            &install,
+            bin,
+            cfg!(windows),
+            self.pathext.as_deref(),
+            &|p| p.is_file(),
+        )
+    }
+
+    /// The CLI that opens the provider's sign-in: the one on PATH, else the bundled one.
+    pub fn login_cli(&self, provider: Provider) -> Option<PathBuf> {
+        self.locate(provider).or_else(|| self.bundled(provider))
     }
 
     pub fn detect(&self, provider: Provider) -> ProviderStatus {
@@ -260,6 +319,7 @@ impl Env {
             path: path.map(|p| p.display().to_string()),
             version,
             sign_in: sign_in_state(provider, exists, cfg!(target_os = "macos")),
+            bundled_cli: self.bundled(provider).map(|p| p.display().to_string()),
         }
     }
 }
@@ -445,11 +505,28 @@ mod tests {
             path: None,
             version: None,
             sign_in: SignIn::SignedOut,
+            bundled_cli: None,
         };
         let json = serde_json::to_string(&status).unwrap();
         assert_eq!(
             json,
-            r#"{"provider":"gemini","path":null,"version":null,"signIn":"signedOut"}"#
+            r#"{"provider":"gemini","path":null,"version":null,"signIn":"signedOut","bundledCli":null}"#
         );
+    }
+
+    #[test]
+    fn bundled_cli_is_found_in_the_agents_own_install() {
+        let dir = tempfile::tempdir().unwrap();
+        let bin = dir.path().join("node_modules").join(".bin");
+        std::fs::create_dir_all(&bin).unwrap();
+        std::fs::write(bin.join("codex.cmd"), "@echo off").unwrap();
+        let found = bundled_cli(dir.path(), "codex", true, None, &|p| p.is_file());
+        assert_eq!(found, Some(bin.join("codex.cmd")));
+        assert_eq!(
+            bundled_cli(dir.path(), "gemini", true, None, &|p| p.is_file()),
+            None
+        );
+        assert_eq!(Provider::Claude.bundled_bin(), None);
+        assert_eq!(Provider::Codex.bundled_bin(), Some("codex"));
     }
 }

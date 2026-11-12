@@ -15,6 +15,7 @@ import { useUiStore, type SidebarView } from "@/app/uiStore";
 import { useChangesStore } from "@/features/git/changesStore";
 import { gitIpc } from "@/features/git/ipc";
 import { useInboxStore } from "@/features/inbox/store";
+import { settingsIpc } from "@/features/settings/ipc";
 import { ipc } from "@/shared/lib/ipc";
 import { t } from "@/shared/i18n";
 import { setAgentIpc, useAgentStore } from "./store";
@@ -108,6 +109,8 @@ export async function startFixtureMode(params: FixtureParams): Promise<void> {
   await store.refreshHistory(f.FIXTURE_CWD);
   // The Inbox has no IPC in a browser: give it notes so the welcome screen can show one.
   useInboxStore.setState({ notes: f.FIXTURE_NOTES, status: "ready", error: null });
+  // Nor does Settings > Accounts' detection.
+  Object.assign(settingsIpc, { detectAccounts: () => Promise.resolve(f.FIXTURE_ACCOUNTS) });
   await startFixtureGit();
   if (!scenario || status) return;
   const id = await store.newSession(params.agent, f.FIXTURE_CWD);

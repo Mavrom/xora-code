@@ -1,13 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { PROVIDERS, providerInfo, providerState, shortenPath } from "./providers";
+import type { AgentStatus } from "@/features/agents/types";
+import { canOpenLogin, PROVIDERS, providerInfo, providerState, shortenPath } from "./providers";
 
 describe("PROVIDERS", () => {
-  it("installs the official npm packages", () => {
-    expect(PROVIDERS.map((p) => p.install)).toEqual([
-      "npm i -g @anthropic-ai/claude-code",
-      "npm i -g @openai/codex",
-      "npm i -g @google/gemini-cli",
-    ]);
+  it("knows each adapter's oldest Node.js", () => {
+    expect(PROVIDERS.map((p) => p.minNode)).toEqual([22, 20, 20]);
   });
 
   it("looks providers up by id", () => {
@@ -16,22 +13,43 @@ describe("PROVIDERS", () => {
 });
 
 describe("providerState", () => {
-  const status = (path: string | null, signIn: "signedIn" | "signedOut" | "unknown") => ({
-    provider: "claude" as const,
-    path,
-    version: null,
-    signIn,
+  const cli = (
+    path: string | null,
+    signIn: "signedIn" | "signedOut" | "unknown",
+    bundledCli: string | null = null,
+  ) => ({ provider: "codex" as const, path, version: null, signIn, bundledCli });
+  const ready: AgentStatus = { state: "ready", agentInfo: null, capabilities: {}, authMethods: [] };
+
+  it("follows what Xora needs to run the agent, not a CLI on PATH", () => {
+    expect(providerState(cli(null, "signedIn"), ready)).toBe("ready");
+    expect(
+      providerState(cli(null, "unknown"), { state: "notInstalled", reason: "package-missing" }),
+    ).toBe("installable");
+    expect(
+      providerState(cli("/bin/codex", "signedIn"), {
+        state: "notInstalled",
+        reason: "node-missing",
+      }),
+    ).toBe("needsNode");
+    expect(providerState(undefined, { state: "notInstalled", reason: "node-too-old" })).toBe(
+      "needsNode",
+    );
+    expect(providerState(undefined, { state: "installing", progress: 0.5 })).toBe("installing");
   });
 
-  it("is missing without a resolved CLI, whatever the sign-in file says", () => {
-    expect(providerState(undefined)).toBe("missing");
-    expect(providerState(status(null, "signedIn"))).toBe("missing");
+  it("maps sign-in from the agent, else from the CLI's sign-in file", () => {
+    expect(providerState(cli(null, "signedIn"), { state: "authRequired", authMethods: [] })).toBe(
+      "signedOut",
+    );
+    expect(providerState(cli(null, "signedOut"), ready)).toBe("signedOut");
+    expect(providerState(cli(null, "unknown"), undefined)).toBe("unknown");
   });
 
-  it("maps the sign-in heuristic once the CLI is installed", () => {
-    expect(providerState(status("/bin/claude", "signedIn"))).toBe("ready");
-    expect(providerState(status("/bin/claude", "signedOut"))).toBe("signedOut");
-    expect(providerState(status("/bin/claude", "unknown"))).toBe("unknown");
+  it("can open a sign-in console with a CLI on PATH or the one Xora installed", () => {
+    expect(canOpenLogin(cli("/bin/codex", "signedOut"))).toBe(true);
+    expect(canOpenLogin(cli(null, "signedOut", "C:/x/.bin/codex.cmd"))).toBe(true);
+    expect(canOpenLogin(cli(null, "signedOut"))).toBe(false);
+    expect(canOpenLogin(undefined)).toBe(false);
   });
 });
 
