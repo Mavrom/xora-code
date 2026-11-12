@@ -7,7 +7,8 @@ import { PanelHeader, type PanelBack } from "@/shared/ui/PanelHeader";
 import { BranchBar } from "./BranchBar";
 import { ChangeGroup } from "./ChangeGroup";
 import { groupChanges } from "./changes";
-import { useChangesStore } from "./changesStore";
+import { noticeUnderBranch, useChangesStore } from "./changesStore";
+import { ChangesNotice } from "./ChangesNotice";
 import { CommitBox } from "./CommitBox";
 import type { GitStatus } from "./ipc";
 import { TurnGroup } from "./TurnGroup";
@@ -45,6 +46,7 @@ export function ChangesPanel({ back }: { back?: PanelBack } = {}) {
           ) : undefined
         }
       />
+      {!noticeUnderBranch({ status, problem }) && <ChangesNotice className="mx-2.5 mb-2" />}
       {problem === "no_folder" ? (
         <EmptyState
           icon={FolderOpen}

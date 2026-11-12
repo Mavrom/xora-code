@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { useChangesStore } from "./changesStore";
+import { noticeUnderBranch, useChangesStore } from "./changesStore";
 import { gitIpc, type GitStatus } from "./ipc";
 
 vi.mock("./ipc", () => ({
@@ -124,5 +124,23 @@ describe("changes store", () => {
     commit.resolve("abc1234");
     expect(await running).toBe(true);
     expect(s().notice).toEqual({ text: "abc1234 commit edildi.", error: false });
+  });
+});
+
+describe("the notice line", () => {
+  it("survives a refresh in a folder git cannot read, and moves under the header there", async () => {
+    status.mockRejectedValue("[not_repo] not a git repository");
+    await s().setDir("C:/plain");
+    s().setNotice({ text: "revert failed", error: true });
+    await s().refresh();
+    expect(s().problem).toBe("not_repo");
+    expect(s().notice).toEqual({ text: "revert failed", error: true });
+    expect(noticeUnderBranch(s())).toBe(false);
+  });
+
+  it("sits under the branch line once the status is loaded", async () => {
+    await s().setDir("C:/repo");
+    expect(noticeUnderBranch(s())).toBe(true);
+    expect(noticeUnderBranch({ status: null, problem: "no_folder" })).toBe(false);
   });
 });

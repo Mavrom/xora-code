@@ -41,6 +41,14 @@ export interface ChangesState {
 
 export const REFRESH_DEBOUNCE_MS = 300;
 
+/**
+ * Whether the notice line sits under the branch line (git status loaded) rather than under
+ * the view's header. Either way it shows: a turn's accept or revert can fail in a folder
+ * git cannot read, and its error must not be lost.
+ */
+export const noticeUnderBranch = (s: Pick<ChangesState, "status" | "problem">): boolean =>
+  s.problem === null && s.status !== null;
+
 let inflight: Promise<void> | null = null;
 let again = false;
 let timer: ReturnType<typeof setTimeout> | undefined;
