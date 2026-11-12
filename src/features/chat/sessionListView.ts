@@ -54,7 +54,10 @@ export function flatSessions(
   return picked.flatMap((g) => g.sessions).sort((a, b) => sessionTime(b) - sessionTime(a));
 }
 
+export type DayKey = "today" | "yesterday" | "week" | "older";
+
 export interface DayGroup {
+  key: DayKey;
   label: string;
   entries: SessionListEntry[];
 }
@@ -62,25 +65,46 @@ export interface DayGroup {
 const DAY = 24 * 60 * 60 * 1000;
 const startOfDay = (ms: number) => new Date(ms).setHours(0, 0, 0, 0);
 
+const DAY_LABELS: Record<DayKey, () => string> = {
+  today: () => t("Today"),
+  yesterday: () => t("Yesterday"),
+  week: () => t("This week"),
+  older: () => t("Older"),
+};
+
 /**
  * Splits a newest-first list into "Bugün", "Dün", "Bu hafta" and "Daha eski". An open
  * session with no timestamp counts as today, a closed one as older (`sessionTime`).
  */
 export function groupByDay(entries: readonly SessionListEntry[], now = Date.now()): DayGroup[] {
   const today = startOfDay(now);
-  const labelFor = (e: SessionListEntry) => {
+  const keyFor = (e: SessionListEntry): DayKey => {
     const time = sessionTime(e);
-    if (time >= today) return t("Today");
-    if (time >= today - DAY) return t("Yesterday");
-    if (time >= today - 6 * DAY) return t("This week");
-    return t("Older");
+    if (time >= today) return "today";
+    if (time >= today - DAY) return "yesterday";
+    if (time >= today - 6 * DAY) return "week";
+    return "older";
   };
   const groups: DayGroup[] = [];
   for (const entry of entries) {
-    const label = labelFor(entry);
+    const key = keyFor(entry);
     const last = groups[groups.length - 1];
-    if (last?.label === label) last.entries.push(entry);
-    else groups.push({ label, entries: [entry] });
+    if (last?.key === key) last.entries.push(entry);
+    else groups.push({ key, label: DAY_LABELS[key](), entries: [entry] });
   }
   return groups;
+}
+
+/**
+ * The day groups shown open (this week and newer) and the chats folded under "Older".
+ * The fold starts open only when it is all there is, so the list is never blank.
+ */
+export function splitOlder(days: readonly DayGroup[]): {
+  recent: DayGroup[];
+  older: SessionListEntry[];
+} {
+  return {
+    recent: days.filter((d) => d.key !== "older"),
+    older: days.filter((d) => d.key === "older").flatMap((d) => d.entries),
+  };
 }

@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { ProjectGroup, SessionListEntry } from "@/features/agents/sessionList";
 import type { SessionView } from "@/features/agents/reducer";
-import { emptySessionKey, flatSessions, groupByDay, visibleGroups } from "./sessionListView";
+import {
+  emptySessionKey,
+  flatSessions,
+  groupByDay,
+  splitOlder,
+  visibleGroups,
+} from "./sessionListView";
 
 const entry = (sessionId: string, extra: Partial<SessionListEntry> = {}): SessionListEntry => ({
   agentId: "claude",
@@ -87,6 +93,20 @@ describe("groupByDay", () => {
       ["Bu hafta", ["w"]],
       ["Daha eski", ["o"]],
     ]);
+  });
+
+  it("keys each group, and splits off the older chats", () => {
+    const now = new Date(2026, 9, 26, 15, 0).getTime();
+    const at = (d: number) => new Date(2026, 9, d, 12).toISOString();
+    const days = groupByDay(
+      [entry("t", { updatedAt: at(26) }), entry("o1", { updatedAt: at(10) }), entry("o2")],
+      now,
+    );
+    expect(days.map((g) => g.key)).toEqual(["today", "older"]);
+    const { recent, older } = splitOlder(days);
+    expect(recent.map((g) => g.key)).toEqual(["today"]);
+    expect(older.map((e) => e.sessionId)).toEqual(["o1", "o2"]);
+    expect(splitOlder([])).toEqual({ recent: [], older: [] });
   });
 
   it("files a closed chat with no time under older, where the list sorts it", () => {

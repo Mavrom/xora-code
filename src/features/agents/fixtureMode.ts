@@ -107,7 +107,7 @@ export async function startFixtureMode(params: FixtureParams): Promise<void> {
   store.selectAgent(params.agent);
   await store.refreshHistory(f.FIXTURE_CWD);
   // The Inbox has no IPC in a browser: give it notes so the welcome screen can show one.
-  useInboxStore.setState({ notes: f.FIXTURE_NOTES });
+  useInboxStore.setState({ notes: f.FIXTURE_NOTES, status: "ready", error: null });
   await startFixtureGit();
   if (!scenario || status) return;
   const id = await store.newSession(params.agent, f.FIXTURE_CWD);

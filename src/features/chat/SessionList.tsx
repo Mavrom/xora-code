@@ -3,10 +3,17 @@ import { ChevronRight, MessagesSquare, Pin, RotateCcw } from "lucide-react";
 import { useUiStore } from "@/app/uiStore";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
 import { useWorkspaceStore } from "@/features/workspace/store";
-import { selectWorktrees, useWorktreeStore } from "@/features/git/worktrees";
+import type { SessionListEntry } from "@/features/agents/sessionList";
+import { selectWorktrees, useWorktreeStore, type Worktree } from "@/features/git/worktrees";
 import { cn } from "@/shared/ui/cn";
 import { Collapse } from "./Disclosure";
-import { emptySessionKey, flatSessions, groupByDay, visibleGroups } from "./sessionListView";
+import {
+  emptySessionKey,
+  flatSessions,
+  groupByDay,
+  splitOlder,
+  visibleGroups,
+} from "./sessionListView";
 import { SessionRow } from "./SessionRow";
 import { t } from "@/shared/i18n";
 
@@ -27,13 +34,14 @@ export function SessionList() {
     Object.values(s.sessions).reduce((n, v) => n + (v.turn === "idle" ? v.items.length : 0), 0),
   );
   const filter = useUiStore((s) => s.projectFilter);
-  const [archiveOpen, setArchiveOpen] = useState(false);
-  const { pinned, days, archived } = useMemo(() => {
+  const { pinned, days, older, archived } = useMemo(() => {
     const all = flatSessions(visibleGroups(groups, emptyKey, root), filter);
     const live = all.filter((e) => !e.archived);
+    const { recent, older } = splitOlder(groupByDay(live.filter((e) => !e.pinned)));
     return {
       pinned: live.filter((e) => e.pinned),
-      days: groupByDay(live.filter((e) => !e.pinned)),
+      days: recent,
+      older,
       archived: all.filter((e) => e.archived),
     };
   }, [groups, emptyKey, root, filter]);
@@ -75,7 +83,7 @@ export function SessionList() {
           </ul>
         </section>
       )}
-      {days.length === 0 && pinned.length === 0 ? (
+      {days.length === 0 && pinned.length === 0 && older.length === 0 ? (
         loading ? (
           <ListSkeleton />
         ) : (
@@ -106,39 +114,27 @@ export function SessionList() {
         ))
       )}
 
-      {archived.length > 0 && (
-        <section aria-label={t("Archived")} className="mt-4">
-          <button
-            type="button"
-            aria-expanded={archiveOpen}
-            aria-controls="sidebar-archive"
-            onClick={() => setArchiveOpen((v) => !v)}
-            className="flex h-7 w-full items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium text-fg-subtle/80 transition-colors duration-fast hover:text-fg-muted"
-          >
-            <ChevronRight
-              size={12}
-              strokeWidth={2}
-              aria-hidden
-              className={cn(
-                "transition-transform duration-base ease-out-quint",
-                archiveOpen && "rotate-90",
-              )}
-            />
-            {t("Archived")}
-            <span className="tabular-nums opacity-70">{archived.length}</span>
-          </button>
-          <Collapse open={archiveOpen} id="sidebar-archive">
-            <ul className="flex flex-col gap-px">
-              {archived.map((entry) => (
-                <li key={`${entry.agentId}:${entry.sessionId}`}>
-                  <SessionRow entry={entry} worktrees={worktrees} />
-                </li>
-              ))}
-            </ul>
-          </Collapse>
-        </section>
+      {older.length > 0 && (
+        <Fold
+          id="sidebar-older"
+          title={t("Older")}
+          entries={older}
+          worktrees={worktrees}
+          // Folded unless it is all there is, so the list is never blank.
+          defaultOpen={days.length === 0 && pinned.length === 0}
+          className="mt-3"
+        />
       )}
 
+      {archived.length > 0 && (
+        <Fold
+          id="sidebar-archive"
+          title={t("Archived")}
+          entries={archived}
+          worktrees={worktrees}
+          className="mt-4"
+        />
+      )}
       {error && (
         <div className="mt-3 flex items-start gap-2 px-2.5 text-2xs text-fg-subtle">
           <p className="min-w-0 flex-1 whitespace-pre-line">{error}</p>
@@ -155,6 +151,49 @@ export function SessionList() {
         </div>
       )}
     </div>
+  );
+}
+
+interface FoldProps {
+  id: string;
+  title: string;
+  entries: SessionListEntry[];
+  worktrees: Worktree[];
+  defaultOpen?: boolean;
+  className?: string;
+}
+
+/** A quiet disclosure of conversations ("Older", "Archived"), folded by default. */
+function Fold({ id, title, entries, worktrees, defaultOpen = false, className }: FoldProps) {
+  const [open, setOpen] = useState(defaultOpen);
+  return (
+    <section aria-label={title} className={className}>
+      <button
+        type="button"
+        aria-expanded={open}
+        aria-controls={id}
+        onClick={() => setOpen((v) => !v)}
+        className="flex h-7 w-full items-center gap-1.5 rounded-md px-2.5 text-[11px] font-medium text-fg-subtle/80 transition-colors duration-fast hover:text-fg-muted"
+      >
+        <ChevronRight
+          size={12}
+          strokeWidth={2}
+          aria-hidden
+          className={cn("transition-transform duration-base ease-out-quint", open && "rotate-90")}
+        />
+        {title}
+        <span className="tabular-nums opacity-70">{entries.length}</span>
+      </button>
+      <Collapse open={open} id={id}>
+        <ul className="flex flex-col gap-px">
+          {entries.map((entry) => (
+            <li key={`${entry.agentId}:${entry.sessionId}`}>
+              <SessionRow entry={entry} worktrees={worktrees} />
+            </li>
+          ))}
+        </ul>
+      </Collapse>
+    </section>
   );
 }
 

@@ -58,6 +58,7 @@ describe("Turkish catalog", () => {
  */
 const TURKISH_DATA = [
   join("features", "agents", "fixtures.ts"),
+  join("features", "git", "fixtures.ts"),
   join("features", "commands", "fuzzy.ts"),
   join("features", "settings", "searchIndex.ts"),
   join("features", "settings", "sections", "GeneralSection.tsx"),

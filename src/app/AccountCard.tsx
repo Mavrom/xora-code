@@ -1,4 +1,7 @@
-import { Settings } from "lucide-react";
+import { Inbox, Settings } from "lucide-react";
+import { openCount } from "@/features/inbox/sortNotes";
+import { useInboxStore } from "@/features/inbox/store";
+import { showView } from "./sidebarView";
 import { useAgentStore } from "@/features/agents/store";
 import { PLATFORM, useShortcut } from "@/features/keymap/keymap";
 import { describeShortcut } from "@/shared/ui/keys";
@@ -14,8 +17,46 @@ import { t } from "@/shared/i18n";
 /** The avatar's ring: the three agents' own colours. */
 const RING = `conic-gradient(from 210deg, ${AGENT_TINT.claude}, ${AGENT_TINT.gemini}, ${AGENT_TINT.codex}, ${AGENT_TINT.claude})`;
 
-/** Bottom card: this computer, the selected agent's state and the way into settings. */
-export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
+/** The Inbox, out of the way: an icon with its open-note count, beside Settings. */
+function InboxButton({ open }: { open: boolean }) {
+  const count = useInboxStore((s) => openCount(s.notes));
+  const shortcut = useShortcut("view.inbox");
+  const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
+  const label = count > 0 ? `${t("Inbox")} (${count})` : t("Inbox");
+  return (
+    <button
+      type="button"
+      aria-pressed={open}
+      aria-label={label}
+      aria-keyshortcuts={keys}
+      title={keys ? `${label} · ${keys}` : label}
+      onClick={() => showView(open ? "sessions" : "inbox")}
+      className={cn(
+        "relative grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-fast",
+        open ? "bg-white/[0.08] text-fg" : "text-fg-subtle hover:bg-white/[0.05] hover:text-fg",
+      )}
+    >
+      <Inbox size={15} strokeWidth={1.75} aria-hidden />
+      {count > 0 && (
+        <span
+          aria-hidden
+          className="absolute top-0.5 right-0.5 min-w-3.5 rounded-full bg-white/[0.12] px-1 text-[9px] leading-3.5 font-medium text-fg-muted tabular-nums"
+        >
+          {count > 9 ? "9+" : count}
+        </span>
+      )}
+    </button>
+  );
+}
+
+/** Bottom card: this computer, the selected agent's state, the Inbox and the way into settings. */
+export function AccountCard({
+  settingsOpen,
+  inboxOpen,
+}: {
+  settingsOpen: boolean;
+  inboxOpen: boolean;
+}) {
   const hostname = useHostname();
   const agentId = useAgentStore((s) => s.selectedAgent);
   const agent = useAgentStore((s) => s.agents[s.selectedAgent]);
@@ -62,6 +103,7 @@ export function AccountCard({ settingsOpen }: { settingsOpen: boolean }) {
             </span>
           </span>
         </button>
+        <InboxButton open={inboxOpen} />
         <button
           type="button"
           aria-pressed={settingsOpen}

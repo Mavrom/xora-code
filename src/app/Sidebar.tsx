@@ -1,37 +1,24 @@
 import { useEffect, useMemo } from "react";
-import {
-  ArrowLeft,
-  ArrowRight,
-  GitBranch,
-  Inbox,
-  MessagesSquare,
-  PanelLeft,
-  Search,
-  SquarePen,
-} from "lucide-react";
+import { ArrowLeft, ArrowRight, PanelLeft, Search, SquarePen } from "lucide-react";
 import { selectProjectGroups, useAgentStore } from "@/features/agents/store";
 import { FrostedGround } from "@/features/backdrop/FrostedGround";
 import { ChipMenu } from "@/features/chat/ChipMenu";
 import { canTravel, travel, useNavHistory } from "@/features/chat/navHistory";
 import { SessionList } from "@/features/chat/SessionList";
-import { attentionCount } from "@/features/chat/sessionStatus";
-import { useUnreadStore } from "@/features/chat/unread";
 import { emitCommand, NEW_CHAT, OPEN_PALETTE } from "@/features/commands/events";
-import { changeCount } from "@/features/git/changes";
-import { CHANGES_PANEL_ID, ChangesPanel } from "@/features/git/ChangesPanel";
-import { useChangesStore } from "@/features/git/changesStore";
+import { ChangesPanel } from "@/features/git/ChangesPanel";
 import { useChangesSync } from "@/features/git/useChangesSync";
 import { InboxPanel } from "@/features/inbox/InboxPanel";
-import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
-import { openCount } from "@/features/inbox/sortNotes";
 import { useInboxStore } from "@/features/inbox/store";
 import { closeSettings, useSettingsView } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
 import type { ActionId } from "@/features/keymap/actions";
-import { matchesAction, useShortcut } from "@/features/keymap/keymap";
+import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
+import { describeShortcut } from "@/shared/ui/keys";
 import { AccountCard } from "./AccountCard";
-import { BarButton, CountBadge, NavItem } from "./SidebarButtons";
+import { BarButton } from "./SidebarButtons";
+import { focusViewSoon, showView } from "./sidebarView";
 import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
 import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET } from "./WindowControls";
 import { t } from "@/shared/i18n";
@@ -48,37 +35,20 @@ const VIEW_ACTIONS: Record<SidebarView, ActionId> = {
 const VIEWS = Object.keys(VIEW_ACTIONS) as SidebarView[];
 
 /**
- * Where focus lands when a view is opened from the keyboard: the inbox is a capture
- * gesture (its composer), the changes view its panel (Tab moves on into it).
- */
-function focusViewSoon(view: SidebarView) {
-  const id = view === "inbox" ? INBOX_COMPOSER_ID : view === "changes" ? CHANGES_PANEL_ID : null;
-  if (id) requestAnimationFrame(() => document.getElementById(id)?.focus());
-}
-
-function showView(next: SidebarView) {
-  closeSettings();
-  useUiStore.getState().setSidebarView(next);
-  if (next === "inbox") focusViewSoon(next);
-}
-
-/**
- * The left column. Top: window controls and history arrows (also the drag handle), then
- * the two everyday actions (new chat, search) and the two views. Middle: the current
- * view. Bottom: this computer and the agent's state, with settings beside it.
+ * The left column: the conversations, nothing else at rest. Top: window controls and
+ * history arrows (also the drag handle), then New chat with search beside it. Middle: the
+ * conversation list (or, when asked for, the Inbox with a way back). Bottom: this computer
+ * and the agent's state, with the Inbox and Settings beside it.
  */
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const view = useUiStore((s) => s.sidebarView);
   const settingsOpen = useSettingsView((s) => s.open);
-  const badge = useInboxStore((s) => openCount(s.notes));
-  const changes = useChangesStore((s) => changeCount(s.status));
-  const unread = useUnreadStore((s) => s.ids);
-  const waiting = useAgentStore((s) => attentionCount(s.sessions, unread));
   const canBack = useNavHistory((s) => canTravel(s, -1));
   const canForward = useNavHistory((s) => canTravel(s, 1));
-  const active = settingsOpen ? null : view;
   const newChatKeys = useShortcut("chat.new");
-  const paletteKeys = useShortcut("palette.open");
+  const paletteShortcut = useShortcut("palette.open");
+  const paletteKeys = paletteShortcut ? describeShortcut(paletteShortcut, PLATFORM) : undefined;
+  const searchLabel = t("Search");
 
   // Load once at startup so the badge is right before the inbox is opened.
   useEffect(() => {
@@ -137,14 +107,14 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         />
       </div>
 
-      <div className="relative flex flex-col gap-1.5 px-2.5 pt-1">
+      <div className="relative flex items-center gap-1.5 px-2.5 pt-1">
         <button
           type="button"
           onClick={() => {
             closeSettings();
             emitCommand(NEW_CHAT);
           }}
-          className="group flex h-9 items-center gap-2.5 rounded-lg border border-white/[0.07] bg-white/[0.06] px-2.5 text-[13px] font-medium text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_1px_2px_rgb(0_0_0/0.4)] transition-colors duration-fast hover:bg-white/[0.09]"
+          className="group flex h-9 min-w-0 flex-1 items-center gap-2.5 rounded-lg border border-white/[0.07] bg-white/[0.06] px-2.5 text-[13px] font-medium text-fg shadow-[inset_0_1px_0_rgb(255_255_255/0.06),0_1px_2px_rgb(0_0_0/0.4)] transition-colors duration-fast hover:bg-white/[0.09]"
         >
           <SquarePen size={15} strokeWidth={1.75} aria-hidden />
           {t("New chat")}
@@ -157,71 +127,60 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
         </button>
         <button
           type="button"
+          aria-label={searchLabel}
+          aria-keyshortcuts={paletteKeys}
+          title={paletteKeys ? `${searchLabel} (${paletteKeys})` : searchLabel}
           onClick={() => emitCommand(OPEN_PALETTE)}
-          className="group flex h-8 items-center gap-2.5 rounded-lg px-2.5 text-[13px] text-fg-subtle transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
+          className="grid size-9 shrink-0 place-items-center rounded-lg text-fg-subtle transition-colors duration-fast hover:bg-white/[0.05] hover:text-fg"
         >
           <Search size={15} strokeWidth={1.75} aria-hidden />
-          {t("Search")}
-          {paletteKeys && (
-            <Kbd
-              keys={paletteKeys}
-              className="ml-auto opacity-60 transition-opacity duration-fast group-hover:opacity-100"
-            />
-          )}
         </button>
       </div>
 
-      <nav aria-label={t("Sidebar view")} className="relative mt-3 flex flex-col gap-px px-2.5">
-        <NavItem
-          icon={MessagesSquare}
-          label={t("Chats")}
-          action={VIEW_ACTIONS.sessions}
-          active={active === "sessions"}
-          onClick={() => showView("sessions")}
-          meta={<CountBadge count={waiting} />}
-        />
-        <NavItem
-          icon={Inbox}
-          label={t("Inbox")}
-          action={VIEW_ACTIONS.inbox}
-          active={active === "inbox"}
-          onClick={() => showView("inbox")}
-          meta={<CountBadge count={badge} />}
-        />
-        <NavItem
-          icon={GitBranch}
-          label={t("Changes")}
-          action={VIEW_ACTIONS.changes}
-          active={active === "changes"}
-          onClick={() => showView("changes")}
-          meta={<CountBadge count={changes} />}
-        />
-      </nav>
-
-      <div aria-hidden className="mx-4 mt-3 h-px bg-white/[0.05]" />
-
       {/* All stay mounted so switching views keeps drafts. */}
-      <div className="relative mt-1 min-h-0 flex-1">
+      <div aria-label={t("Sidebar view")} className="relative mt-2 min-h-0 flex-1">
         <div className="flex h-full flex-col" hidden={view !== "sessions"}>
           <ProjectPicker />
           <div className="min-h-0 flex-1">
             <SessionList />
           </div>
         </div>
-        <div className="h-full" hidden={view !== "inbox"}>
-          <InboxPanel />
+        <div className="flex h-full flex-col" hidden={view !== "inbox"}>
+          <BackToChats />
+          <div className="min-h-0 flex-1">
+            <InboxPanel />
+          </div>
         </div>
         <div className="h-full" hidden={view !== "changes"}>
           <ChangesPanel />
         </div>
       </div>
 
-      <AccountCard settingsOpen={settingsOpen} />
+      <AccountCard settingsOpen={settingsOpen} inboxOpen={!settingsOpen && view === "inbox"} />
     </div>
   );
 }
 
-/** "Tüm projeler ▾": narrows the conversations to one project folder. */
+/** The way out of the Inbox, back to the conversations it replaced. */
+function BackToChats() {
+  return (
+    <div className="flex h-8 shrink-0 items-center px-2.5">
+      <button
+        type="button"
+        onClick={() => showView("sessions")}
+        className="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs text-fg-muted transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg"
+      >
+        <ArrowLeft size={13} strokeWidth={1.75} aria-hidden />
+        {t("Chats")}
+      </button>
+    </div>
+  );
+}
+
+/**
+ * "Tüm projeler ▾": narrows the conversations to one project folder. Only there when the
+ * list spans more than one project (or one is picked); with one project it filters nothing.
+ */
 function ProjectPicker() {
   const groups = useAgentStore(selectProjectGroups);
   const filter = useUiStore((s) => s.projectFilter);
@@ -234,12 +193,13 @@ function ProjectPicker() {
     [groups],
   );
 
+  if (groups.length < 2 && !current) return null;
   return (
-    <div className="flex h-8 shrink-0 items-center px-2.5">
+    <div className="flex h-7 shrink-0 items-center px-2.5">
       <ChipMenu
         label={t("Project")}
         side="bottom"
-        buttonClassName="inline-flex h-6 min-w-0 items-center gap-1 rounded-md px-2 text-[11px] font-medium text-fg-subtle transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
+        buttonClassName="inline-flex h-6 min-w-0 items-center gap-1 rounded-md px-2 text-[11px] text-fg-subtle/80 transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg-muted"
         display={current?.name ?? t("All projects")}
         sections={[
           {

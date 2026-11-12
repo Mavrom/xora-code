@@ -11,6 +11,8 @@ import {
 } from "lucide-react";
 import { selectActiveSession, useAgentStore } from "@/features/agents/store";
 import { AgentGlyph } from "@/features/chat/AgentGlyph";
+import { attentionCount } from "@/features/chat/sessionStatus";
+import { useUnreadStore } from "@/features/chat/unread";
 import { isDocked, sessionTitle } from "@/features/chat/sessionTitle";
 import { useEditorStore } from "@/features/editor/store";
 import { useShortcut } from "@/features/keymap/keymap";
@@ -66,9 +68,7 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
           NATIVE_CAPTION && !sidebarOpen && TRAFFIC_LIGHT_INSET,
         )}
       >
-        {!sidebarOpen && (
-          <IconButton icon={PanelLeft} label={t("Show sidebar")} onClick={onShowSidebar} />
-        )}
+        {!sidebarOpen && <ShowSidebarButton onClick={onShowSidebar} />}
         {docked && (
           <>
             <AgentGlyph
@@ -111,6 +111,32 @@ export function MainBar({ sidebarOpen, onShowSidebar, editorOpen, onToggleEditor
         <WindowControls />
       </div>
     </header>
+  );
+}
+
+/**
+ * "Show sidebar", carrying the chats that wait for the user (an approval, or a finished
+ * turn not seen yet) while the list with their row dots is hidden.
+ */
+function ShowSidebarButton({ onClick }: { onClick: () => void }) {
+  const unread = useUnreadStore((s) => s.ids);
+  const waiting = useAgentStore((s) => attentionCount(s.sessions, unread));
+  const label =
+    waiting > 0
+      ? `${t("Show sidebar")} · ${t("{n} chats need you", { n: waiting })}`
+      : t("Show sidebar");
+  return (
+    <span className="relative inline-flex">
+      <IconButton icon={PanelLeft} label={label} onClick={onClick} />
+      {waiting > 0 && (
+        <span
+          aria-hidden
+          className="pointer-events-none absolute -top-0.5 -right-0.5 min-w-3.5 rounded-full bg-accent px-1 text-center text-[9px] leading-3.5 font-semibold text-accent-fg tabular-nums"
+        >
+          {waiting > 9 ? "9+" : waiting}
+        </span>
+      )}
+    </span>
   );
 }
 

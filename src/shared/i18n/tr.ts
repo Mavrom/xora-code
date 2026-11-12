@@ -13,6 +13,7 @@ export const TR: Record<string, string> = {
   Xora: "Xora",
   // app/FilesDrawer.tsx
   "Show sidebar": "Kenar çubuğunu göster",
+  "{n} chats need you": "{n} sohbet seni bekliyor",
   Files: "Dosyalar",
   // app/Layout.tsx
   Sidebar: "Kenar çubuğu",
