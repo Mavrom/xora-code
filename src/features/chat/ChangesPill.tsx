@@ -29,7 +29,9 @@ function totalStats(changes: readonly ReviewChange[]) {
  */
 export function ChangesPill({ changes, onAccept }: ChangesPillProps) {
   const stats = useMemo(() => totalStats(changes), [changes]);
-  if (changes.length === 0) return null;
+  // While the panel is open it says all of this, with its own Accept.
+  const reviewing = useReviewStore((s) => s.open);
+  if (changes.length === 0 || reviewing) return null;
   return (
     <section
       aria-label={t("Changes")}
