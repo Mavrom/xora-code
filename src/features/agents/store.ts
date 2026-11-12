@@ -127,7 +127,8 @@ export interface AgentStoreState extends AgentData {
   restart: (agentId: AgentId) => Promise<void>;
 
   /** Accepts the listed changes: the core drops its snapshots, then the list clears. */
-  acceptChanges: (sessionId: string) => Promise<void>;
+  /** Lets the core drop its revert snapshots: of one file, or of every file without `path`. */
+  acceptChanges: (sessionId: string, path?: string) => Promise<void>;
   revertChange: (sessionId: string, path: string) => Promise<"reverted" | "conflict">;
   shutdown: () => Promise<void>;
 }
@@ -642,11 +643,14 @@ export function createAgentStore(partial: Partial<AgentStoreDeps> & { ipc: Agent
         }
       },
 
-      acceptChanges: async (sessionId) => {
+      acceptChanges: async (sessionId, path) => {
         // Only after the core has let go: a failed call keeps the list, so a row that is
         // still shown can still be reverted.
-        await deps.ipc.reviewAccept(sessionId, null);
-        patch(sessionId, (v) => ({ ...v, changes: [] }));
+        await deps.ipc.reviewAccept(sessionId, path ?? null);
+        patch(sessionId, (v) => ({
+          ...v,
+          changes: path === undefined ? [] : v.changes.filter((c) => c.path !== path),
+        }));
       },
 
       revertChange: async (sessionId, path) => {

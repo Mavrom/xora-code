@@ -499,6 +499,17 @@ describe("review", () => {
     expect(ipc.reviewAccept).toHaveBeenCalledWith(id, null);
   });
 
+  it("accepts one file, leaving the others revertable", async () => {
+    const { s, ipc } = setup();
+    const id = await s().newSession("claude", "C:\\p");
+    s().ingest({ type: "fileWritten", sessionId: id, path: "/a" });
+    s().ingest({ type: "fileWritten", sessionId: id, path: "/b" });
+    s().flush();
+    await s().acceptChanges(id, "/a");
+    expect(ipc.reviewAccept).toHaveBeenCalledWith(id, "/a");
+    expect(s().sessions[id].changes.map((c) => c.path)).toEqual(["/b"]);
+  });
+
   it("keeps the list when the core refuses the accept", async () => {
     const { s } = setup({ ipc: { reviewAccept: () => Promise.reject(new Error("gone")) } });
     const id = await s().newSession("claude", "C:\\p");
