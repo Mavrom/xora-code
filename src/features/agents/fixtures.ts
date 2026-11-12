@@ -305,6 +305,13 @@ export const FIXTURE_HISTORY: AgentSessionInfo[] = [
     updatedAt: ago(60 * 24 * 6),
   },
   {
+    agentId: "claude",
+    sessionId: "h6",
+    cwd: FIXTURE_CWD,
+    title: "Terminal sekmelerini yeniden adlandır",
+    updatedAt: ago(60 * 24 * 12),
+  },
+  {
     agentId: "codex",
     sessionId: "h5",
     cwd: FIXTURE_CWD,
@@ -716,6 +723,8 @@ export function fixtureSessionView(
 export interface FixtureIpcOptions {
   /** Scenario played for every prompt (cycles through all when omitted). */
   scenario?: FixtureScenarioName;
+  /** The agents' saved conversations (default {@link FIXTURE_HISTORY}; `[]` for a first run). */
+  history?: readonly AgentSessionInfo[];
   /** Delay between events, ms. */
   stepMs?: number;
   agents?: Record<AgentId, AgentInfo>;
@@ -827,7 +836,8 @@ export function createFixtureIpc(opts: FixtureIpcOptions = {}): AgentIpc {
       return setupFor(agentId, `fixture-${agentId}-fork-${++counter}`);
     },
     sessionClose: async () => {},
-    sessionsList: async (agentId) => FIXTURE_HISTORY.filter((h) => h.agentId === agentId),
+    sessionsList: async (agentId) =>
+      (opts.history ?? FIXTURE_HISTORY).filter((h) => h.agentId === agentId),
     sessionArchive: async () => {},
     sessionDelete: async () => {},
     sessionPin: async () => {},
