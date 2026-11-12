@@ -1,5 +1,5 @@
-// The models each agent offers, remembered from its sessions so Settings can list them
-// (to hide some from the picker) even when no chat is open.
+// The models each agent offers, remembered from its sessions so Settings can offer them
+// ("Model ekle") even when no chat is open.
 import { create } from "zustand";
 import type { SelectControl } from "./controls";
 import { useAgentStore } from "./store";
@@ -13,21 +13,8 @@ export interface ModelEntry {
 
 const STORAGE_KEY = "xora.models";
 
-/** How a hidden model is stored in `agent.hiddenModels`. */
+/** How a model was stored in the older `agent.hiddenModels` setting. */
 export const modelKey = (agent: AgentId, value: string) => `${agent}:${value}`;
-
-/** The picker's options minus hidden ones; the model in use always stays. */
-export function visibleModels(
-  agent: AgentId,
-  control: SelectControl,
-  hidden: readonly string[],
-): SelectControl["options"] {
-  if (hidden.length === 0) return control.options;
-  const skip = new Set(hidden);
-  return control.options.filter(
-    (o) => o.value === control.current || !skip.has(modelKey(agent, o.value)),
-  );
-}
 
 type Catalog = Partial<Record<AgentId, ModelEntry[]>>;
 

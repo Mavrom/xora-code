@@ -79,10 +79,15 @@ export default function SettingsView() {
     setSection(entry.section);
     setLanding(entry);
   };
+  // Another part of the app can open a section on a row (the composer's model gear).
+  const target = useSettingsView((s) => s.target);
+
   useEffect(() => {
-    if (!landing?.setting) return;
+    const goal = target ?? landing?.setting;
+    if (!goal) return;
     const id = requestAnimationFrame(() => {
-      const row = root.current?.querySelector<HTMLElement>(`[data-setting="${landing.setting}"]`);
+      if (target) useSettingsView.getState().clearTarget();
+      const row = root.current?.querySelector<HTMLElement>(`[data-setting="${goal}"]`);
       if (!row) return;
       row.scrollIntoView({ block: "center", behavior: "smooth" });
       row.classList.remove("setting-flash");
@@ -90,7 +95,7 @@ export default function SettingsView() {
       row.classList.add("setting-flash");
     });
     return () => cancelAnimationFrame(id);
-  }, [landing, section]);
+  }, [landing, target, section]);
 
   // Focus the active nav item on open; give focus back to where it was on close.
   useLayoutEffect(() => {

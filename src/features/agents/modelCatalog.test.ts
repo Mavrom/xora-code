@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { SelectControl } from "./controls";
-import { modelKey, useModelCatalog, visibleModels } from "./modelCatalog";
+import { modelKey, useModelCatalog } from "./modelCatalog";
 
 const control: SelectControl = {
   key: "model",
@@ -14,21 +14,6 @@ const control: SelectControl = {
   ],
 };
 
-describe("visibleModels", () => {
-  it("drops hidden models of that agent only", () => {
-    const hidden = [modelKey("claude", "haiku"), modelKey("codex", "sonnet")];
-    expect(visibleModels("claude", control, hidden).map((o) => o.value)).toEqual([
-      "opus",
-      "sonnet",
-    ]);
-  });
-
-  it("keeps the model in use even when hidden", () => {
-    const hidden = [modelKey("claude", "opus")];
-    expect(visibleModels("claude", control, hidden).map((o) => o.value)).toContain("opus");
-  });
-});
-
 describe("model catalog", () => {
   it("remembers an agent's models and ignores unchanged lists", () => {
     const { remember } = useModelCatalog.getState();
@@ -37,5 +22,9 @@ describe("model catalog", () => {
     expect(first.claude?.map((m) => m.value)).toEqual(["opus", "sonnet", "haiku"]);
     remember("claude", control.options);
     expect(useModelCatalog.getState().models).toBe(first);
+  });
+
+  it("keys a model by agent the way the older hidden list stored it", () => {
+    expect(modelKey("codex", "o3")).toBe("codex:o3");
   });
 });

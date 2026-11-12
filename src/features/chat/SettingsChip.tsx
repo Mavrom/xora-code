@@ -10,7 +10,8 @@ import {
 } from "react";
 import { Settings2, SlidersHorizontal } from "lucide-react";
 import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
-import { visibleModels } from "@/features/agents/modelCatalog";
+import { useModelCatalog } from "@/features/agents/modelCatalog";
+import { effectiveModels, pickerModels } from "@/features/agents/myModels";
 import { AGENT_IDS } from "@/features/agents/reducer";
 import type { AgentId, AgentInfo } from "@/features/agents/types";
 import { useSettingsStore } from "@/features/settings/store";
@@ -125,6 +126,8 @@ export function SettingsChip({
   /** Room above the chip, so the panel never runs off the window's top edge. */
   const [room, setRoom] = useState<number | null>(null);
   const hiddenModels = useSettingsStore((s) => s.settings.agent.hiddenModels);
+  const storedModels = useSettingsStore((s) => s.settings.agent.myModels[agentId]);
+  const catalog = useModelCatalog((s) => s.models[agentId]);
   const agent = agents[agentId];
   const model = controls?.model;
   const effort = controls?.effort;
@@ -174,7 +177,14 @@ export function SettingsChip({
 
   const rows: Row[] = [];
   if (model) {
-    const shown = { ...model, options: visibleModels(agentId, model, hiddenModels) };
+    // The user's models (Settings > Agent), plus the one in use when it is not among them.
+    const mine = effectiveModels(
+      agentId,
+      storedModels,
+      catalog?.length ? catalog : model.options,
+      hiddenModels,
+    );
+    const shown = { ...model, options: pickerModels(model, mine) };
     const editLabel = t("Edit models…");
     rows.push({
       ...selectRow(
@@ -191,7 +201,7 @@ export function SettingsChip({
           title={editLabel}
           onClick={() => {
             setOpen(false);
-            openSettings("agent");
+            openSettings("agent", `agent.myModels.${agentId}`);
           }}
           className="ml-0.5 grid size-6 shrink-0 place-items-center rounded-md text-fg-subtle transition-colors duration-fast outline-none hover:bg-hover hover:text-fg-muted focus-visible:ring-1 focus-visible:ring-fg-subtle"
         >
