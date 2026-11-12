@@ -281,6 +281,7 @@ export function ChatPanel() {
               controls={session?.controls ?? null}
               onSelectAgent={(id) => void selectAgent(id)}
               onSetControl={setControl}
+              canSwitchAgent={hero}
               defaultOpen={FIXTURE?.open}
             />
           </>

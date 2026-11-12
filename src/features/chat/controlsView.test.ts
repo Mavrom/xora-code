@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { SelectControl } from "@/features/agents/controls";
-import { effortLabel, fitsSegments, modelLabel, pickerSummary, statusNote } from "./controlsView";
+import {
+  effortLabel,
+  modeLabels,
+  modelLabel,
+  modelOptionLabel,
+  pickerSummary,
+  statusNote,
+} from "./controlsView";
 
 const select = (current: string, options: [string, string][]): SelectControl => ({
   key: "k",
@@ -33,27 +40,55 @@ describe("pickerSummary", () => {
     const model = select("pro", [["pro", "Gemini 2.5 Pro"]]);
     const effort = select("medium", [["medium", "Medium"]]);
     const mode = select("plan", [["plan", "Plan mode"]]);
+    const zen = select("zen", [["zen", "Zen mode"]]);
     expect(pickerSummary("Gemini", model, undefined, undefined)).toEqual(["2.5 Pro"]);
     expect(pickerSummary("Codex", undefined, effort, undefined)).toEqual(["Codex", "Orta"]);
     expect(pickerSummary("Claude", model, effort, mode)).toEqual([
       "Gemini 2.5 Pro",
       "Orta",
-      "Plan mode",
+      "Plan",
     ]);
+    expect(pickerSummary("Claude", undefined, undefined, zen)).toEqual(["Claude", "Zen mode"]);
     expect(pickerSummary("Claude", undefined, undefined, undefined)).toEqual(["Claude"]);
   });
 });
 
-describe("fitsSegments", () => {
-  it("takes a few short names in one row", () => {
-    expect(fitsSegments(["Manual", "Plan", "Auto"])).toBe(true);
-    expect(fitsSegments(["Varsayılan", "Düşük", "Orta", "Yüksek", "En yüksek"], 6)).toBe(true);
+describe("modelOptionLabel", () => {
+  it("names the model behind a Default entry when its description does", () => {
+    const def = (description?: string) => ({ value: "default", name: "Default", description });
+    expect(modelOptionLabel(def("Sonnet 5 (önerilen)"), "Claude")).toBe("Sonnet 5");
+    expect(modelOptionLabel(def("Use the default model (currently Opus 4.5)"), "Claude")).toBe(
+      "Opus 4.5",
+    );
+    expect(modelOptionLabel(def("Her görev için önerilen"), "Claude")).toBe("Varsayılan");
+    expect(modelOptionLabel(def(), "Claude")).toBe("Varsayılan");
+    expect(modelOptionLabel({ value: "opus", name: "Opus" }, "Claude")).toBe("Opus");
+  });
+});
+
+describe("modeLabels", () => {
+  it("translates the agents' known modes", () => {
+    const opts = (...values: string[]) => values.map((value) => ({ value, name: `${value}!` }));
+    expect(modeLabels(opts("default", "acceptEdits", "plan", "auto"))).toEqual([
+      "Onay iste",
+      "Düzenlemeler",
+      "Plan",
+      "Otomatik",
+    ]);
+    expect(modeLabels(opts("read-only", "workspace-write", "agent-full-access", "zen"))).toEqual([
+      "Salt okunur",
+      "Çalışma alanı",
+      "Tam erişim",
+      "zen!",
+    ]);
   });
 
-  it("falls back to a list for many options or long names", () => {
-    expect(fitsSegments(["a", "b", "c", "d", "e"])).toBe(false);
-    expect(fitsSegments(["Workspace access", "Read only"])).toBe(false);
-    expect(fitsSegments([])).toBe(false);
+  it("keeps the agent's names where two modes would read the same", () => {
+    const options = [
+      { value: "auto", name: "Auto" },
+      { value: "agent", name: "Auto review" },
+    ];
+    expect(modeLabels(options)).toEqual(["Auto", "Auto review"]);
   });
 });
 

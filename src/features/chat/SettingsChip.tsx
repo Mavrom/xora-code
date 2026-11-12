@@ -8,8 +8,8 @@ import {
   type KeyboardEvent,
   type ReactNode,
 } from "react";
-import { Check, SlidersHorizontal } from "lucide-react";
-import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
+import { Settings2, SlidersHorizontal } from "lucide-react";
+import type { SelectControl, SessionControls } from "@/features/agents/controls";
 import { visibleModels } from "@/features/agents/modelCatalog";
 import { AGENT_IDS } from "@/features/agents/reducer";
 import type { AgentId, AgentInfo } from "@/features/agents/types";
@@ -17,37 +17,38 @@ import { useSettingsStore } from "@/features/settings/store";
 import { openSettings } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { AgentGlyph } from "./AgentGlyph";
-import { effortLabel, fitsSegments, pickerSummary, statusNote } from "./controlsView";
+import {
+  effortLabel,
+  modeLabels,
+  modelOptionLabel,
+  pickerSummary,
+  statusNote,
+} from "./controlsView";
 import { t } from "@/shared/i18n";
 
 type SetControl = (key: string, value: string | boolean) => void;
 
 interface Choice {
   value: string;
-  name: string;
-  description?: string;
-  group?: string;
-  leading?: ReactNode;
-  /** Tooltip (an agent's status on a segment). */
+  label: string;
+  /** The tooltip: the agent's description, or an agent's status. */
   title?: string;
+  leading?: ReactNode;
 }
 
-interface PanelSection {
+interface Row {
   key: string;
+  /** Accessible name of the row's radiogroup. */
   label: string;
   value: string;
-  options: Choice[];
-  layout: "list" | "segments";
+  choices: Choice[];
   onSelect: (value: string) => void;
-  /** A quiet action at the end of a list ("Modelleri düzenle…"). */
-  footer?: { label: string; onSelect: () => void };
+  /** A small control at the end of the row (the gear that edits the model list). */
+  trailing?: ReactNode;
 }
 
 /** Space kept between the panel and the window's top edge. */
 const PANEL_MARGIN = 16;
-
-/** Effort levels get a little more room in one row than modes do. */
-const EFFORT_SEGMENTS = 6;
 
 /**
  * Agent options left out of the panel. `agent` is Claude Code's persona list (custom
@@ -55,47 +56,32 @@ const EFFORT_SEGMENTS = 6;
  */
 const HIDDEN_EXTRAS = new Set(["agent"]);
 
-const choices = (control: SelectControl): Choice[] =>
-  control.options.map((o) => ({
+/** One small button of a row: thin border, filled when it is the current choice. */
+const pill = (on: boolean) =>
+  cn(
+    "inline-flex items-center gap-1.5 rounded-md border px-[9px] py-[3px] text-xs whitespace-nowrap transition-colors duration-fast outline-none focus-visible:ring-1 focus-visible:ring-fg-subtle",
+    on
+      ? "border-fg-subtle/50 bg-border-strong text-fg"
+      : "border-border text-fg-muted hover:border-border-strong hover:text-fg",
+  );
+
+const selectRow = (
+  key: string,
+  label: string,
+  control: SelectControl,
+  onSet: SetControl,
+  labels: string[] = control.options.map((o) => o.name),
+): Row => ({
+  key,
+  label,
+  value: control.current,
+  choices: control.options.map((o, i) => ({
     value: o.value,
-    name: o.name,
-    description: o.description,
-    group: o.group,
-  }));
-
-const layoutFor = (options: Choice[], max?: number): PanelSection["layout"] =>
-  fitsSegments(
-    options.map((o) => o.name),
-    max,
-  )
-    ? "segments"
-    : "list";
-
-/** Agent-specific extras (e.g. Codex fast mode): a toggle becomes an Açık/Kapalı choice. */
-function extraSection(control: Control, onSet: SetControl): PanelSection {
-  if ("boolean" in control) {
-    return {
-      key: control.key,
-      label: control.label,
-      value: control.current ? "on" : "off",
-      options: [
-        { value: "on", name: t("On") },
-        { value: "off", name: t("Off") },
-      ],
-      layout: "segments",
-      onSelect: (value) => onSet(control.key, value === "on"),
-    };
-  }
-  const options = choices(control);
-  return {
-    key: control.key,
-    label: control.label,
-    value: control.current,
-    options,
-    layout: layoutFor(options),
-    onSelect: (value) => onSet(control.key, value),
-  };
-}
+    label: labels[i],
+    title: o.description,
+  })),
+  onSelect: (value) => onSet(control.key, value),
+});
 
 interface SettingsChipProps {
   agents: Record<AgentId, AgentInfo>;
@@ -103,15 +89,17 @@ interface SettingsChipProps {
   controls: SessionControls | null;
   onSelectAgent: (id: AgentId) => void;
   onSetControl: SetControl;
+  /** A new chat, before its first message: the agent can still be switched. */
+  canSwitchAgent: boolean;
   /** Opens on mount (fixture screenshots). */
   defaultOpen?: boolean;
 }
 
 /**
  * The one chip inside the composer: the agent's mark, then model · effort · mode (only the
- * parts the agent reports). It opens a panel above it with the agent, the model list and
- * the effort and mode as segmented rows; a choice applies at once and the panel stays open,
- * so several can be changed in one go.
+ * parts the agent reports). It opens a small panel above it: one row of buttons each for
+ * the agent (new chat only), model, effort and mode, then any agent extras as toggles. A
+ * click applies at once and the panel stays open, so several can be changed in one go.
  */
 export function SettingsChip({
   agents,
@@ -119,6 +107,7 @@ export function SettingsChip({
   controls,
   onSelectAgent,
   onSetControl,
+  canSwitchAgent,
   defaultOpen = false,
 }: SettingsChipProps) {
   const panelId = useId();
@@ -143,12 +132,12 @@ export function SettingsChip({
   useLayoutEffect(() => {
     if (!open) return;
     const top = buttonRef.current?.getBoundingClientRect().top;
-    if (top !== undefined) setRoom(Math.max(160, top - PANEL_MARGIN));
+    if (top !== undefined) setRoom(Math.max(120, top - PANEL_MARGIN));
   }, [open]);
 
   useEffect(() => {
     if (!open) return;
-    // Into the first group, on its current choice.
+    // Into the first row, on its current choice.
     panelRef.current
       ?.querySelector<HTMLElement>("[data-choice][tabindex='0']")
       ?.focus({ preventScroll: true });
@@ -159,67 +148,61 @@ export function SettingsChip({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
-  const sections: PanelSection[] = [
-    {
+  const rows: Row[] = [];
+  if (canSwitchAgent) {
+    rows.push({
       key: "agent",
       label: t("Agent"),
       value: agentId,
-      layout: "segments",
       onSelect: (value) => onSelectAgent(value as AgentId),
-      options: AGENT_IDS.map((id) => ({
+      choices: AGENT_IDS.map((id) => ({
         value: id,
-        name: agents[id].displayName,
+        label: agents[id].displayName,
         leading: <AgentGlyph agent={id} size={12} tinted />,
         title: statusNote(agents[id].status) || undefined,
       })),
-    },
-  ];
+    });
+  }
   if (model) {
-    sections.push({
-      key: "model",
-      label: t("Model"),
-      value: model.current,
-      options: choices({ ...model, options: visibleModels(agentId, model, hiddenModels) }),
-      layout: "list",
-      onSelect: (value) => onSetControl(model.key, value),
-      footer: {
-        label: t("Edit models…"),
-        onSelect: () => {
-          setOpen(false);
-          openSettings("agent");
-        },
-      },
+    const shown = { ...model, options: visibleModels(agentId, model, hiddenModels) };
+    const editLabel = t("Edit models…");
+    rows.push({
+      ...selectRow(
+        "model",
+        t("Model"),
+        shown,
+        onSetControl,
+        shown.options.map((o) => modelOptionLabel(o, agent.displayName)),
+      ),
+      trailing: (
+        <button
+          type="button"
+          aria-label={editLabel}
+          title={editLabel}
+          onClick={() => {
+            setOpen(false);
+            openSettings("agent");
+          }}
+          className="grid size-[26px] shrink-0 place-items-center rounded-md text-fg-subtle transition-colors duration-fast outline-none hover:bg-hover hover:text-fg focus-visible:ring-1 focus-visible:ring-fg-subtle"
+        >
+          <Settings2 size={13} strokeWidth={1.75} aria-hidden />
+        </button>
+      ),
     });
   }
   if (effort) {
-    const options = effort.options.map((o) => ({
-      value: o.value,
-      name: effortLabel(o.value, o.name),
-      description: o.description,
-    }));
-    sections.push({
-      key: "effort",
-      label: t("Effort"),
-      value: effort.current,
-      options,
-      layout: layoutFor(options, EFFORT_SEGMENTS),
-      onSelect: (value) => onSetControl(effort.key, value),
-    });
+    rows.push(
+      selectRow(
+        "effort",
+        t("Effort"),
+        effort,
+        onSetControl,
+        effort.options.map((o) => effortLabel(o.value, o.name)),
+      ),
+    );
   }
-  if (mode) {
-    const options = choices(mode);
-    sections.push({
-      key: "mode",
-      label: t("Mode"),
-      value: mode.current,
-      options,
-      layout: layoutFor(options),
-      onSelect: (value) => onSetControl(mode.key, value),
-    });
-  }
-  for (const control of controls?.extra ?? []) {
-    if (!HIDDEN_EXTRAS.has(control.key)) sections.push(extraSection(control, onSetControl));
-  }
+  if (mode) rows.push(selectRow("mode", t("Mode"), mode, onSetControl, modeLabels(mode.options)));
+  const extras = (controls?.extra ?? []).filter((c) => !HIDDEN_EXTRAS.has(c.key));
 
   const label = t("Agent, model and settings");
   return (
@@ -227,7 +210,7 @@ export function SettingsChip({
       ref={rootRef}
       className="relative min-w-0"
       onBlur={(e) => {
-        // Tabbing past the last group leaves the panel: it closes behind the focus.
+        // Tabbing past the last row leaves the panel: it closes behind the focus.
         if (open && !rootRef.current?.contains(e.relatedTarget as Node | null)) setOpen(false);
       }}
     >
@@ -275,18 +258,40 @@ export function SettingsChip({
           id={panelId}
           role="dialog"
           aria-label={label}
-          style={room === null ? undefined : { maxHeight: Math.min(room, 512) }}
+          style={room === null ? undefined : { maxHeight: room }}
           onKeyDown={(event) => {
             if (event.key !== "Escape") return;
             event.preventDefault();
             event.stopPropagation();
             close(true);
           }}
-          className="absolute bottom-full left-0 z-30 mb-2 flex w-80 max-w-[calc(100vw-2rem)] flex-col gap-3 overflow-y-auto rounded-xl border border-border-strong bg-elevated p-2 shadow-2xl shadow-black/60 transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
+          className="absolute bottom-full left-0 z-30 mb-2 flex w-max max-w-[min(36rem,calc(100vw-2rem))] flex-col gap-[5px] overflow-y-auto rounded-lg border border-border-strong bg-elevated p-1.5 shadow-2xl shadow-black/60 transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
         >
-          {sections.map((section) => (
-            <SectionView key={section.key} section={section} />
+          {rows.map((row) => (
+            <RowView key={row.key} row={row} />
           ))}
+          {extras.length > 0 && (
+            <div className="flex flex-wrap gap-[3px]">
+              {extras.map((control) =>
+                "boolean" in control ? (
+                  <button
+                    key={control.key}
+                    type="button"
+                    aria-pressed={control.current}
+                    onClick={() => onSetControl(control.key, !control.current)}
+                    className={pill(control.current)}
+                  >
+                    {control.label}
+                  </button>
+                ) : (
+                  <RowView
+                    key={control.key}
+                    row={selectRow(control.key, control.label, control, onSetControl)}
+                  />
+                ),
+              )}
+            </div>
+          )}
         </div>
       )}
     </div>
@@ -294,29 +299,26 @@ export function SettingsChip({
 }
 
 /**
- * One titled choice. Arrows move between its options (Up/Down in a list, also Left/Right
- * in a row); Enter, Space or a click applies one. Tab moves on to the next section, which
- * is entered on its current choice.
+ * One row of buttons, a radiogroup. Arrows move between its buttons; Enter, Space or a
+ * click applies one. Tab moves on to the next row, entered on its current choice.
  */
-function SectionView({ section }: { section: PanelSection }) {
-  const headingId = useId();
+function RowView({ row }: { row: Row }) {
   const selected = Math.max(
     0,
-    section.options.findIndex((o) => o.value === section.value),
+    row.choices.findIndex((c) => c.value === row.value),
   );
   const [focus, setFocus] = useState(selected);
   const groupRef = useRef<HTMLDivElement>(null);
-  const segments = section.layout === "segments";
-  const tabStop = section.options[focus] ? focus : selected;
+  const tabStop = row.choices[focus] ? focus : selected;
 
   const onKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
-    const last = section.options.length - 1;
-    const back = event.key === "ArrowUp" || (segments && event.key === "ArrowLeft");
-    const forward = event.key === "ArrowDown" || (segments && event.key === "ArrowRight");
+    const last = row.choices.length - 1;
     let next: number | null = null;
-    if (back) next = tabStop <= 0 ? last : tabStop - 1;
-    else if (forward) next = tabStop >= last ? 0 : tabStop + 1;
-    else if (event.key === "Home") next = 0;
+    if (event.key === "ArrowLeft" || event.key === "ArrowUp") {
+      next = tabStop <= 0 ? last : tabStop - 1;
+    } else if (event.key === "ArrowRight" || event.key === "ArrowDown") {
+      next = tabStop >= last ? 0 : tabStop + 1;
+    } else if (event.key === "Home") next = 0;
     else if (event.key === "End") next = last;
     if (next === null) return;
     event.preventDefault();
@@ -325,96 +327,38 @@ function SectionView({ section }: { section: PanelSection }) {
   };
 
   return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-1">
-      <h3
-        id={headingId}
-        className="px-1.5 text-3xs font-medium tracking-wide text-fg-subtle uppercase"
-      >
-        {section.label}
-      </h3>
+    <div className="flex items-center gap-[3px]">
       <div
         ref={groupRef}
         role="radiogroup"
-        aria-labelledby={headingId}
+        aria-label={row.label}
         onKeyDown={onKeyDown}
-        className={
-          segments
-            ? "flex gap-0.5 rounded-lg border border-border bg-bg p-0.5"
-            : "flex flex-col gap-px"
-        }
+        className="flex flex-wrap gap-[3px]"
       >
-        {section.options.map((option, index) => {
-          const checked = option.value === section.value;
-          const prev = section.options[index - 1];
-          const showGroup = !segments && option.group && option.group !== prev?.group;
+        {row.choices.map((choice, index) => {
+          const checked = choice.value === row.value;
           return (
-            <Fragment key={option.value}>
-              {showGroup && (
-                <div role="presentation" className="px-2 pt-1 pb-0.5 text-3xs text-fg-subtle">
-                  {option.group}
-                </div>
-              )}
-              <button
-                type="button"
-                role="radio"
-                aria-checked={checked}
-                data-choice
-                tabIndex={index === tabStop ? 0 : -1}
-                title={option.title ?? option.description}
-                onFocus={() => setFocus(index)}
-                onClick={() => {
-                  if (!checked) section.onSelect(option.value);
-                }}
-                className={cn(
-                  "transition-colors duration-fast outline-none focus-visible:ring-1 focus-visible:ring-border-strong",
-                  segments
-                    ? cn(
-                        "inline-flex h-7 min-w-0 flex-auto items-center justify-center gap-1 rounded-md px-1.5 text-2xs whitespace-nowrap",
-                        checked
-                          ? "bg-hover text-fg shadow-[inset_0_0_0_1px_var(--color-border-strong)]"
-                          : "text-fg-subtle hover:text-fg",
-                      )
-                    : cn(
-                        "flex min-h-7 w-full items-center gap-2.5 rounded-lg px-2 py-1 text-left",
-                        checked ? "text-fg" : "text-fg-muted hover:bg-hover/80 hover:text-fg",
-                      ),
-                )}
-              >
-                {option.leading}
-                {segments ? (
-                  <span className="truncate">{option.name}</span>
-                ) : (
-                  <>
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-xs">{option.name}</span>
-                      {option.description && (
-                        <span className="mt-px block truncate text-2xs leading-4 text-fg-subtle">
-                          {option.description}
-                        </span>
-                      )}
-                    </span>
-                    <Check
-                      size={13}
-                      strokeWidth={2}
-                      aria-hidden
-                      className={cn("shrink-0", checked ? "opacity-100" : "opacity-0")}
-                    />
-                  </>
-                )}
-              </button>
-            </Fragment>
+            <button
+              key={choice.value}
+              type="button"
+              role="radio"
+              aria-checked={checked}
+              data-choice
+              tabIndex={index === tabStop ? 0 : -1}
+              title={choice.title}
+              onFocus={() => setFocus(index)}
+              onClick={() => {
+                if (!checked) row.onSelect(choice.value);
+              }}
+              className={pill(checked)}
+            >
+              {choice.leading}
+              {choice.label}
+            </button>
           );
         })}
       </div>
-      {section.footer && (
-        <button
-          type="button"
-          onClick={section.footer.onSelect}
-          className="mt-0.5 flex h-7 w-full items-center rounded-lg px-2 text-left text-2xs text-fg-subtle transition-colors duration-fast hover:bg-hover/80 hover:text-fg"
-        >
-          {section.footer.label}
-        </button>
-      )}
-    </section>
+      {row.trailing}
+    </div>
   );
 }
