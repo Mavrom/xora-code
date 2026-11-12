@@ -24,10 +24,10 @@ import {
   X,
   type LucideIcon,
 } from "lucide-react";
+import { openReview } from "@/app/sidebarView";
 import { toggleFiles, useUiStore } from "@/app/uiStore";
 import { closeActiveTab } from "@/features/editor/closeTab";
 import { groupChanges, rowPaths } from "@/features/git/changes";
-import { CHANGES_PANEL_ID } from "@/features/git/ChangesPanel";
 import { useChangesStore } from "@/features/git/changesStore";
 import { useEditorStore } from "@/features/editor/store";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
@@ -68,12 +68,8 @@ function showInbox() {
   requestAnimationFrame(() => document.getElementById(INBOX_COMPOSER_ID)?.focus());
 }
 
-/** Shows the Changes view (where a git action's result appears) and focuses it. */
-function showChanges() {
-  closeSettings();
-  useUiStore.getState().setSidebarView("changes");
-  requestAnimationFrame(() => document.getElementById(CHANGES_PANEL_ID)?.focus());
-}
+/** Shows the Changes view (where a git action's result appears), sidebar and all, focused. */
+const showChanges = openReview;
 
 const gitStatus = () => useChangesStore.getState().status;
 

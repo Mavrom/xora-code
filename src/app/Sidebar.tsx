@@ -19,7 +19,7 @@ import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
 import { describeShortcut } from "@/shared/ui/keys";
 import { AccountCard } from "./AccountCard";
 import { BarButton } from "./SidebarButtons";
-import { focusViewSoon, showView } from "./sidebarView";
+import { focusViewSoon, openReview, showView } from "./sidebarView";
 import { toggleFiles, useUiStore, type SidebarView } from "./uiStore";
 import { NATIVE_CAPTION, TRAFFIC_LIGHT_INSET } from "./WindowControls";
 import { t } from "@/shared/i18n";
@@ -74,6 +74,13 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       const match = VIEWS.find((v) => matchesAction(e, VIEW_ACTIONS[v]));
       if (!match) return;
       e.preventDefault();
+      if (match === "changes") {
+        // Like Review: shows a hidden sidebar; pressed again on the view, back to the chats.
+        const ui = useUiStore.getState();
+        if (ui.sidebarShown && ui.sidebarView === "changes") ui.setSidebarView("sessions");
+        else openReview();
+        return;
+      }
       useUiStore.getState().setSidebarView(match);
       focusViewSoon(match);
     };
