@@ -7,7 +7,13 @@ import {
   usePanelRef,
   type PanelImperativeHandle,
 } from "react-resizable-panels";
-import { emitCommand, onCommand, TOGGLE_EDITOR, TOGGLE_SIDEBAR } from "@/features/commands/events";
+import {
+  emitCommand,
+  onCommand,
+  SHOW_SIDEBAR,
+  TOGGLE_EDITOR,
+  TOGGLE_SIDEBAR,
+} from "@/features/commands/events";
 import { HeroBackdrop } from "@/features/backdrop/HeroBackdrop";
 import { ChatPanel } from "@/features/chat/ChatPanel";
 import { EditorArea } from "@/features/editor/EditorArea";
@@ -18,6 +24,7 @@ import { SettingsHost } from "@/features/settings/SettingsHost";
 import { FilesDrawer } from "./FilesDrawer";
 import { MainBar } from "./MainBar";
 import { Sidebar } from "./Sidebar";
+import { useUiStore } from "./uiStore";
 import { cn } from "@/shared/ui/cn";
 import { ErrorBoundary } from "@/shared/ui/ErrorBoundary";
 import { useSettingsView } from "@/features/settings/viewStore";
@@ -57,7 +64,7 @@ const EDITOR_OPEN_SIZE = 45;
 export function Layout() {
   const sidebarPanel = usePanelRef();
   const editorPanel = usePanelRef();
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const sidebarOpen = useUiStore((s) => s.sidebarShown);
   const [editorOpen, setEditorOpen] = useState(true);
   // Under the settings page only the picture and the window glass show, not the app.
   const settingsOpen = useSettingsView((s) => s.open);
@@ -124,9 +131,14 @@ export function Layout() {
       if (panel.isCollapsed()) panel.expand();
       else panel.collapse();
     });
+    const offShow = onCommand(SHOW_SIDEBAR, () => {
+      const panel = sidebarPanel.current;
+      if (panel?.isCollapsed()) panel.expand();
+    });
     return () => {
       document.removeEventListener("keydown", onKeyDown, true);
       off();
+      offShow();
     };
   }, [sidebarPanel]);
 
@@ -148,7 +160,12 @@ export function Layout() {
           defaultSize="256px"
           minSize="220px"
           maxSize="40%"
-          onResize={(size) => setSidebarOpen(size.asPercentage > 0)}
+          onResize={(size) => {
+            const shown = size.asPercentage > 0;
+            if (shown !== useUiStore.getState().sidebarShown) {
+              useUiStore.getState().setSidebarShown(shown);
+            }
+          }}
         >
           <ErrorBoundary area={t("Sidebar")}>
             <Sidebar onCollapse={() => sidebarPanel.current?.collapse()} />

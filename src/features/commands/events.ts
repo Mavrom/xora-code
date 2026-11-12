@@ -13,6 +13,8 @@ export const QUICK_OPEN = "xora:quick-open";
 export const FIND_IN_FILES = "xora:find-in-files";
 /** Shows or hides the left sidebar (Ctrl+B). */
 export const TOGGLE_SIDEBAR = "xora:toggle-sidebar";
+/** Expands the left sidebar if it is hidden (before showing one of its views). */
+export const SHOW_SIDEBAR = "xora:show-sidebar";
 
 export type CommandEvent =
   | typeof TOGGLE_EDITOR
@@ -21,6 +23,7 @@ export type CommandEvent =
   | typeof OPEN_PALETTE
   | typeof NEW_CHAT
   | typeof TOGGLE_SIDEBAR
+  | typeof SHOW_SIDEBAR
   | typeof QUICK_OPEN
   | typeof FIND_IN_FILES;
 

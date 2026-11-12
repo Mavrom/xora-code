@@ -1,3 +1,4 @@
+import { emitCommand, SHOW_SIDEBAR } from "@/features/commands/events";
 import { CHANGES_PANEL_ID } from "@/features/git/ChangesPanel";
 import { INBOX_COMPOSER_ID } from "@/features/inbox/NoteComposer";
 import { closeSettings } from "@/features/settings/viewStore";
@@ -17,4 +18,14 @@ export function showView(next: SidebarView) {
   closeSettings();
   useUiStore.getState().setSidebarView(next);
   if (next === "inbox") focusViewSoon(next);
+}
+
+/**
+ * Review: the sidebar's Changes view, shown even when the sidebar was hidden, with focus on
+ * it so the keyboard can walk the files.
+ */
+export function openReview() {
+  emitCommand(SHOW_SIDEBAR);
+  showView("changes");
+  focusViewSoon("changes");
 }

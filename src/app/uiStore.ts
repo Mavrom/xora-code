@@ -36,6 +36,9 @@ function write(key: string, value: string) {
 interface UiState {
   sidebarView: SidebarView;
   setSidebarView: (view: SidebarView) => void;
+  /** Whether the sidebar column is expanded (mirrored from the layout's panel; not saved). */
+  sidebarShown: boolean;
+  setSidebarShown: (shown: boolean) => void;
   /** The file tree column on the right of the main area. */
   filesOpen: boolean;
   setFilesOpen: (open: boolean) => void;
@@ -50,6 +53,8 @@ export const useUiStore = create<UiState>((set) => ({
     set({ sidebarView: view });
     write(STORAGE_KEY, view);
   },
+  sidebarShown: true,
+  setSidebarShown: (shown) => set({ sidebarShown: shown }),
   filesOpen: readFiles(),
   setFilesOpen: (open) => {
     set({ filesOpen: open });
