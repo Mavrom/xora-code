@@ -81,9 +81,15 @@ export const TR: Record<string, string> = {
   Setup: "Kurulum",
   "Hide details": "Ayrıntıları gizle",
   Details: "Ayrıntılar",
-  // features/chat/ChangesBar.tsx
+  // features/chat/ChangesPill.tsx, features/git/TurnGroup.tsx
   Changes: "Değişiklikler",
   Accept: "Kabul et",
+  Review: "İncele",
+  "1 file changed": "1 dosya değişti",
+  "{n} files changed": "{n} dosya değişti",
+  "This turn": "Bu tur",
+  "Accept all": "Tümünü kabul et",
+  "Open diff of {name}": "{name} farkını aç",
   new: "yeni",
   "File changed since": "Dosya sonra değişti",
   Revert: "Geri al",

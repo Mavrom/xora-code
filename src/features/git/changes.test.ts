@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  relativeTo,
   activeCheckout,
   changeCount,
   commitBlocker,
@@ -219,5 +220,17 @@ describe("diffSides", () => {
       left: head("a.ts"),
       right: disk,
     });
+  });
+});
+
+describe("relativeTo", () => {
+  it("strips the checkout, whatever the slashes and case", () => {
+    expect(relativeTo("C:\\Work\\App", "c:/work/app/src/a.ts")).toBe("src/a.ts");
+    expect(relativeTo("/home/u/app/", "/home/u/app/README.md")).toBe("README.md");
+  });
+
+  it("keeps a path outside the checkout, or without one", () => {
+    expect(relativeTo("/home/u/app", "/home/u/apple/x.ts")).toBe("/home/u/apple/x.ts");
+    expect(relativeTo(null, "/x.ts")).toBe("/x.ts");
   });
 });

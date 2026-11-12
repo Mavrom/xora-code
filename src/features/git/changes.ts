@@ -227,3 +227,14 @@ export function describeChangesError(err: unknown): string {
       return detail;
   }
 }
+
+/** `path` relative to `root` when it lies inside it (either slash, any case), else as is. */
+export function relativeTo(root: string | null, path: string): string {
+  if (!root) return path;
+  const norm = (p: string) => p.replace(/\\/g, "/").replace(/\/+$/, "");
+  const base = norm(root);
+  const full = norm(path);
+  return full.toLowerCase().startsWith(`${base.toLowerCase()}/`)
+    ? full.slice(base.length + 1)
+    : path;
+}

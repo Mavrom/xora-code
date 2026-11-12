@@ -10,6 +10,7 @@ import { groupChanges } from "./changes";
 import { useChangesStore } from "./changesStore";
 import { CommitBox } from "./CommitBox";
 import type { GitStatus } from "./ipc";
+import { TurnGroup } from "./TurnGroup";
 import { t } from "@/shared/i18n";
 
 /** Focus target when the view is opened from the keyboard (Ctrl+Shift+G). */
@@ -52,11 +53,14 @@ export function ChangesPanel({ back }: { back?: PanelBack } = {}) {
           action={{ label: t("Open folder"), icon: FolderOpen, onClick: () => void openFolder() }}
         />
       ) : problem === "not_repo" ? (
-        <EmptyState
-          icon={FolderGit2}
-          title={t("Not a git repository")}
-          description={t("This folder is not under Git version control.")}
-        />
+        <>
+          <TurnOnly />
+          <EmptyState
+            icon={FolderGit2}
+            title={t("Not a git repository")}
+            description={t("This folder is not under Git version control.")}
+          />
+        </>
       ) : problem === "error" ? (
         <EmptyState
           icon={FolderGit2}
@@ -73,7 +77,17 @@ export function ChangesPanel({ back }: { back?: PanelBack } = {}) {
   );
 }
 
-/** Up/Down walk the file rows of both groups. */
+/** The turn's files alone, for a folder git cannot show (the agent's edits still count). */
+function TurnOnly() {
+  const dir = useChangesStore((s) => s.dir);
+  return (
+    <div className="shrink-0 px-1.5">
+      <TurnGroup root={dir} />
+    </div>
+  );
+}
+
+/** Up/Down walk the file rows of every group. */
 function onListKeyDown(e: KeyboardEvent<HTMLDivElement>) {
   if (e.key !== "ArrowDown" && e.key !== "ArrowUp") return;
   const rows = [...e.currentTarget.querySelectorAll<HTMLElement>("[data-change-row]")];
@@ -94,28 +108,31 @@ function Loaded({ status }: { status: GitStatus }) {
       <BranchBar status={status} />
       <CommitBox />
       <div aria-hidden className="mx-4 mb-1 h-px shrink-0 bg-white/[0.05]" />
-      {status.entries.length === 0 ? (
-        <EmptyState
-          icon={CircleCheck}
-          title={t("No changes")}
-          description={t("The working tree matches the last commit.")}
-        />
-      ) : (
-        <div
-          data-change-list
-          tabIndex={-1}
-          onKeyDown={onListKeyDown}
-          className="min-h-0 flex-1 overflow-x-hidden overflow-y-auto px-1.5 pb-3 outline-none [scrollbar-width:thin]"
-        >
-          <ChangeGroup title={t("Staged")} rows={staged} staged root={status.root} />
-          <ChangeGroup title={t("Changes")} rows={changes} staged={false} root={status.root} />
-          {status.truncated && (
-            <p className="px-2.5 pt-2 text-2xs text-fg-subtle">
-              {t("Only the first {n} changed files are listed.", { n: status.entries.length })}
-            </p>
-          )}
-        </div>
-      )}
+      <div
+        data-change-list
+        tabIndex={-1}
+        onKeyDown={onListKeyDown}
+        className="flex min-h-0 flex-1 flex-col overflow-x-hidden overflow-y-auto px-1.5 pb-3 outline-none [scrollbar-width:thin]"
+      >
+        <TurnGroup root={status.root} />
+        {status.entries.length === 0 ? (
+          <EmptyState
+            icon={CircleCheck}
+            title={t("No changes")}
+            description={t("The working tree matches the last commit.")}
+          />
+        ) : (
+          <>
+            <ChangeGroup title={t("Staged")} rows={staged} staged root={status.root} />
+            <ChangeGroup title={t("Changes")} rows={changes} staged={false} root={status.root} />
+            {status.truncated && (
+              <p className="px-2.5 pt-2 text-2xs text-fg-subtle">
+                {t("Only the first {n} changed files are listed.", { n: status.entries.length })}
+              </p>
+            )}
+          </>
+        )}
+      </div>
     </>
   );
 }

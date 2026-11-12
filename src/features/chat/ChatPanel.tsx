@@ -13,7 +13,7 @@ import { useWorktreeStore } from "@/features/git/worktrees";
 import { ConversationScrim } from "@/features/backdrop/ConversationScrim";
 import { AgentStatusCard } from "./AgentStatusCard";
 import { CheckoutChip } from "./CheckoutChip";
-import { ChangesBar } from "./ChangesBar";
+import { ChangesPill } from "./ChangesPill";
 import { Composer, type ComposerHandle } from "./Composer";
 import {
   AttachMenu,
@@ -256,15 +256,13 @@ export function ChatPanel() {
         </div>
       )}
       {session && !running && (
-        <ChangesBar
+        <ChangesPill
           changes={session.changes}
           onAccept={() =>
             void store()
               .acceptChanges(session.sessionId)
               .catch((e: unknown) => say(errorMessage(e)))
           }
-          onRevert={(path) => store().revertChange(session.sessionId, path)}
-          onRevertFailed={(e) => say(errorMessage(e))}
         />
       )}
       {session && session.queued.length > 0 && <QueuedPrompts session={session} />}
