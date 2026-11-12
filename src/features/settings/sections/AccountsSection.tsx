@@ -5,7 +5,6 @@ import { Button } from "@/shared/ui/Button";
 import { cn } from "@/shared/ui/cn";
 import { useAccountsStore } from "../accountsStore";
 import { CopyField } from "../controls/CopyField";
-import { Segmented } from "../controls/Segmented";
 import { SectionHeader, SettingGroup, SettingRow } from "../controls/SettingRow";
 import { Toggle } from "../controls/Toggle";
 import { settingsIpc, type ProviderStatus } from "../ipc";
@@ -81,23 +80,7 @@ export function AccountsSection() {
         )}
       </div>
 
-      <SettingGroup title={t("Default")} className="mt-10">
-        <SettingRow
-          label={t("Default agent")}
-          setting="agent.defaultAgent"
-          description={t("New chats start with this agent.")}
-          control={(id) => (
-            <Segmented
-              labelledBy={id}
-              value={agent.defaultAgent}
-              options={PROVIDERS.map((p) => ({ value: p.id, label: p.name }))}
-              onChange={(defaultAgent) => update({ agent: { defaultAgent } })}
-            />
-          )}
-        />
-      </SettingGroup>
-
-      <SettingGroup title="Claude Code">
+      <SettingGroup title="Claude Code" className="mt-10">
         <SettingRow
           label={t("Ignore ANTHROPIC_API_KEY")}
           setting="agent.claudeIgnoreApiKey"

@@ -19,6 +19,7 @@ import { cn } from "@/shared/ui/cn";
 import { AgentGlyph } from "./AgentGlyph";
 import {
   effortLabel,
+  extraLabel,
   isFullAccessMode,
   modeLabels,
   modelOptionLabel,
@@ -344,7 +345,7 @@ function LabelledRow({
 function ExtraRow({ control, onSet }: { control: Control; onSet: SetControl }) {
   if ("boolean" in control) {
     return (
-      <LabelledRow label={control.label}>
+      <LabelledRow label={extraLabel(control.key, control.label)}>
         {(id) => (
           <Switch
             labelId={id}
@@ -359,7 +360,7 @@ function ExtraRow({ control, onSet }: { control: Control; onSet: SetControl }) {
   if (onOff) {
     const checked = control.current === onOff.on;
     return (
-      <LabelledRow label={control.label}>
+      <LabelledRow label={extraLabel(control.key, control.label)}>
         {(id) => (
           <Switch
             labelId={id}
@@ -370,9 +371,9 @@ function ExtraRow({ control, onSet }: { control: Control; onSet: SetControl }) {
       </LabelledRow>
     );
   }
-  const row = selectRow(control.key, control.label, control, onSet);
+  const row = selectRow(control.key, extraLabel(control.key, control.label), control, onSet);
   return (
-    <LabelledRow label={control.label}>
+    <LabelledRow label={extraLabel(control.key, control.label)}>
       {(id) => <ChoiceGroup row={row} labelId={id} />}
     </LabelledRow>
   );

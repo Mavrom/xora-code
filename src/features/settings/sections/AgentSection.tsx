@@ -13,10 +13,11 @@ import { useSettingsStore } from "../store";
 import type { AgentMode, ApprovalPolicy, Effort } from "../types";
 import { t } from "@/shared/i18n";
 
+// "chat" is still a valid stored value (older builds offered it) but nothing maps it to an
+// agent mode, so it is not offered and reads as "agent".
 const MODES: { value: AgentMode; label: string }[] = [
   { value: "agent", label: t("Agent") },
   { value: "plan", label: t("Plan") },
-  { value: "chat", label: t("Chat") },
 ];
 
 const EFFORTS: { value: Effort; label: string }[] = [
@@ -85,11 +86,11 @@ export function AgentSection() {
         <SettingRow
           label={t("Default mode")}
           setting="agent.defaultMode"
-          description={t("Agent acts, Plan drafts a plan first, Chat only answers.")}
+          description={t("Agent acts; Plan drafts a plan before changing anything.")}
           control={(id) => (
             <Segmented
               labelledBy={id}
-              value={agent.defaultMode}
+              value={agent.defaultMode === "chat" ? "agent" : agent.defaultMode}
               options={MODES}
               onChange={(defaultMode) => update({ agent: { defaultMode } })}
             />

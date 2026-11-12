@@ -65,6 +65,14 @@ export function onOffValues(options: readonly Option[]): { on: string; off: stri
   return on && off && on !== off ? { on: on.value, off: off.value } : null;
 }
 
+/** Turkish names for the agent extras Codex reports, by config id; others keep theirs. */
+const EXTRA_TR: Record<string, string> = {
+  "fast-mode": t("Fast mode"),
+  collaboration_mode: t("Collaboration"),
+};
+
+export const extraLabel = (key: string, label: string): string => EXTRA_TR[key] ?? label;
+
 /** Name of the selected option, or the raw value when the list does not include it. */
 export function currentName(control: SelectControl): string {
   return control.options.find((o) => o.value === control.current)?.name ?? control.current;

@@ -174,6 +174,8 @@ export const TR: Record<string, string> = {
   Edits: "Düzenlemeler",
   Workspace: "Çalışma alanı",
   "Full access": "Tam erişim",
+  "Fast mode": "Hızlı mod",
+  Collaboration: "Çalışma biçimi",
   Default: "Varsayılan",
   "Not installed": "Kurulu değil",
   "Needs Node.js": "Node.js gerekli",
@@ -643,8 +645,8 @@ export const TR: Record<string, string> = {
     "Yeni bir sohbet başlarken Xora'nın hangi ajanı, hangi modda ve ne kadar serbestçe çalıştıracağını seçin.",
   Defaults: "Varsayılanlar",
   "not installed": "kurulu değil",
-  "Agent acts, Plan drafts a plan first, Chat only answers.":
-    "Ajan uygular, Plan önce bir plan çıkarır, Sohbet yalnızca yanıtlar.",
+  "Agent acts; Plan drafts a plan before changing anything.":
+    "Ajan uygular; Plan değişiklik yapmadan önce bir plan çıkarır.",
   "Applied where the agent supports it. Higher effort is slower but more thorough.":
     "Destekleyen ajanlarda uygulanır. Yüksek efor daha yavaş ama daha titizdir.",
   Diagnostics: "Tanılama",
