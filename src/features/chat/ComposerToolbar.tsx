@@ -1,14 +1,5 @@
 import { useState, type ReactNode } from "react";
-import {
-  ChevronDown,
-  FileCode,
-  FilePlus,
-  Folder,
-  FolderPlus,
-  GitBranch,
-  Monitor,
-  Paperclip,
-} from "lucide-react";
+import { FileCode, FilePlus, FolderPlus, Monitor, Paperclip } from "lucide-react";
 import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
 import { visibleModels } from "@/features/agents/modelCatalog";
 import { AGENT_IDS } from "@/features/agents/reducer";
@@ -77,6 +68,10 @@ const HIDDEN_EXTRAS = new Set(["agent"]);
 /** Muted chip look of the line above and below the composer. */
 const quietChip =
   "inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md px-2 text-xs text-fg-muted transition-colors duration-fast hover:bg-glass hover:text-fg";
+
+/** One part of the context line under the composer: plain muted text until hovered. */
+export const contextPart =
+  "inline-flex h-6 max-w-full min-w-0 shrink items-center rounded-md px-1.5 text-xs text-fg-subtle transition-colors duration-fast hover:bg-glass hover:text-fg-muted";
 
 interface ModelPickerProps {
   agents: Record<AgentId, AgentInfo>;
@@ -166,7 +161,12 @@ export function ModelPicker({
       buttonClassName="inline-flex h-7 max-w-full min-w-0 items-center gap-1.5 rounded-md px-1.5 text-xs transition-colors duration-fast hover:bg-hover"
       leading={<AgentGlyph agent={agentId} size={13} tinted />}
       display={parts.map((part, i) => (
-        <span key={i} className={i === 0 ? "font-medium text-fg" : "ml-1.5 text-fg-subtle"}>
+        <span key={i} className={i === 0 ? "font-medium text-fg" : "text-fg-subtle"}>
+          {i > 0 && (
+            <span aria-hidden className="mx-1.5 text-fg-subtle/60">
+              ·
+            </span>
+          )}
           {part}
         </span>
       ))}
@@ -298,42 +298,54 @@ export function FolderChip({
       type="button"
       onClick={onOpenFolder}
       title={folderName ? t("Open another folder") : t("Open folder")}
-      className={cn(quietChip, "shrink")}
+      className={contextPart}
     >
-      <Folder size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
       <span className="truncate">{folderName ?? t("Choose a folder")}</span>
-      <ChevronDown size={12} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
     </button>
   );
 }
 
 interface ContextRowProps {
-  /** Shown first in the row when the composer has no folder chip above it. */
-  folder?: ReactNode;
-  /** Where the agent works: the repository or one of its worktrees. */
+  /** Where the agent works: the folder. */
+  folder: ReactNode;
+  /** The checkout (repository or worktree) menu; it names the branch itself when present. */
   checkout?: ReactNode;
   branch: string | null;
   /** Right-aligned quiet content (the stop hint while a turn runs). */
   aside?: ReactNode;
 }
 
+const Dot = () => (
+  <span aria-hidden className="shrink-0 text-2xs text-fg-subtle/60">
+    ·
+  </span>
+);
+
 /**
- * The line under the composer: the folder (docked), the checkout and the git branch the
- * agent works on.
+ * The one quiet line under the composer: folder · branch (or worktree). Each part opens the
+ * same menu its chip did; at rest it is plain muted text.
  */
 export function ContextRow({ folder, checkout, branch, aside }: ContextRowProps) {
   return (
-    <div className="mt-2 flex min-h-7 items-center gap-1 @container">
+    <div className="mt-1.5 flex min-h-6 items-center gap-0.5 px-1 @container">
       {folder}
-      {checkout}
-      {branch && (
-        <span
-          title={t("Git branch: {branch}", { branch })}
-          className={cn(quietChip, "shrink hover:bg-transparent")}
-        >
-          <GitBranch size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
-          <span className="truncate">{branch}</span>
-        </span>
+      {checkout ? (
+        <>
+          <Dot />
+          {checkout}
+        </>
+      ) : (
+        branch && (
+          <>
+            <Dot />
+            <span
+              title={t("Git branch: {branch}", { branch })}
+              className={cn(contextPart, "hover:bg-transparent hover:text-fg-subtle")}
+            >
+              <span className="truncate">{branch}</span>
+            </span>
+          </>
+        )
       )}
       <span className="flex-1" />
       {aside && <div className="hidden shrink-0 @[34rem]:block">{aside}</div>}

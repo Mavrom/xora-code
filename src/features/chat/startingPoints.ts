@@ -6,7 +6,7 @@ import type { Note } from "@/shared/lib/ipc";
 import { msg } from "@/shared/i18n";
 
 /** At most this many starting points are shown. */
-export const MAX_STARTING_POINTS = 4;
+export const MAX_STARTING_POINTS = 3;
 
 /** A prompt for an open folder: a short label, and the text it puts in the composer. */
 export interface StarterPrompt {
@@ -48,7 +48,11 @@ export interface StartingPointsInput {
   prompts?: readonly StarterPrompt[];
 }
 
-/** Which starting points to show, in order: continue, Inbox, then starter prompts. */
+/**
+ * Which starting points to show, in order: continue, Inbox, then starter prompts. Only for a
+ * project with no conversation yet: a returning user gets a clean hero (the sidebar already
+ * lists their chats).
+ */
 export function startingPoints({
   sessions,
   projectPaths,
@@ -57,6 +61,10 @@ export function startingPoints({
   prompts = STARTER_PROMPTS,
 }: StartingPointsInput): StartingPoint[] {
   const out: StartingPoint[] = [];
+  const hasHistory = sessions.some(
+    (e) => e.sessionId !== currentSessionId && projectPaths.some((p) => sameProject(e.cwd, p)),
+  );
+  if (hasHistory) return out;
 
   const last = sessions.find(
     (e) =>

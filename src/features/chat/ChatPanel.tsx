@@ -40,6 +40,13 @@ import { t } from "@/shared/i18n";
 
 const NOTICE_MS = 3200;
 
+/**
+ * Places an agent can run. Only this computer today (HostChip's menu has that one entry), so
+ * the host chip carries no information and stays hidden; the computer's name is on the
+ * sidebar's account card. Remote hosts or accounts would raise this.
+ */
+const HOST_ENVIRONMENTS: number = 1;
+
 /** Whether the agent accepts image blocks in a prompt (ACP `promptCapabilities.image`). */
 function takesImages(status: AgentStatus): boolean {
   if (status.state !== "ready") return false;
@@ -309,10 +316,16 @@ export function ChatPanel() {
         onRefused={say}
       />
       <ContextRow
-        folder={hero ? null : folderChip}
+        folder={folderChip}
         checkout={
           root && cwd ? (
-            <CheckoutChip repo={root} cwd={cwd} chatTitle={session?.title ?? null} onNotice={say} />
+            <CheckoutChip
+              repo={root}
+              cwd={cwd}
+              chatTitle={session?.title ?? null}
+              branch={branch}
+              onNotice={say}
+            />
           ) : null
         }
         branch={branch}
@@ -333,11 +346,12 @@ export function ChatPanel() {
       <div className="flex h-full flex-col overflow-x-hidden overflow-y-auto">
         <div aria-hidden className="min-h-6 flex-1" />
         <section aria-label={t("New chat")} className="mx-auto w-full max-w-186 px-6">
-          {/* Where the agent will work, just above the field. */}
-          <div className="mb-1 flex justify-end gap-1">
-            <HostChip hostname={hostname} />
-            {folderChip}
-          </div>
+          {/* Where the agent runs: a chip only once there is more than one place to choose. */}
+          {HOST_ENVIRONMENTS > 1 && (
+            <div className="mb-1 flex justify-end">
+              <HostChip hostname={hostname} />
+            </div>
+          )}
           {composer}
         </section>
         {/* The starting points live in the space under the composer, so they never move it:

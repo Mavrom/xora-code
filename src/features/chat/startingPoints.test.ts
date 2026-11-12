@@ -45,21 +45,15 @@ const input = (extra: Partial<StartingPointsInput> = {}): StartingPointsInput =>
 const kinds = (points: ReturnType<typeof startingPoints>) => points.map((p) => p.kind);
 
 describe("startingPoints", () => {
-  it("orders continue, Inbox, then prompts, capped at the maximum", () => {
-    const points = startingPoints(input({ sessions: [entry("a")], notes: [note("n")] }));
-    expect(kinds(points)).toEqual(["continue", "note", "prompt", "prompt"]);
+  it("orders Inbox, then prompts, capped at the maximum", () => {
+    const points = startingPoints(input({ notes: [note("n")] }));
+    expect(kinds(points)).toEqual(["note", "prompt", "prompt"]);
     expect(points).toHaveLength(MAX_STARTING_POINTS);
-    expect(points[2]).toEqual({ kind: "prompt", prompt: STARTER_PROMPTS[0] });
+    expect(points[1]).toEqual({ kind: "prompt", prompt: STARTER_PROMPTS[0] });
   });
 
   it("fills the free slots with starter prompts", () => {
     expect(kinds(startingPoints(input()))).toEqual(["prompt", "prompt", "prompt"]);
-    expect(kinds(startingPoints(input({ notes: [note("n")] })))).toEqual([
-      "note",
-      "prompt",
-      "prompt",
-      "prompt",
-    ]);
   });
 
   it("never goes past the maximum, however many prompts there are", () => {
@@ -78,32 +72,28 @@ describe("startingPoints", () => {
     expect(kinds(points)).toEqual(["note"]);
   });
 
-  describe("continue", () => {
-    it("is the newest conversation of the open project, its worktrees included", () => {
-      const sessions = [
-        entry("other", { cwd: "C:\\work\\elsewhere" }),
-        entry("wt", { cwd: "C:/Work/App-wt/" }),
-        entry("repo"),
-      ];
-      const points = startingPoints(
-        input({ sessions, projectPaths: ["C:\\work\\app", "C:\\work\\app-wt"] }),
-      );
-      expect(points[0]).toEqual({ kind: "continue", entry: sessions[1] });
+  describe("a returning user", () => {
+    it("gets none once the project has a conversation, its worktrees and archive included", () => {
+      const notes = [note("n")];
+      expect(startingPoints(input({ sessions: [entry("a")], notes }))).toEqual([]);
+      expect(
+        startingPoints(
+          input({
+            sessions: [entry("wt", { cwd: "C:/Work/App-wt/" })],
+            projectPaths: ["C:\\work\\app", "C:\\work\\app-wt"],
+            notes,
+          }),
+        ),
+      ).toEqual([]);
+      expect(startingPoints(input({ sessions: [entry("old", { archived: true })] }))).toEqual([]);
     });
 
-    it("skips archived conversations and the chat on screen", () => {
-      const sessions = [entry("current"), entry("old", { archived: true }), entry("b")];
-      const points = startingPoints(input({ sessions, currentSessionId: "current" }));
-      expect(points[0]).toEqual({ kind: "continue", entry: sessions[2] });
-    });
-
-    it("is absent when the project has no other conversation", () => {
+    it("does not count the chat on screen or other projects' chats", () => {
       const sessions = [entry("current"), entry("x", { cwd: "D:\\x" })];
       const points = startingPoints(input({ sessions, currentSessionId: "current" }));
-      expect(kinds(points)).not.toContain("continue");
+      expect(kinds(points)).toEqual(["prompt", "prompt", "prompt"]);
     });
   });
-
   describe("Inbox", () => {
     it("is the pinned open note first, else the newest open one", () => {
       const notes = [note("new", { createdAt: 3 }), note("pin", { pinned: true, createdAt: 1 })];

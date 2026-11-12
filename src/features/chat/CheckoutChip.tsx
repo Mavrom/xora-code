@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { ask } from "@tauri-apps/plugin-dialog";
-import { ChevronDown, FolderGit2, GitBranchPlus, GitMerge, Monitor, Trash2 } from "lucide-react";
+import { FolderGit2, GitBranchPlus, GitMerge, Monitor, Trash2 } from "lucide-react";
 import { projectKey } from "@/features/agents/sessionList";
 import { useAgentStore } from "@/features/agents/store";
 import {
@@ -14,6 +14,7 @@ import { cn } from "@/shared/ui/cn";
 import { ContextMenu } from "@/shared/ui/ContextMenu";
 import { SEPARATOR, type MenuEntry } from "@/shared/ui/menuModel";
 import { t } from "@/shared/i18n";
+import { contextPart } from "./ComposerToolbar";
 
 interface CheckoutChipProps {
   /** The open repository. */
@@ -22,6 +23,8 @@ interface CheckoutChipProps {
   cwd: string;
   /** Title of the current chat, for the commit that takes a worktree's work home. */
   chatTitle: string | null;
+  /** The branch the chat works on, named on the line when it is the main checkout. */
+  branch: string | null;
   onNotice: (text: string) => void;
 }
 
@@ -53,7 +56,7 @@ async function closeChatsIn(path: string) {
  * own `xora/<name>` branch so the agent never touches your working tree. A worktree's
  * work is taken home (fast-forward into the main checkout's branch) or thrown away here.
  */
-export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipProps) {
+export function CheckoutChip({ repo, cwd, chatTitle, branch, onNotice }: CheckoutChipProps) {
   const worktrees = useWorktreeStore(selectWorktrees(repo));
   const [at, setAt] = useState<{ x: number; y: number } | null>(null);
   const [busy, setBusy] = useState(false);
@@ -184,20 +187,18 @@ export function CheckoutChip({ repo, cwd, chatTitle, onNotice }: CheckoutChipPro
           setAt(at ? null : { x: r.left, y: r.bottom + 6 });
         }}
         className={cn(
-          "inline-flex h-7 max-w-full min-w-0 shrink items-center gap-1.5 rounded-md px-2 text-xs transition-colors duration-fast disabled:opacity-60",
-          at ? "bg-glass text-fg" : "text-fg-muted hover:bg-glass hover:text-fg",
+          contextPart,
+          "disabled:opacity-60",
+          at && "bg-glass text-fg-muted",
           busy && "animate-pulse",
         )}
       >
-        {current ? (
-          <FolderGit2 size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
-        ) : (
-          <Monitor size={13} strokeWidth={1.75} aria-hidden className="shrink-0" />
+        {current && (
+          <FolderGit2 size={12} strokeWidth={1.75} aria-hidden className="mr-1 shrink-0" />
         )}
         <span className="truncate">
-          {current ? worktreeName(current.path) : t("Current checkout")}
+          {current ? worktreeName(current.path) : (branch ?? main.branch ?? t("Current checkout"))}
         </span>
-        <ChevronDown size={12} strokeWidth={1.75} aria-hidden className="shrink-0 text-fg-subtle" />
       </button>
       {at && (
         <ContextMenu
