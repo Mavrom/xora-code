@@ -2,9 +2,11 @@ import { describe, expect, it } from "vitest";
 import type { SelectControl } from "@/features/agents/controls";
 import {
   effortLabel,
+  isFullAccessMode,
   modeLabels,
   modelLabel,
   modelOptionLabel,
+  onOffValues,
   pickerSummary,
   statusNote,
 } from "./controlsView";
@@ -89,6 +91,43 @@ describe("modeLabels", () => {
       { value: "agent", name: "Auto review" },
     ];
     expect(modeLabels(options)).toEqual(["Auto", "Auto review"]);
+  });
+});
+
+describe("isFullAccessMode", () => {
+  it("knows the modes that skip every approval", () => {
+    expect(isFullAccessMode("bypassPermissions")).toBe(true);
+    expect(isFullAccessMode("agent-full-access")).toBe(true);
+    expect(isFullAccessMode("yolo")).toBe(true);
+    expect(isFullAccessMode("auto")).toBe(false);
+    expect(isFullAccessMode("default")).toBe(false);
+  });
+});
+
+describe("onOffValues", () => {
+  it("finds the on and off values of a two-option switch", () => {
+    expect(
+      onOffValues([
+        { value: "disabled", name: "Disabled" },
+        { value: "enabled", name: "Enabled" },
+      ]),
+    ).toEqual({ on: "enabled", off: "disabled" });
+    expect(
+      onOffValues([
+        { value: "a", name: "On" },
+        { value: "b", name: "Off" },
+      ]),
+    ).toEqual({ on: "a", off: "b" });
+  });
+
+  it("is null for any other choice", () => {
+    expect(
+      onOffValues([
+        { value: "default", name: "Default" },
+        { value: "plan", name: "Plan" },
+      ]),
+    ).toBeNull();
+    expect(onOffValues([{ value: "on", name: "On" }])).toBeNull();
   });
 });
 

@@ -9,7 +9,7 @@ import {
   type ReactNode,
 } from "react";
 import { Settings2, SlidersHorizontal } from "lucide-react";
-import type { SelectControl, SessionControls } from "@/features/agents/controls";
+import type { Control, SelectControl, SessionControls } from "@/features/agents/controls";
 import { visibleModels } from "@/features/agents/modelCatalog";
 import { AGENT_IDS } from "@/features/agents/reducer";
 import type { AgentId, AgentInfo } from "@/features/agents/types";
@@ -19,8 +19,10 @@ import { cn } from "@/shared/ui/cn";
 import { AgentGlyph } from "./AgentGlyph";
 import {
   effortLabel,
+  isFullAccessMode,
   modeLabels,
   modelOptionLabel,
+  onOffValues,
   pickerSummary,
   statusNote,
 } from "./controlsView";
@@ -34,11 +36,13 @@ interface Choice {
   /** The tooltip: the agent's description, or an agent's status. */
   title?: string;
   leading?: ReactNode;
+  /** Shown in warning tone while selected (a mode that skips every approval). */
+  warn?: boolean;
 }
 
 interface Row {
   key: string;
-  /** Accessible name of the row's radiogroup. */
+  /** The row's visible label, also its radiogroup's accessible name. */
   label: string;
   value: string;
   choices: Choice[];
@@ -56,13 +60,15 @@ const PANEL_MARGIN = 16;
  */
 const HIDDEN_EXTRAS = new Set(["agent"]);
 
-/** One small button of a row: thin border, filled when it is the current choice. */
-const pill = (on: boolean) =>
+/** One choice: plain muted text, a soft fill when current (warning tone for full access). */
+const choiceClass = (checked: boolean, warn = false) =>
   cn(
-    "inline-flex items-center gap-1.5 rounded-md border px-[9px] py-[3px] text-xs whitespace-nowrap transition-colors duration-fast outline-none focus-visible:ring-1 focus-visible:ring-fg-subtle",
-    on
-      ? "border-fg-subtle/50 bg-border-strong text-fg"
-      : "border-border text-fg-muted hover:border-border-strong hover:text-fg",
+    "inline-flex items-center gap-1.5 rounded-md px-2 py-[3px] text-[12.5px] whitespace-nowrap transition-colors duration-fast outline-none focus-visible:ring-1 focus-visible:ring-fg-subtle",
+    checked
+      ? warn
+        ? "bg-warning/10 text-warning"
+        : "bg-border-strong text-fg"
+      : "text-fg-subtle hover:bg-hover hover:text-fg-muted",
   );
 
 const selectRow = (
@@ -97,9 +103,9 @@ interface SettingsChipProps {
 
 /**
  * The one chip inside the composer: the agent's mark, then model · effort · mode (only the
- * parts the agent reports). It opens a small panel above it: one row of buttons each for
- * the agent (new chat only), model, effort and mode, then any agent extras as toggles. A
- * click applies at once and the panel stays open, so several can be changed in one go.
+ * parts the agent reports). It opens a small panel above it: the agent (new chat only),
+ * then a labelled grid of rows for the model, effort, mode and any agent extras. A click
+ * applies at once and the panel stays open, so several can be changed in one go.
  */
 export function SettingsChip({
   agents,
@@ -123,6 +129,8 @@ export function SettingsChip({
   const effort = controls?.effort;
   const mode = controls?.mode;
   const parts = pickerSummary(agent.displayName, model, effort, mode);
+  // The mode is the last part when there is one.
+  const warnLast = mode !== undefined && isFullAccessMode(mode.current);
 
   const close = (refocus: boolean) => {
     setOpen(false);
@@ -148,21 +156,22 @@ export function SettingsChip({
     return () => document.removeEventListener("pointerdown", onPointerDown);
   }, [open]);
 
+  const agentRow: Row | null = canSwitchAgent
+    ? {
+        key: "agent",
+        label: t("Agent"),
+        value: agentId,
+        onSelect: (value) => onSelectAgent(value as AgentId),
+        choices: AGENT_IDS.map((id) => ({
+          value: id,
+          label: agents[id].displayName,
+          leading: <AgentGlyph agent={id} size={12} tinted />,
+          title: statusNote(agents[id].status) || undefined,
+        })),
+      }
+    : null;
+
   const rows: Row[] = [];
-  if (canSwitchAgent) {
-    rows.push({
-      key: "agent",
-      label: t("Agent"),
-      value: agentId,
-      onSelect: (value) => onSelectAgent(value as AgentId),
-      choices: AGENT_IDS.map((id) => ({
-        value: id,
-        label: agents[id].displayName,
-        leading: <AgentGlyph agent={id} size={12} tinted />,
-        title: statusNote(agents[id].status) || undefined,
-      })),
-    });
-  }
   if (model) {
     const shown = { ...model, options: visibleModels(agentId, model, hiddenModels) };
     const editLabel = t("Edit models…");
@@ -183,7 +192,7 @@ export function SettingsChip({
             setOpen(false);
             openSettings("agent");
           }}
-          className="grid size-[26px] shrink-0 place-items-center rounded-md text-fg-subtle transition-colors duration-fast outline-none hover:bg-hover hover:text-fg focus-visible:ring-1 focus-visible:ring-fg-subtle"
+          className="ml-0.5 grid size-6 shrink-0 place-items-center rounded-md text-fg-subtle transition-colors duration-fast outline-none hover:bg-hover hover:text-fg-muted focus-visible:ring-1 focus-visible:ring-fg-subtle"
         >
           <Settings2 size={13} strokeWidth={1.75} aria-hidden />
         </button>
@@ -201,7 +210,13 @@ export function SettingsChip({
       ),
     );
   }
-  if (mode) rows.push(selectRow("mode", t("Mode"), mode, onSetControl, modeLabels(mode.options)));
+  if (mode) {
+    const row = selectRow("mode", t("Mode"), mode, onSetControl, modeLabels(mode.options));
+    rows.push({
+      ...row,
+      choices: row.choices.map((c) => ({ ...c, warn: isFullAccessMode(c.value) })),
+    });
+  }
   const extras = (controls?.extra ?? []).filter((c) => !HIDDEN_EXTRAS.has(c.key));
 
   const label = t("Agent, model and settings");
@@ -241,7 +256,17 @@ export function SettingsChip({
                   ·
                 </span>
               )}
-              <span className={i === 0 ? "font-medium text-fg" : "text-fg-subtle"}>{part}</span>
+              <span
+                className={
+                  i === 0
+                    ? "font-medium text-fg"
+                    : warnLast && i === parts.length - 1
+                      ? "text-warning"
+                      : "text-fg-subtle"
+                }
+              >
+                {part}
+              </span>
             </Fragment>
           ))}
         </span>
@@ -265,44 +290,136 @@ export function SettingsChip({
             event.stopPropagation();
             close(true);
           }}
-          className="absolute bottom-full left-0 z-30 mb-2 flex w-max max-w-[min(36rem,calc(100vw-2rem))] flex-col gap-[5px] overflow-y-auto rounded-lg border border-border-strong bg-elevated p-1.5 shadow-2xl shadow-black/60 transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
+          className="absolute bottom-full left-0 z-30 mb-2 w-max max-w-[min(34rem,calc(100vw-2rem))] overflow-y-auto rounded-xl border border-border-strong bg-elevated px-2.5 pt-2 pb-2.5 shadow-2xl shadow-black/60 transition-[opacity,translate] duration-base ease-out-quint starting:translate-y-1 starting:opacity-0"
         >
-          {rows.map((row) => (
-            <RowView key={row.key} row={row} />
-          ))}
-          {extras.length > 0 && (
-            <div className="flex flex-wrap gap-[3px]">
-              {extras.map((control) =>
-                "boolean" in control ? (
-                  <button
-                    key={control.key}
-                    type="button"
-                    aria-pressed={control.current}
-                    onClick={() => onSetControl(control.key, !control.current)}
-                    className={pill(control.current)}
-                  >
-                    {control.label}
-                  </button>
-                ) : (
-                  <RowView
-                    key={control.key}
-                    row={selectRow(control.key, control.label, control, onSetControl)}
-                  />
-                ),
-              )}
+          {agentRow && (
+            <div className="mb-1.5 border-b border-border pb-1.5">
+              <ChoiceGroup row={agentRow} labelId={undefined} />
             </div>
           )}
+          <div className="grid grid-cols-[auto_minmax(0,1fr)] items-center gap-x-3.5 gap-y-1">
+            {rows.map((row) => (
+              <LabelledRow key={row.key} label={row.label}>
+                {(id) => (
+                  <>
+                    <ChoiceGroup row={row} labelId={id} />
+                    {row.trailing}
+                  </>
+                )}
+              </LabelledRow>
+            ))}
+            {extras.map((control) => (
+              <ExtraRow key={control.key} control={control} onSet={onSetControl} />
+            ))}
+          </div>
         </div>
       )}
     </div>
   );
 }
 
+/** One grid line: the muted label on the left, the row's controls on the right. */
+function LabelledRow({
+  label,
+  children,
+}: {
+  label: string;
+  children: (labelId: string) => ReactNode;
+}) {
+  const id = useId();
+  return (
+    <>
+      <span id={id} className="text-[11.5px] whitespace-nowrap text-fg-subtle">
+        {label}
+      </span>
+      <div className="flex min-w-0 flex-wrap items-center">{children(id)}</div>
+    </>
+  );
+}
+
 /**
- * One row of buttons, a radiogroup. Arrows move between its buttons; Enter, Space or a
- * click applies one. Tab moves on to the next row, entered on its current choice.
+ * An agent extra: a switch when it is a toggle (or a select of just on and off), else a
+ * row of choices like the others.
  */
-function RowView({ row }: { row: Row }) {
+function ExtraRow({ control, onSet }: { control: Control; onSet: SetControl }) {
+  if ("boolean" in control) {
+    return (
+      <LabelledRow label={control.label}>
+        {(id) => (
+          <Switch
+            labelId={id}
+            checked={control.current}
+            onToggle={() => onSet(control.key, !control.current)}
+          />
+        )}
+      </LabelledRow>
+    );
+  }
+  const onOff = onOffValues(control.options);
+  if (onOff) {
+    const checked = control.current === onOff.on;
+    return (
+      <LabelledRow label={control.label}>
+        {(id) => (
+          <Switch
+            labelId={id}
+            checked={checked}
+            onToggle={() => onSet(control.key, checked ? onOff.off : onOff.on)}
+          />
+        )}
+      </LabelledRow>
+    );
+  }
+  const row = selectRow(control.key, control.label, control, onSet);
+  return (
+    <LabelledRow label={control.label}>
+      {(id) => <ChoiceGroup row={row} labelId={id} />}
+    </LabelledRow>
+  );
+}
+
+function Switch({
+  labelId,
+  checked,
+  onToggle,
+}: {
+  labelId: string;
+  checked: boolean;
+  onToggle: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      role="switch"
+      aria-checked={checked}
+      aria-labelledby={labelId}
+      onClick={onToggle}
+      className="my-1 ml-2 inline-flex h-4 w-7 shrink-0 items-center rounded-full outline-none focus-visible:ring-1 focus-visible:ring-fg-subtle"
+    >
+      <span
+        aria-hidden
+        className={cn(
+          "flex h-4 w-7 items-center rounded-full px-0.5 transition-colors duration-fast",
+          checked ? "bg-fg-muted" : "bg-border-strong",
+        )}
+      >
+        <span
+          className={cn(
+            "size-3 rounded-full transition-transform duration-fast ease-out-quint",
+            checked ? "translate-x-3 bg-bg" : "bg-fg-subtle",
+          )}
+        />
+      </span>
+    </button>
+  );
+}
+
+/**
+ * One row of choices, a radiogroup named by its visible label (or its own label for the
+ * agent row). Arrows move between choices; Enter, Space or a click applies one. Tab moves
+ * on to the next row, entered on its current choice.
+ */
+function ChoiceGroup({ row, labelId }: { row: Row; labelId: string | undefined }) {
   const selected = Math.max(
     0,
     row.choices.findIndex((c) => c.value === row.value),
@@ -327,38 +444,36 @@ function RowView({ row }: { row: Row }) {
   };
 
   return (
-    <div className="flex items-center gap-[3px]">
-      <div
-        ref={groupRef}
-        role="radiogroup"
-        aria-label={row.label}
-        onKeyDown={onKeyDown}
-        className="flex flex-wrap gap-[3px]"
-      >
-        {row.choices.map((choice, index) => {
-          const checked = choice.value === row.value;
-          return (
-            <button
-              key={choice.value}
-              type="button"
-              role="radio"
-              aria-checked={checked}
-              data-choice
-              tabIndex={index === tabStop ? 0 : -1}
-              title={choice.title}
-              onFocus={() => setFocus(index)}
-              onClick={() => {
-                if (!checked) row.onSelect(choice.value);
-              }}
-              className={pill(checked)}
-            >
-              {choice.leading}
-              {choice.label}
-            </button>
-          );
-        })}
-      </div>
-      {row.trailing}
+    <div
+      ref={groupRef}
+      role="radiogroup"
+      aria-labelledby={labelId}
+      aria-label={labelId ? undefined : row.label}
+      onKeyDown={onKeyDown}
+      className="flex flex-wrap gap-px"
+    >
+      {row.choices.map((choice, index) => {
+        const checked = choice.value === row.value;
+        return (
+          <button
+            key={choice.value}
+            type="button"
+            role="radio"
+            aria-checked={checked}
+            data-choice
+            tabIndex={index === tabStop ? 0 : -1}
+            title={choice.title}
+            onFocus={() => setFocus(index)}
+            onClick={() => {
+              if (!checked) row.onSelect(choice.value);
+            }}
+            className={choiceClass(checked, choice.warn)}
+          >
+            {choice.leading}
+            {choice.label}
+          </button>
+        );
+      })}
     </div>
   );
 }

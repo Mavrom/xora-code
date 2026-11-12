@@ -41,6 +41,30 @@ const MODE_TR: Record<string, string> = {
   "agent-full-access": t("Full access"),
 };
 
+/**
+ * Modes that skip every approval (Claude's bypass, Codex's full access, Gemini's YOLO): the
+ * panel and the chip show them in warning tone. Kept to ids the agents are known to send.
+ */
+const FULL_ACCESS_MODES = new Set(["bypassPermissions", "agent-full-access", "yolo"]);
+
+export const isFullAccessMode = (value: string): boolean => FULL_ACCESS_MODES.has(value);
+
+const ON = new Set(["on", "true", "enabled", "enable", "yes"]);
+const OFF = new Set(["off", "false", "disabled", "disable", "no"]);
+
+/**
+ * The two values of an on/off choice reported as a select ("On" / "Off", "enabled" /
+ * "disabled"), so it can be a switch; null for any other select.
+ */
+export function onOffValues(options: readonly Option[]): { on: string; off: string } | null {
+  if (options.length !== 2) return null;
+  const is = (set: Set<string>, o: Option) =>
+    set.has(o.value.toLowerCase()) || set.has(o.name.trim().toLowerCase());
+  const on = options.find((o) => is(ON, o));
+  const off = options.find((o) => is(OFF, o));
+  return on && off && on !== off ? { on: on.value, off: off.value } : null;
+}
+
 /** Name of the selected option, or the raw value when the list does not include it. */
 export function currentName(control: SelectControl): string {
   return control.options.find((o) => o.value === control.current)?.name ?? control.current;
