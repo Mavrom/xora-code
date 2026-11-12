@@ -40,6 +40,7 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
         { id: "plan", name: "Plan mode" },
       ],
     },
+    // As Claude Code reports them: four models, six effort levels, five modes, one toggle.
     configOptions: [
       {
         id: "model",
@@ -50,6 +51,7 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
         options: [
           { value: "default", name: "Default", description: "Sonnet 5 (önerilen)" },
           { value: "opus", name: "Opus", description: "En yetenekli model" },
+          { value: "sonnet[1m]", name: "Sonnet (1M)", description: "Uzun bağlamlı Sonnet" },
           { value: "haiku", name: "Haiku", description: "Hızlı ve hafif" },
         ],
       },
@@ -68,6 +70,11 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
           },
           { value: "plan", name: "Plan mode", description: "Önce plan, değişiklik yok" },
           { value: "auto", name: "Auto", description: "Güvenli işlemleri kendi yapar" },
+          {
+            value: "bypassPermissions",
+            name: "Bypass permissions",
+            description: "Hiçbir şey için izin istemez",
+          },
         ],
       },
       {
@@ -81,8 +88,16 @@ export const FIXTURE_SETUPS: Record<AgentId, SessionSetup> = {
           { value: "low", name: "Low" },
           { value: "medium", name: "Medium" },
           { value: "high", name: "High" },
+          { value: "xhigh", name: "Extra high" },
           { value: "max", name: "Max" },
         ],
+      },
+      {
+        id: "thinking",
+        name: "Thinking",
+        category: "_claude_thinking",
+        type: "boolean",
+        currentValue: true,
       },
     ],
     models: null,
