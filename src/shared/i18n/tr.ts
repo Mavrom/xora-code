@@ -148,7 +148,6 @@ export const TR: Record<string, string> = {
   Off: "Kapalı",
   // features/chat/SettingsChip.tsx
   Effort: "Efor",
-  "Edit models…": "Modelleri düzenle…",
   "Agent, model and settings": "Agent, model ve ayarlar",
   "File…": "Dosya…",
   "Folder…": "Klasör…",
