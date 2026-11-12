@@ -65,13 +65,20 @@ export function onOffValues(options: readonly Option[]): { on: string; off: stri
   return on && off && on !== off ? { on: on.value, off: off.value } : null;
 }
 
-/** Turkish names for the agent extras Codex reports, by config id; others keep theirs. */
-const EXTRA_TR: Record<string, string> = {
-  "fast-mode": t("Fast mode"),
-  collaboration_mode: t("Collaboration"),
+/**
+ * Translated names for the agent extras Claude and Codex report, matched by config id
+ * with `-`, `_` and case ignored (Codex says `fast-mode`, Claude `fast_mode`). Looked up
+ * when rendered, so the interface language is the current one; others keep their name.
+ */
+const EXTRA_NAMES: Record<string, () => string> = {
+  fastmode: () => t("Fast mode"),
+  collaborationmode: () => t("Collaboration"),
 };
 
-export const extraLabel = (key: string, label: string): string => EXTRA_TR[key] ?? label;
+export const extraLabel = (key: string, label: string): string =>
+  EXTRA_NAMES[key.replace(/[-_]/g, "").toLowerCase()]?.() ??
+  EXTRA_NAMES[label.replace(/[\s_-]/g, "").toLowerCase()]?.() ??
+  label;
 
 /** Name of the selected option, or the raw value when the list does not include it. */
 export function currentName(control: SelectControl): string {

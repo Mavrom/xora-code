@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import type { SelectControl } from "@/features/agents/controls";
 import {
   effortLabel,
+  extraLabel,
   isFullAccessMode,
   modeLabels,
   modelLabel,
@@ -25,6 +26,16 @@ describe("effortLabel", () => {
     expect(effortLabel("XHIGH")).toBe("Çok yüksek");
     expect(effortLabel("turbo", "Turbo")).toBe("Turbo");
     expect(effortLabel("turbo")).toBe("turbo");
+  });
+});
+
+describe("extraLabel", () => {
+  it("translates Claude's and Codex's extras whatever the id spelling", () => {
+    expect(extraLabel("fast-mode", "Fast mode")).toBe("Hızlı mod");
+    expect(extraLabel("fast_mode", "Fast mode")).toBe("Hızlı mod");
+    expect(extraLabel("x", "Fast mode")).toBe("Hızlı mod");
+    expect(extraLabel("collaboration_mode", "Collaboration mode")).toBe("Çalışma biçimi");
+    expect(extraLabel("thinking", "Thinking")).toBe("Thinking");
   });
 });
 
