@@ -13,6 +13,7 @@ import { useInboxStore } from "@/features/inbox/store";
 import { closeSettings, useSettingsView } from "@/features/settings/viewStore";
 import { cn } from "@/shared/ui/cn";
 import { Kbd } from "@/shared/ui/Kbd";
+import type { PanelBack } from "@/shared/ui/PanelHeader";
 import type { ActionId } from "@/features/keymap/actions";
 import { matchesAction, PLATFORM, useShortcut } from "@/features/keymap/keymap";
 import { describeShortcut } from "@/shared/ui/keys";
@@ -37,8 +38,8 @@ const VIEWS = Object.keys(VIEW_ACTIONS) as SidebarView[];
 /**
  * The left column: the conversations, nothing else at rest. Top: window controls and
  * history arrows (also the drag handle), then New chat with search beside it. Middle: the
- * conversation list (or, when asked for, the Inbox with a way back). Bottom: this computer
- * and the agent's state, with the Inbox and Settings beside it.
+ * conversation list (or, when asked for, the Changes or the Inbox, each with a way back).
+ * Bottom: this computer and the agent's state, with Changes, Inbox and Settings beside it.
  */
 export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const view = useUiStore((s) => s.sidebarView);
@@ -49,6 +50,12 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
   const paletteShortcut = useShortcut("palette.open");
   const paletteKeys = paletteShortcut ? describeShortcut(paletteShortcut, PLATFORM) : undefined;
   const searchLabel = t("Search");
+  const sessionsKeys = useShortcut("view.sessions");
+  const back: PanelBack = {
+    label: t("Back to chats"),
+    shortcut: sessionsKeys,
+    onClick: () => showView("sessions"),
+  };
 
   // Load once at startup so the badge is right before the inbox is opened.
   useEffect(() => {
@@ -138,41 +145,22 @@ export function Sidebar({ onCollapse }: { onCollapse: () => void }) {
       </div>
 
       {/* All stay mounted so switching views keeps drafts. */}
-      <div aria-label={t("Sidebar view")} className="relative mt-2 min-h-0 flex-1">
+      <div className="relative mt-2 min-h-0 flex-1">
         <div className="flex h-full flex-col" hidden={view !== "sessions"}>
           <ProjectPicker />
           <div className="min-h-0 flex-1">
             <SessionList />
           </div>
         </div>
-        <div className="flex h-full flex-col" hidden={view !== "inbox"}>
-          <BackToChats />
-          <div className="min-h-0 flex-1">
-            <InboxPanel />
-          </div>
+        <div className="h-full" hidden={view !== "inbox"}>
+          <InboxPanel back={back} />
         </div>
         <div className="h-full" hidden={view !== "changes"}>
-          <ChangesPanel />
+          <ChangesPanel back={back} />
         </div>
       </div>
 
-      <AccountCard settingsOpen={settingsOpen} inboxOpen={!settingsOpen && view === "inbox"} />
-    </div>
-  );
-}
-
-/** The way out of the Inbox, back to the conversations it replaced. */
-function BackToChats() {
-  return (
-    <div className="flex h-8 shrink-0 items-center px-2.5">
-      <button
-        type="button"
-        onClick={() => showView("sessions")}
-        className="inline-flex h-7 items-center gap-1.5 rounded-md px-1.5 text-xs text-fg-muted transition-colors duration-fast hover:bg-white/[0.04] hover:text-fg"
-      >
-        <ArrowLeft size={13} strokeWidth={1.75} aria-hidden />
-        {t("Chats")}
-      </button>
+      <AccountCard settingsOpen={settingsOpen} view={settingsOpen ? null : view} />
     </div>
   );
 }

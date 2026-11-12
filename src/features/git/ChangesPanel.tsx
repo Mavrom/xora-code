@@ -3,7 +3,7 @@ import { CircleCheck, FolderGit2, FolderOpen, RotateCw } from "lucide-react";
 import { openFolder } from "@/features/workspace/openFolder";
 import { EmptyState } from "@/shared/ui/EmptyState";
 import { IconButton } from "@/shared/ui/IconButton";
-import { PanelHeader } from "@/shared/ui/PanelHeader";
+import { PanelHeader, type PanelBack } from "@/shared/ui/PanelHeader";
 import { BranchBar } from "./BranchBar";
 import { ChangeGroup } from "./ChangeGroup";
 import { groupChanges } from "./changes";
@@ -17,9 +17,10 @@ export const CHANGES_PANEL_ID = "changes-panel";
 
 /**
  * The Changes view: the active checkout's branch with Pull / Push, a commit message, and
- * its staged and unstaged files, each unfolding to a diff.
+ * its staged and unstaged files, each unfolding to a diff. `back` puts a way out before the
+ * title (the sidebar shows it in place of the chats).
  */
-export function ChangesPanel() {
+export function ChangesPanel({ back }: { back?: PanelBack } = {}) {
   const status = useChangesStore((s) => s.status);
   const problem = useChangesStore((s) => s.problem);
   const error = useChangesStore((s) => s.error);
@@ -36,6 +37,7 @@ export function ChangesPanel() {
     >
       <PanelHeader
         title={t("Changes")}
+        back={back}
         actions={
           dir ? (
             <IconButton size="sm" icon={RotateCw} label={t("Refresh")} onClick={refresh} />

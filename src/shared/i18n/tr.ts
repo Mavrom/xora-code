@@ -37,7 +37,7 @@ export const TR: Record<string, string> = {
   Back: "Geri",
   Forward: "İleri",
   Search: "Ara",
-  "Sidebar view": "Kenar çubuğu görünümü",
+  "Back to chats": "Sohbetlere dön",
   Chats: "Sohbetler",
   "All projects": "Tüm projeler",
   Project: "Proje",

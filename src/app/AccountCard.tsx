@@ -1,7 +1,11 @@
-import { Inbox, Settings } from "lucide-react";
+import { GitBranch, Inbox, Settings, type LucideIcon } from "lucide-react";
+import { changeCount } from "@/features/git/changes";
+import { useChangesStore } from "@/features/git/changesStore";
 import { openCount } from "@/features/inbox/sortNotes";
 import { useInboxStore } from "@/features/inbox/store";
+import type { ActionId } from "@/features/keymap/actions";
 import { showView } from "./sidebarView";
+import type { SidebarView } from "./uiStore";
 import { useAgentStore } from "@/features/agents/store";
 import { PLATFORM, useShortcut } from "@/features/keymap/keymap";
 import { describeShortcut } from "@/shared/ui/keys";
@@ -17,26 +21,37 @@ import { t } from "@/shared/i18n";
 /** The avatar's ring: the three agents' own colours. */
 const RING = `conic-gradient(from 210deg, ${AGENT_TINT.claude}, ${AGENT_TINT.gemini}, ${AGENT_TINT.codex}, ${AGENT_TINT.claude})`;
 
-/** The Inbox, out of the way: an icon with its open-note count, beside Settings. */
-function InboxButton({ open }: { open: boolean }) {
-  const count = useInboxStore((s) => openCount(s.notes));
-  const shortcut = useShortcut("view.inbox");
+interface ViewButtonProps {
+  view: Exclude<SidebarView, "sessions">;
+  icon: LucideIcon;
+  label: string;
+  action: ActionId;
+  count: number;
+  open: boolean;
+}
+
+/**
+ * A sidebar view kept out of the way: an icon with its count, beside Settings. It opens the
+ * view in place of the chats, and closes it again.
+ */
+function ViewButton({ view, icon: Icon, label, action, count, open }: ViewButtonProps) {
+  const shortcut = useShortcut(action);
   const keys = shortcut ? describeShortcut(shortcut, PLATFORM) : undefined;
-  const label = count > 0 ? `${t("Inbox")} (${count})` : t("Inbox");
+  const name = count > 0 ? `${label} (${count})` : label;
   return (
     <button
       type="button"
       aria-pressed={open}
-      aria-label={label}
+      aria-label={name}
       aria-keyshortcuts={keys}
-      title={keys ? `${label} · ${keys}` : label}
-      onClick={() => showView(open ? "sessions" : "inbox")}
+      title={keys ? `${name} (${keys})` : name}
+      onClick={() => showView(open ? "sessions" : view)}
       className={cn(
         "relative grid size-8 shrink-0 place-items-center rounded-lg transition-colors duration-fast",
         open ? "bg-white/[0.08] text-fg" : "text-fg-subtle hover:bg-white/[0.05] hover:text-fg",
       )}
     >
-      <Inbox size={15} strokeWidth={1.75} aria-hidden />
+      <Icon size={15} strokeWidth={1.75} aria-hidden />
       {count > 0 && (
         <span
           aria-hidden
@@ -49,14 +64,19 @@ function InboxButton({ open }: { open: boolean }) {
   );
 }
 
-/** Bottom card: this computer, the selected agent's state, the Inbox and the way into settings. */
+/**
+ * Bottom card: this computer, the selected agent's state, the Changes and the Inbox, and the
+ * way into settings. `view` is the sidebar view on screen (null while settings cover it).
+ */
 export function AccountCard({
   settingsOpen,
-  inboxOpen,
+  view,
 }: {
   settingsOpen: boolean;
-  inboxOpen: boolean;
+  view: SidebarView | null;
 }) {
+  const changes = useChangesStore((s) => changeCount(s.status));
+  const notes = useInboxStore((s) => openCount(s.notes));
   const hostname = useHostname();
   const agentId = useAgentStore((s) => s.selectedAgent);
   const agent = useAgentStore((s) => s.agents[s.selectedAgent]);
@@ -103,7 +123,22 @@ export function AccountCard({
             </span>
           </span>
         </button>
-        <InboxButton open={inboxOpen} />
+        <ViewButton
+          view="changes"
+          icon={GitBranch}
+          label={t("Changes")}
+          action="view.changes"
+          count={changes}
+          open={view === "changes"}
+        />
+        <ViewButton
+          view="inbox"
+          icon={Inbox}
+          label={t("Inbox")}
+          action="view.inbox"
+          count={notes}
+          open={view === "inbox"}
+        />
         <button
           type="button"
           aria-pressed={settingsOpen}

@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { ChevronRight, Inbox, RotateCw } from "lucide-react";
 import { EmptyState } from "@/shared/ui/EmptyState";
-import { PanelHeader } from "@/shared/ui/PanelHeader";
+import { PanelHeader, type PanelBack } from "@/shared/ui/PanelHeader";
 import { cn } from "@/shared/ui/cn";
 import type { Note } from "@/shared/lib/ipc";
 import { NoteComposer } from "./NoteComposer";
@@ -27,7 +27,8 @@ function useNow(intervalMs = 60_000) {
   return now;
 }
 
-export function InboxPanel() {
+/** `back` puts a way out before the title (the sidebar shows the Inbox in place of the chats). */
+export function InboxPanel({ back }: { back?: PanelBack } = {}) {
   const notes = useInboxStore((s) => s.notes);
   const status = useInboxStore((s) => s.status);
   const error = useInboxStore((s) => s.error);
@@ -61,6 +62,7 @@ export function InboxPanel() {
     >
       <PanelHeader
         title={t("Inbox")}
+        back={back}
         actions={
           status === "ready" && open.length > 0 ? (
             <span
