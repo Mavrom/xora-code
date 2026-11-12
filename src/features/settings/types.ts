@@ -42,9 +42,16 @@ export interface AgentSettings {
   claudeIgnoreApiKey: boolean;
   /** Log agent protocol traffic for troubleshooting. */
   debugLogs: boolean;
-  /** Models left out of the composer's picker, as "<agent>:<model id>". */
+  /**
+   * Models left out of the composer's picker, as "<agent>:<model id>". Superseded by
+   * `myModels`; still read to seed an agent's list that was never customised.
+   */
   hiddenModels: string[];
+  /** Per agent, the model ids the composer's picker offers; null until customised. */
+  myModels: MyModels;
 }
+
+export type MyModels = Record<AgentId, string[] | null>;
 
 export interface EditorSettings {
   fontSize: number;
@@ -144,6 +151,7 @@ export const DEFAULT_SETTINGS: Settings = {
     claudeIgnoreApiKey: true,
     debugLogs: false,
     hiddenModels: [],
+    myModels: { claude: null, codex: null, gemini: null },
   },
   editor: {
     fontSize: 13,

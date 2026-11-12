@@ -115,8 +115,52 @@ pub struct Agent {
     pub claude_ignore_api_key: bool,
     /// Write agent protocol traffic to the log for troubleshooting.
     pub debug_logs: bool,
-    /// Models left out of the composer's picker, as `"<agent>:<model id>"`.
+    /// Models left out of the composer's picker, as `"<agent>:<model id>"`. Superseded by
+    /// `my_models`; still read to seed an agent's list that was never customised.
     pub hidden_models: Vec<String>,
+    /// The models each agent's picker offers, in order.
+    pub my_models: MyModels,
+}
+
+/// Per agent, the model ids its picker offers. `None`: never customised (the UI picks
+/// defaults); `Some(list)`: the user's own list, possibly empty.
+#[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Default)]
+#[serde(rename_all = "camelCase", default)]
+pub struct MyModels {
+    pub claude: Option<Vec<String>>,
+    pub codex: Option<Vec<String>>,
+    pub gemini: Option<Vec<String>>,
+}
+
+/// Longest list of models one agent keeps, and longest model id.
+const MY_MODELS_MAX: usize = 32;
+const MODEL_ID_MAX: usize = 200;
+
+impl MyModels {
+    /// Trims ids, drops empty, overlong and repeated ones, and caps each list.
+    fn normalized(self) -> Self {
+        let clean = |list: Option<Vec<String>>| {
+            list.map(|ids| {
+                let mut out: Vec<String> = Vec::new();
+                for id in ids {
+                    let id = id.trim();
+                    if id.is_empty() || id.len() > MODEL_ID_MAX || out.iter().any(|o| o == id) {
+                        continue;
+                    }
+                    out.push(id.to_owned());
+                    if out.len() == MY_MODELS_MAX {
+                        break;
+                    }
+                }
+                out
+            })
+        };
+        Self {
+            claude: clean(self.claude),
+            codex: clean(self.codex),
+            gemini: clean(self.gemini),
+        }
+    }
 }
 
 impl Default for Agent {
@@ -129,6 +173,7 @@ impl Default for Agent {
             claude_ignore_api_key: true,
             debug_logs: false,
             hidden_models: Vec::new(),
+            my_models: MyModels::default(),
         }
     }
 }
@@ -360,6 +405,7 @@ impl Settings {
             .terminal
             .font_size
             .clamp(FONT_SIZE_RANGE.0, FONT_SIZE_RANGE.1);
+        self.agent.my_models = std::mem::take(&mut self.agent.my_models).normalized();
         let look = &mut self.appearance;
         look.ui_scale = look.ui_scale.clamp(UI_SCALE_RANGE.0, UI_SCALE_RANGE.1);
         look.dim = look.dim.clamp(DIM_RANGE.0, DIM_RANGE.1);
@@ -644,6 +690,54 @@ mod tests {
             from_value(&json!({ "general": { "language": "klingon", "sendKey": "ctrlEnter" } }));
         assert_eq!(unknown.general.language, Language::Auto);
         assert_eq!(unknown.general.send_key, SendKey::CtrlEnter);
+    }
+
+    #[test]
+    fn my_models_are_kept_per_agent_and_cleaned() {
+        assert_eq!(Settings::default().agent.my_models, MyModels::default());
+        let value = json!({ "agent": { "myModels": {
+            "codex": [" gpt-5.5 ", "", "gpt-5.5", "o3"],
+            "claude": []
+        } } });
+        let models = from_value(&value).agent.my_models;
+        assert_eq!(
+            models.codex.as_deref(),
+            Some(&["gpt-5.5".to_owned(), "o3".to_owned()][..])
+        );
+        assert_eq!(models.claude.as_deref(), Some(&[][..]));
+        assert_eq!(models.gemini, None);
+
+        let bad = json!({ "agent": { "myModels": { "codex": "gpt-5.5", "gemini": [1] } } });
+        assert_eq!(from_value(&bad).agent.my_models, MyModels::default());
+
+        let long = vec!["m"; 40]
+            .iter()
+            .enumerate()
+            .map(|(i, m)| format!("{m}{i}"))
+            .collect::<Vec<_>>();
+        let capped = from_value(&json!({ "agent": { "myModels": { "claude": long } } }));
+        assert_eq!(
+            capped.agent.my_models.claude.map(|l| l.len()),
+            Some(MY_MODELS_MAX)
+        );
+    }
+
+    #[test]
+    fn a_patch_sets_one_agents_models_and_keeps_the_others() {
+        let current = from_value(&json!({ "agent": { "myModels": { "claude": ["opus"] } } }));
+        let next = apply_patch(
+            &current,
+            &json!({ "agent": { "myModels": { "codex": ["o3"] } } }),
+        )
+        .unwrap();
+        assert_eq!(
+            next.agent.my_models.claude.as_deref(),
+            Some(&["opus".to_owned()][..])
+        );
+        assert_eq!(
+            next.agent.my_models.codex.as_deref(),
+            Some(&["o3".to_owned()][..])
+        );
     }
 
     #[test]
